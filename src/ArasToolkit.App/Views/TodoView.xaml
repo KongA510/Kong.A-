@@ -61,8 +61,10 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="个人任务" FontSize="20" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding DueTodayHint}" FontSize="12" Foreground="#EF4444"
-                               VerticalAlignment="Center" Margin="10,0,0,0" />
+                    <TextBlock Text="{Binding DueTodayHint}" FontSize="13" Foreground="#EF4444"
+                               VerticalAlignment="Center" Margin="12,0,0,0" />
+                    <TextBlock Text="{Binding UpcomingDueHint}" FontSize="13" Foreground="#F59E0B"
+                               VerticalAlignment="Center" Margin="8,0,0,0" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="新增" Command="{Binding AddCommand}" Padding="14,6" Background="#6366F1"
@@ -102,10 +104,14 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="🔍" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
-                        <TextBox Grid.Column="1" Text="{Binding SearchKeyword, Delay=300}"
+                        <TextBox Grid.Column="1" Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}"
                                  BorderThickness="0" Background="Transparent" VerticalAlignment="Center" FontSize="13" />
+                        <Button Grid.Column="2" Content="搜索" Command="{Binding SearchCommand}" Width="48" Height="28"
+                                Background="#6366F1" Foreground="White" BorderThickness="0" Cursor="Hand" FontSize="12"
+                                Margin="4,0,0,0" />
                     </Grid>
                 </Border>
                 <ComboBox Grid.Column="1" ItemsSource="{Binding ProjectNameOptions}"

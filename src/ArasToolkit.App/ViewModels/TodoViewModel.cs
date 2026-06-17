@@ -27,6 +27,7 @@ public class TodoViewModel : ObservableObject
     private PersonalTask? _detailItem;
     private bool _isDetailOpen;
     private int _dueTodayCount;
+    private int _upcomingDueCount;
     private ObservableCollection<string> _projectNameOptions = ["全部"];
 
     // ===== 编辑字段 =====
@@ -55,6 +56,7 @@ public class TodoViewModel : ObservableObject
 
         // 筛选命令
         ApplyFilterCommand = new RelayCommand(async _ => { CurrentPage = 1; await LoadDataAsync(); });
+        SearchCommand = new RelayCommand(async _ => { CurrentPage = 1; await LoadDataAsync(); });
 
         // CRUD 命令
         AddCommand = new RelayCommand(_ => StartAdd());
@@ -94,6 +96,7 @@ public class TodoViewModel : ObservableObject
     public int TotalPages => Math.Max(1, (int)Math.Ceiling((double)TotalCount / _pageSize));
     public string PageInfo => $"第 {CurrentPage}/{TotalPages} 页  共 {TotalCount} 条";
     public int DueTodayCount { get => _dueTodayCount; set => SetProperty(ref _dueTodayCount, value); }
+    public int UpcomingDueCount { get => _upcomingDueCount; set { SetProperty(ref _upcomingDueCount, value); OnPropertyChanged(nameof(UpcomingDueHint)); } }
 
     // ===== 筛选属性 =====
     public string FilterStatus
@@ -129,7 +132,8 @@ public class TodoViewModel : ObservableObject
     // ===== 状态属性 =====
     public bool IsLoading { get => _isLoading; set => SetProperty(ref _isLoading, value); }
     public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
-    public string DueTodayHint => DueTodayCount > 0 ? $"📌 {DueTodayCount} 个任务今日到期" : "";
+    public string DueTodayHint => DueTodayCount > 0 ? $"进入 {DueTodayCount}" : "";
+    public string UpcomingDueHint => UpcomingDueCount > 0 ? $"即将到期 {UpcomingDueCount}" : "";
 
     /// <summary>已选中的条目数量</summary>
     public int SelectedCount
@@ -155,6 +159,7 @@ public class TodoViewModel : ObservableObject
     public ICommand NextPageCommand { get; }
     public ICommand LastPageCommand { get; }
     public ICommand ApplyFilterCommand { get; }
+    public ICommand SearchCommand { get; }
     public ICommand AddCommand { get; }
     public ICommand EditCommand { get; }
     public ICommand DeleteCommand { get; }
@@ -182,6 +187,7 @@ public class TodoViewModel : ObservableObject
             TotalCount = total;
             UpdatePagingCommands();
             DueTodayCount = await _todoService.GetDueTodayCountAsync();
+            UpcomingDueCount = await _todoService.GetUpcomingDueCountAsync();
             var filterDesc = FilterProjectName != "全部" ? $"{FilterProjectName} / {FilterStatus}" : FilterStatus;
             StatusMessage = $"{filterDesc}：共 {total} 条";
             OnPropertyChanged(nameof(PageInfo));
