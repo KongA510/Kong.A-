@@ -13,35 +13,36 @@
         <converters:StringToVisibilityConverter x:Key="StringToVisibility" />
         <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
         <converters:ProgressToColorConverter x:Key="ProgressToColorConverter" />
-        <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
 
         <Style x:Key="TaskCardStyle" TargetType="Border">
             <Setter Property="Background" Value="White" />
             <Setter Property="BorderBrush" Value="#E5E7EB" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="16" />
-            <Setter Property="Width" Value="350" />
-            <Setter Property="Margin" Value="0,0,14,14" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="Width" Value="340" />
+            <Setter Property="Margin" Value="0,0,10,10" />
         </Style>
 
-        <Style x:Key="IconButton" TargetType="Button">
-            <Setter Property="Width" Value="28" />
-            <Setter Property="Height" Value="28" />
+        <Style x:Key="IconBtn" TargetType="Button">
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="24" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontSize" Value="14" />
-            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Padding" Value="0" />
         </Style>
 
-        <Style x:Key="ToolbarButton" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="16,8" />
+        <Style x:Key="PageBtn" TargetType="Button">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="#D1D5DB" />
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontSize" Value="14" />
+            
         </Style>
     </UserControl.Resources>
     <Grid>
@@ -54,83 +55,71 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Row 0: Toolbar -->
-        <Border Grid.Row="0" Background="White" Padding="24,16" Margin="0,0,0,0"
-                BorderBrush="#E5E7EB" BorderThickness="0,0,0,1">
+        <!-- Row 0: 顶栏 -->
+        <Border Grid.Row="0" Background="White" Padding="20,14" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="&#x1F4CB;" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <TextBlock Text="Todo" FontSize="20" FontWeight="SemiBold"
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="个人任务" FontSize="20" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding DueTodayHint}" FontSize="12"
-                               Foreground="#EF4444" VerticalAlignment="Center" Margin="12,0,0,0" />
+                    <TextBlock Text="{Binding DueTodayHint}" FontSize="12" Foreground="#EF4444"
+                               VerticalAlignment="Center" Margin="10,0,0,0" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Style="{StaticResource ToolbarButton}" Command="{Binding AddCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="+" FontSize="16" FontWeight="Bold" Margin="0,0,6,0" />
-                            <TextBlock Text="New Task" />
-                        </StackPanel>
-                    </Button>
-                    <Button Style="{StaticResource ToolbarButton}" Command="{Binding ImportExcelCommand}"
-                            Margin="8,0,0,0" Background="#10B981">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#x1F4C1;" Margin="0,0,6,0" />
-                            <TextBlock Text="Import Excel" />
-                        </StackPanel>
-                    </Button>
-                    <Button Style="{StaticResource ToolbarButton}" Command="{Binding ExportTemplateCommand}"
-                            Margin="8,0,0,0" Background="#8B5CF6">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#x1F4E5;" Margin="0,0,6,0" />
-                            <TextBlock Text="Download Template" />
-                        </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="新增" Command="{Binding AddCommand}" Padding="14,6" Background="#6366F1"
+                            Foreground="White" BorderThickness="0" Cursor="Hand" FontSize="13" />
+                    <Button Content="📥 导入Excel" Command="{Binding ImportExcelCommand}" Padding="14,6"
+                            Background="#10B981" Foreground="White" BorderThickness="0" Cursor="Hand"
+                            FontSize="13" Margin="8,0,0,0" />
+                    <Button Content="📄 下载模板" Command="{Binding ExportTemplateCommand}" Padding="14,6"
+                            Background="#8B5CF6" Foreground="White" BorderThickness="0" Cursor="Hand"
+                            FontSize="13" Margin="8,0,0,0" />
+                    <Button Padding="14,6" Background="#EF4444" Foreground="White" BorderThickness="0"
+                            Cursor="Hand" FontSize="13" Margin="16,0,0,0"
+                            Command="{Binding BatchDeleteCommand}">
+                        <Button.Content>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="删除选中(" />
+                                <TextBlock Text="{Binding SelectedCount}" />
+                                <TextBlock Text=")" />
+                            </StackPanel>
+                        </Button.Content>
                     </Button>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Row 1: Search & Filter Bar -->
-        <Border Grid.Row="1" Background="White" Padding="24,12"
-                BorderBrush="#F3F4F6" BorderThickness="0,0,0,1">
+        <!-- Row 1: 搜索/过滤栏 -->
+        <Border Grid.Row="1" Background="White" Padding="20,10" BorderBrush="#F3F4F6" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Background="#F9FAFB" CornerRadius="8" Padding="10,6"
+                <Border Grid.Column="0" Background="#F9FAFB" CornerRadius="6" Padding="8,6"
                         BorderBrush="#E5E7EB" BorderThickness="1" Height="36">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="&#x1F50D;" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock Grid.Column="0" Text="🔍" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
                         <TextBox Grid.Column="1" Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}"
-                                 BorderThickness="0" Background="Transparent" VerticalAlignment="Center"
-                                 FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
+                                 BorderThickness="0" Background="Transparent" VerticalAlignment="Center" FontSize="13" />
                     </Grid>
                 </Border>
                 <ComboBox Grid.Column="1" ItemsSource="{Binding ProjectNameOptions}"
-                          SelectedItem="{Binding FilterProjectName}" Width="140" Margin="10,0,0,0"
-                          Height="36" FontSize="13" />
+                          SelectedItem="{Binding FilterProjectName}"
+                          Width="130" Height="36" Margin="8,0,0,0" FontSize="13" />
                 <ComboBox Grid.Column="2" ItemsSource="{Binding StatusOptions}"
-                          SelectedItem="{Binding FilterStatus}" Width="110" Margin="10,0,0,0"
-                          Height="36" FontSize="13" />
-                <Button Grid.Column="3" Content="Search" Command="{Binding ApplyFilterCommand}"
-                        Style="{StaticResource ToolbarButton}" Height="36" Margin="10,0,0,0" />
+                          SelectedItem="{Binding FilterStatus}"
+                          Width="100" Height="36" Margin="8,0,0,0" FontSize="13" />
             </Grid>
         </Border>
 
-        <!-- Row 2: Card List -->
+        <!-- Row 2: 卡片列表 -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Background="#F8F9FB">
-            <ItemsControl ItemsSource="{Binding Entries}" Margin="24,16,24,0">
+            <ItemsControl ItemsSource="{Binding Entries}" Margin="20,14,20,0">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <UniformGrid Columns="3" />
@@ -167,83 +156,77 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <!-- Row 0: Checkbox + Task Name + Actions -->
-                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <!-- Row 0: 复选框 + 任务名称 -->
+                                <Grid Grid.Row="0" Margin="0,0,0,6">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
-                                              VerticalAlignment="Center" Margin="0,0,8,0"
+                                              VerticalAlignment="Center" Margin="0,0,6,0"
                                               Checked="CardCheckBox_Changed" Unchecked="CardCheckBox_Changed" />
-                                    <TextBlock Grid.Column="1" Text="{Binding TaskName}" FontSize="15" FontWeight="SemiBold"
-                                               Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"
-                                               VerticalAlignment="Center" />
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                        <Button Style="{StaticResource IconButton}" Tag="{Binding}" Click="EditButton_Click"
-                                                ToolTip="Edit">
-                                            <TextBlock Text="&#x270F;" />
-                                        </Button>
-                                        <Button Style="{StaticResource IconButton}" Tag="{Binding}" Click="DeleteButton_Click"
-                                                ToolTip="Delete" Margin="2,0,0,0">
-                                            <TextBlock Text="&#x1F5D1;" />
-                                        </Button>
+                                    <TextBlock Grid.Column="1" Text="{Binding TaskName}" FontSize="13" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" Margin="0,0,0,3" />
+                                </Grid>
+
+                                <!-- Row 1: 项目名称(左) + 状态(右) -->
+                                <Grid Grid.Row="1" Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding ProjectName}" FontSize="11"
+                                               Foreground="{StaticResource AccentBrush}"
+                                               Visibility="{Binding ProjectName, Converter={StaticResource StringToVisibility}}"
+                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="▶" FontSize="9" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,3,0" />
+                                        <Border CornerRadius="10" Padding="6,1" Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}">
+                                            <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="SemiBold" Foreground="White" />
+                                        </Border>
                                     </StackPanel>
                                 </Grid>
 
-                                <!-- Row 1: Project + Status -->
-                                <Grid Grid.Row="1" Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{Binding ProjectName}" FontSize="12"
-                                               Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"
-                                               Visibility="{Binding ProjectName, Converter={StaticResource StringToVisibility}}" />
-                                    <Border Grid.Column="2" CornerRadius="10" Padding="10,3"
-                                            Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}">
-                                        <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
-                                    </Border>
-                                </Grid>
-
-                                <!-- Row 2: Description -->
-                                <TextBlock Grid.Row="2" Text="{Binding Description}" FontSize="13"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           TextTrimming="CharacterEllipsis" MaxHeight="36"
-                                           TextWrapping="Wrap" Margin="0,0,0,8"
-                                           Visibility="{Binding Description, Converter={StaticResource StringToVisibility}}" />
-
-                                <!-- Row 3: Progress Bar -->
-                                <Grid Grid.Row="3" Margin="0,0,0,6">
+                                <!-- Row 2: 进度条 + 百分比 -->
+                                <Grid Grid.Row="2" Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <ProgressBar Grid.Column="0" Value="{Binding CompletionPercent}"
-                                                 Height="6" Minimum="0" Maximum="100"
-                                                 Background="#F3F4F6" BorderThickness="0" VerticalAlignment="Center"
+                                                 Height="4" Minimum="0" Maximum="100" Background="#F3F4F6"
+                                                 BorderThickness="0" VerticalAlignment="Center"
                                                  Foreground="{Binding CompletionPercent, Converter={StaticResource ProgressToColorConverter}}"
                                                  Style="{StaticResource DarkProgressBar}" />
                                     <TextBlock Grid.Column="1" Text="{Binding CompletionPercent, StringFormat={}{0}%}"
-                                               FontSize="12" FontWeight="SemiBold"
-                                               Foreground="{StaticResource AccentBrush}" Margin="8,0,0,0" />
+                                               FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}"
+                                               VerticalAlignment="Center" Margin="8,0,0,0" />
                                 </Grid>
 
-                                <!-- Row 4: Date -->
+                                <!-- Row 3: 备注说明 -->
+                                <TextBlock Grid.Row="3" Text="{Binding Remarks}" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis" Margin="0,0,0,4"
+                                           Visibility="{Binding Remarks, Converter={StaticResource StringToVisibility}}" />
+
+                                <!-- Row 4: 到期时间(左下) + 编辑/删除(右下) -->
                                 <Grid Grid.Row="4">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{Binding DisplayDate}" FontSize="12"
+                                    <TextBlock Grid.Column="0" Text="{Binding DisplayDate}" FontSize="11"
                                                Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Remarks}" FontSize="12"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="8,0,0,0"
-                                               Visibility="{Binding Remarks, Converter={StaticResource StringToVisibility}}" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <Button Style="{StaticResource IconBtn}" Tag="{Binding}" Click="EditButton_Click"
+                                                ToolTip="编辑">
+                                            <TextBlock Text="✏" FontSize="12" />
+                                        </Button>
+                                        <Button Style="{StaticResource IconBtn}" Tag="{Binding}" Click="DeleteButton_Click"
+                                                ToolTip="删除" Margin="4,0,0,0">
+                                            <TextBlock Text="🗑" FontSize="12" />
+                                        </Button>
+                                    </StackPanel>
                                 </Grid>
                             </Grid>
                         </Border>
@@ -252,9 +235,8 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- Row 3: Pagination -->
-        <Border Grid.Row="3" Background="White" Padding="24,12"
-                BorderBrush="#E5E7EB" BorderThickness="0,1,0,0">
+        <!-- Row 3: 分页 -->
+        <Border Grid.Row="3" Background="White" Padding="20,10" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -262,126 +244,167 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <Button Content="&#x23EE;" Command="{Binding FirstPageCommand}" Style="{StaticResource IconButton}"
-                            Width="32" Height="32" />
-                    <Button Content="&#x25C0;" Command="{Binding PrevPageCommand}" Style="{StaticResource IconButton}"
-                            Width="32" Height="32" Margin="4,0,0,0" />
+                    <Button Content="⏮" Command="{Binding FirstPageCommand}" Style="{StaticResource PageBtn}" />
+                    <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{StaticResource PageBtn}" Margin="4,0,0,0" />
                 </StackPanel>
                 <TextBlock Grid.Column="1" Text="{Binding PageInfo}" FontSize="13"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <Button Content="&#x25B6;" Command="{Binding NextPageCommand}" Style="{StaticResource IconButton}"
-                            Width="32" Height="32" />
-                    <Button Content="&#x23ED;" Command="{Binding LastPageCommand}" Style="{StaticResource IconButton}"
-                            Width="32" Height="32" Margin="4,0,0,0" />
+                    <Button Content="▶" Command="{Binding NextPageCommand}" Style="{StaticResource PageBtn}" />
+                    <Button Content="⏭" Command="{Binding LastPageCommand}" Style="{StaticResource PageBtn}" Margin="4,0,0,0" />
                 </StackPanel>
             </Grid>
         </Border>
     </Grid>
 
-    <!-- Detail Popup Overlay -->
+    <!-- 详情弹窗 -->
     <Border Visibility="{Binding IsDetailOpen, Converter={StaticResource BoolToVisibility}}"
             Background="#99000000" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
             MouseLeftButtonDown="DetailPopupBg_MouseLeftButtonDown">
-        <Border Width="500" Background="White" CornerRadius="16" Padding="28"
+        <Border Width="480" Background="White" CornerRadius="12" Padding="24"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
                 BorderBrush="#E5E7EB" BorderThickness="1">
             <StackPanel>
-                <!-- Header -->
-                <Grid Margin="0,0,0,16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="Task Detail" FontSize="20" FontWeight="Bold"
+                <Grid Margin="0,0,0,12">
+                    <TextBlock Text="任务详情" FontSize="18" FontWeight="Bold"
                                Foreground="{StaticResource TextPrimaryBrush}" />
-                    <Button Grid.Column="1" Content="X" Style="{StaticResource IconButton}" Width="32" Height="32"
-                            Command="{Binding CloseDetailCommand}" FontSize="16" />
+                    <Button Content="✕" HorizontalAlignment="Right" Style="{StaticResource IconBtn}"
+                            Width="30" Height="30" FontSize="16" Command="{Binding CloseDetailCommand}" />
                 </Grid>
 
-                <!-- Task Name -->
-                <TextBlock Text="{Binding DetailItem.TaskName}" FontSize="18" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4" />
+                <TextBlock Text="{Binding DetailItem.TaskName}" FontSize="16" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,6" />
 
-                <!-- Status + Project -->
-                <Grid Margin="0,0,0,12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Border Grid.Column="0" CornerRadius="10" Padding="10,4"
+                <Grid Margin="0,0,0,8">
+                    <Border CornerRadius="10" Padding="8,2" HorizontalAlignment="Left"
                             Background="{Binding DetailItem.Status, Converter={StaticResource StatusToColorConverter}}">
                         <TextBlock Text="{Binding DetailItem.Status}" FontSize="12" FontWeight="SemiBold" Foreground="White" />
                     </Border>
-                    <TextBlock Grid.Column="1" Text="{Binding DetailItem.ProjectName}" FontSize="14"
-                               Foreground="{StaticResource AccentBrush}" Margin="12,0,0,0" VerticalAlignment="Center"
+                    <TextBlock Text="{Binding DetailItem.ProjectName}" FontSize="13" Margin="10,0,0,0"
+                               Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"
                                Visibility="{Binding DetailItem.ProjectName, Converter={StaticResource StringToVisibility}}" />
                 </Grid>
 
-                <!-- Description -->
-                <TextBlock Text="{Binding DetailItem.Description}" FontSize="14"
+                <TextBlock Text="{Binding DetailItem.Description}" FontSize="13"
                            Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"
-                           Margin="0,0,0,12" MaxHeight="80"
+                           Margin="0,0,0,8"
                            Visibility="{Binding DetailItem.Description, Converter={StaticResource StringToVisibility}}" />
 
-                <!-- Progress -->
                 <Grid Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <ProgressBar Grid.Column="0" Value="{Binding DetailItem.CompletionPercent}"
-                                 Height="8" Minimum="0" Maximum="100" Background="#F3F4F6"
+                                 Height="4" Minimum="0" Maximum="100" Background="#F3F4F6"
                                  BorderThickness="0" VerticalAlignment="Center"
                                  Foreground="{Binding DetailItem.CompletionPercent, Converter={StaticResource ProgressToColorConverter}}"
                                  Style="{StaticResource DarkProgressBar}" />
                     <TextBlock Grid.Column="1" Text="{Binding DetailItem.CompletionPercent, StringFormat={}{0}%}"
-                               FontSize="16" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="12,0,0,0" />
+                               FontSize="15" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="10,0,0,0" />
                 </Grid>
 
-                <!-- Dates -->
-                <Border Background="#F9FAFB" CornerRadius="8" Padding="16,12" Margin="0,8,0,0">
+                <Border Background="#F9FAFB" CornerRadius="6" Padding="12,10" Margin="0,6,0,0">
                     <UniformGrid Columns="2">
                         <StackPanel>
-                            <TextBlock Text="Due Date" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock Text="{Binding DetailItem.DisplayDate}" FontSize="14"
-                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="到期日" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="{Binding DetailItem.DisplayDate}" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
                         </StackPanel>
                         <StackPanel>
-                            <TextBlock Text="Created" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock Text="{Binding DetailItem.DisplayCreatedDate}" FontSize="14"
-                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="创建日期" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="{Binding DetailItem.DisplayCreatedDate}" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
                         </StackPanel>
                     </UniformGrid>
                 </Border>
 
-                <!-- Remarks -->
                 <TextBlock Text="{Binding DetailItem.Remarks}" FontSize="13"
                            Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"
-                           Margin="0,8,0,0"
+                           Margin="0,6,0,0"
                            Visibility="{Binding DetailItem.Remarks, Converter={StaticResource StringToVisibility}}" />
 
-                <!-- Action Buttons -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                    <Button Content="Edit" Style="{StaticResource ToolbarButton}"
-                            Tag="{Binding DetailItem}" Click="DetailEditButton_Click"
-                            Background="#6366F1" />
-                    <Button Content="Close" Command="{Binding CloseDetailCommand}"
-                            Style="{StaticResource ToolbarButton}" Background="#6B7280" Margin="8,0,0,0" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+                    <Button Content="关闭" Command="{Binding CloseDetailCommand}" Padding="16,6"
+                            Background="#6B7280" Foreground="White" BorderThickness="0" Cursor="Hand" FontSize="13" />
+                    <Button Content="编辑" Tag="{Binding DetailItem}" Click="DetailEditButton_Click"
+                            Padding="16,6" Background="#6366F1" Foreground="White" BorderThickness="0"
+                            Cursor="Hand" FontSize="13" Margin="8,0,0,0" />
                 </StackPanel>
             </StackPanel>
         </Border>
     </Border>
 
-    <!-- Loading / Status Overlay -->
+    <!-- 编辑面板 -->
+    <Border Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}}"
+            Background="#99000000" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+        <Border Width="520" Background="White" CornerRadius="12" Padding="28"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <StackPanel>
+                <TextBlock Text="{Binding EditDialogTitle}" FontSize="18" FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16" />
+
+                <TextBlock Text="任务名称 *" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                <TextBox Text="{Binding EditingItem.TaskName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+
+                <TextBlock Text="项目名称" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                <TextBox Text="{Binding EditingItem.ProjectName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+
+                <TextBlock Text="说明" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                <TextBox Text="{Binding EditingItem.Description, UpdateSourceTrigger=PropertyChanged}"
+                         Margin="0,0,0,12" Height="60" TextWrapping="Wrap" AcceptsReturn="True" />
+
+                <TextBlock Text="备注" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                <TextBox Text="{Binding EditingItem.Remarks, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                        <TextBlock Text="到期日" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                        <DatePicker SelectedDate="{Binding EditingItem.ExpectedDate}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                        <TextBlock Text="开始日期" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                        <DatePicker SelectedDate="{Binding EditingItem.StartDate}" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                        <TextBlock Text="状态" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                        <ComboBox ItemsSource="{Binding EditStatusOptions}" SelectedItem="{Binding EditingItem.Status}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                        <TextBlock Text="完成度(%)" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                        <TextBox Text="{Binding EditingItem.CompletionPercent, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="取消" Command="{Binding CancelCommand}" Padding="16,6"
+                            Background="#6B7280" Foreground="White" BorderThickness="0" Cursor="Hand" FontSize="13" />
+                    <Button Content="保存" Command="{Binding SaveCommand}" Padding="16,6"
+                            Background="#6366F1" Foreground="White" BorderThickness="0" Cursor="Hand"
+                            FontSize="13" Margin="8,0,0,0" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Border>
+
+    <!-- 加载中 -->
     <Border Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"
             Background="#33000000" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
         <Border Background="#6366F1" CornerRadius="8" Padding="24,12"
                 HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Text="Loading..." FontSize="14" Foreground="White" />
-            </Border>
+            <TextBlock Text="加载中..." FontSize="14" Foreground="White" />
+        </Border>
     </Border>
 
     </Grid></UserControl>
