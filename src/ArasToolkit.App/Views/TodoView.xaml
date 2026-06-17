@@ -19,9 +19,9 @@
             <Setter Property="BorderBrush" Value="#E5E7EB" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Padding" Value="10" />
-            <Setter Property="Width" Value="340" />
-            <Setter Property="Margin" Value="0,0,10,10" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Width" Value="300" />
+            <Setter Property="Margin" Value="0,0,6,6" />
         </Style>
 
         <Style x:Key="IconBtn" TargetType="Button">
@@ -179,12 +179,9 @@
                                                Foreground="{StaticResource AccentBrush}"
                                                Visibility="{Binding ProjectName, Converter={StaticResource StringToVisibility}}"
                                                TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="▶" FontSize="9" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,3,0" />
-                                        <Border CornerRadius="10" Padding="6,1" Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}">
-                                            <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="SemiBold" Foreground="White" />
-                                        </Border>
-                                    </StackPanel>
+                                    <Border Grid.Column="1" CornerRadius="10" Padding="6,1" Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="SemiBold" Foreground="White" />
+                                    </Border>
                                 </Grid>
 
                                 <!-- Row 2: 进度条 + 百分比 -->
@@ -236,25 +233,16 @@
         </ScrollViewer>
 
         <!-- Row 3: 分页 -->
-        <Border Grid.Row="3" Background="White" Padding="20,10" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <Button Content="⏮" Command="{Binding FirstPageCommand}" Style="{StaticResource PageBtn}" />
-                    <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{StaticResource PageBtn}" Margin="4,0,0,0" />
-                </StackPanel>
-                <TextBlock Grid.Column="1" Text="{Binding PageInfo}" FontSize="13"
+        <Border Grid.Row="3" Background="White" Padding="20,8" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="⏮" Command="{Binding FirstPageCommand}" Style="{StaticResource PageBtn}" VerticalAlignment="Center" />
+                <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{StaticResource PageBtn}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding PageInfo}" FontSize="13"
                            Foreground="{StaticResource TextSecondaryBrush}"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <Button Content="▶" Command="{Binding NextPageCommand}" Style="{StaticResource PageBtn}" />
-                    <Button Content="⏭" Command="{Binding LastPageCommand}" Style="{StaticResource PageBtn}" Margin="4,0,0,0" />
-                </StackPanel>
-            </Grid>
+                           VerticalAlignment="Center" Margin="12,0,12,0" />
+                <Button Content="▶" Command="{Binding NextPageCommand}" Style="{StaticResource PageBtn}" VerticalAlignment="Center" />
+                <Button Content="⏭" Command="{Binding LastPageCommand}" Style="{StaticResource PageBtn}" Margin="4,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
         </Border>
     </Grid>
 
@@ -277,11 +265,15 @@
                            Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,6" />
 
                 <Grid Margin="0,0,0,8">
-                    <Border CornerRadius="10" Padding="8,2" HorizontalAlignment="Left"
-                            Background="{Binding DetailItem.Status, Converter={StaticResource StatusToColorConverter}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" CornerRadius="10" Padding="8,2"
+                            Background="{Binding DetailItem.Status, Converter={StaticResource StatusToColorConverter}}" VerticalAlignment="Center">
                         <TextBlock Text="{Binding DetailItem.Status}" FontSize="12" FontWeight="SemiBold" Foreground="White" />
                     </Border>
-                    <TextBlock Text="{Binding DetailItem.ProjectName}" FontSize="13" Margin="10,0,0,0"
+                    <TextBlock Grid.Column="1" Text="{Binding DetailItem.ProjectName}" FontSize="13" Margin="10,0,0,0"
                                Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"
                                Visibility="{Binding DetailItem.ProjectName, Converter={StaticResource StringToVisibility}}" />
                 </Grid>
