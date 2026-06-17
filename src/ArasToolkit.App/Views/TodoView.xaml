@@ -161,6 +161,7 @@
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <!-- Row 0: 复选框 + 任务名称 -->
@@ -207,14 +208,20 @@
                                                VerticalAlignment="Center" Margin="8,0,0,0" />
                                 </Grid>
 
-                                <!-- Row 3: 备注说明 -->
-                                <TextBlock Grid.Row="3" Text="{Binding Remarks}" FontSize="11"
+                                <!-- Row 3: 说明 -->
+                                <TextBlock Grid.Row="3" Text="{Binding Description}" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis" Margin="0,0,0,3"
+                                           Visibility="{Binding Description, Converter={StaticResource StringToVisibility}}" />
+
+                                <!-- Row 4: 备注说明 -->
+                                <TextBlock Grid.Row="4" Text="{Binding Remarks}" FontSize="11"
                                            Foreground="{StaticResource TextSecondaryBrush}"
                                            TextTrimming="CharacterEllipsis" Margin="0,0,0,4"
                                            Visibility="{Binding Remarks, Converter={StaticResource StringToVisibility}}" />
 
-                                <!-- Row 4: 到期时间(左下) + 编辑/删除(右下) -->
-                                <Grid Grid.Row="4">
+                                <!-- Row 5: 到期时间(左下) + 编辑/删除(右下) -->
+                                <Grid Grid.Row="5">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
