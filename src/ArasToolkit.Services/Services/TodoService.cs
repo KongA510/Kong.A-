@@ -31,7 +31,7 @@ public class TodoService : ITodoService
     // ===== 公共方法 =====
 
     public async Task<(List<PersonalTask> Items, int TotalCount)> GetPagedItemsAsync(
-        int page, int pageSize, string? statusFilter = null, string? projectNameFilter = null, string? searchKeyword = null)
+        int page, int pageSize, string? statusFilter = null, string? projectNameFilter = null, string? searchKeyword = null, DateTime? completionDate = null, DateTime? dueDate = null)
     {
         try
         {
@@ -44,8 +44,16 @@ public class TodoService : ITodoService
             if (!string.IsNullOrEmpty(projectNameFilter) && projectNameFilter != "全部")
                     query = query.Where(t => t.ProjectName == projectNameFilter);
 
-                if (!string.IsNullOrEmpty(searchKeyword))
-                    query = query.Where(t => t.TaskName.Contains(searchKeyword));
+           if (!string.IsNullOrEmpty(searchKeyword))
+               query = query.Where(t => t.TaskName.Contains(searchKeyword));
+
+            if (completionDate.HasValue)
+                query = query.Where(t => t.CompletionDate.HasValue
+                    && t.CompletionDate.Value.Date == completionDate.Value.Date);
+
+            if (dueDate.HasValue)
+                query = query.Where(t => t.ExpectedDate.HasValue
+                    && t.ExpectedDate.Value.Date == dueDate.Value.Date);
 
             var total = await query.CountAsync();
             var items = await query

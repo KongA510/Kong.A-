@@ -24,6 +24,8 @@ public class TodoViewModel : ObservableObject
     private string _filterStatus = "全部";
     private string _filterProjectName = "全部";
     private string _searchKeyword = string.Empty;
+    private DateTime? _filterCompletionDate;
+    private DateTime? _filterDueDate;
     private PersonalTask? _detailItem;
     private bool _isDetailOpen;
     private int _dueTodayCount;
@@ -57,6 +59,8 @@ public class TodoViewModel : ObservableObject
         // 筛选命令
         ApplyFilterCommand = new RelayCommand(async _ => { CurrentPage = 1; await LoadDataAsync(); });
         SearchCommand = new RelayCommand(async _ => { CurrentPage = 1; await LoadDataAsync(); });
+        ClearCompletionDateCommand = new RelayCommand(_ => { FilterCompletionDate = null; });
+        ClearDueDateCommand = new RelayCommand(_ => { FilterDueDate = null; });
 
         // CRUD 命令
         AddCommand = new RelayCommand(_ => StartAdd());
@@ -108,8 +112,35 @@ public class TodoViewModel : ObservableObject
     public string SearchKeyword
     {
         get => _searchKeyword;
-        set { SetProperty(ref _searchKeyword, value); CurrentPage = 1; _ = LoadDataAsync(); }
+        set { SetProperty(ref _searchKeyword, value); }
     }
+
+    public DateTime? FilterCompletionDate
+    {
+        get => _filterCompletionDate;
+        set
+        {
+            SetProperty(ref _filterCompletionDate, value);
+            OnPropertyChanged(nameof(HasCompletionDateFilter));
+            CurrentPage = 1;
+            _ = LoadDataAsync();
+        }
+    }
+
+    public DateTime? FilterDueDate
+    {
+        get => _filterDueDate;
+        set
+        {
+            SetProperty(ref _filterDueDate, value);
+            OnPropertyChanged(nameof(HasDueDateFilter));
+            CurrentPage = 1;
+            _ = LoadDataAsync();
+        }
+    }
+
+    public bool HasCompletionDateFilter => FilterCompletionDate.HasValue;
+    public bool HasDueDateFilter => FilterDueDate.HasValue;
 
     public string FilterProjectName
     {
@@ -160,6 +191,8 @@ public class TodoViewModel : ObservableObject
     public ICommand LastPageCommand { get; }
     public ICommand ApplyFilterCommand { get; }
     public ICommand SearchCommand { get; }
+    public ICommand ClearCompletionDateCommand { get; }
+    public ICommand ClearDueDateCommand { get; }
     public ICommand AddCommand { get; }
     public ICommand EditCommand { get; }
     public ICommand DeleteCommand { get; }
@@ -178,10 +211,13 @@ public class TodoViewModel : ObservableObject
         IsLoading = true;
         try
         {
-            var (items, total) = await _todoService.GetPagedItemsAsync(
-                CurrentPage, _pageSize,
-                FilterStatus == "全部" ? null : FilterStatus,
-                FilterProjectName == "全部" ? null : FilterProjectName, string.IsNullOrWhiteSpace(SearchKeyword) ? null : SearchKeyword);
+        var (items, total) = await _todoService.GetPagedItemsAsync(
+            CurrentPage, _pageSize,
+            FilterStatus == "全部" ? null : FilterStatus,
+            FilterProjectName == "全部" ? null : FilterProjectName,
+            string.IsNullOrWhiteSpace(SearchKeyword) ? null : SearchKeyword,
+            FilterCompletionDate,
+            FilterDueDate);
 
             Entries = new ObservableCollection<PersonalTask>(items);
             TotalCount = total;

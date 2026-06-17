@@ -12,7 +12,7 @@ public interface ITodoService
     /// 排序规则：今日到期优先 → 按预计日期升序 → 无日期排最后
     /// </summary>
     Task<(List<PersonalTask> Items, int TotalCount)> GetPagedItemsAsync(
-        int page, int pageSize, string? statusFilter = null, string? projectNameFilter = null, string? searchKeyword = null);
+        int page, int pageSize, string? statusFilter = null, string? projectNameFilter = null, string? searchKeyword = null, DateTime? completionDate = null, DateTime? dueDate = null);
 
     /// <summary>
     /// 获取所有不重复的项目名称列表（供筛选下拉使用）
