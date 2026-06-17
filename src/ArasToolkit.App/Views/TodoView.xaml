@@ -109,9 +109,10 @@
                         <TextBlock Grid.Column="0" Text="🔍" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
                         <TextBox Grid.Column="1" Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}"
                                  BorderThickness="0" Background="Transparent" VerticalAlignment="Center" FontSize="13" />
-                        <Button Grid.Column="2" Content="搜索" Command="{Binding SearchCommand}" Width="48" Height="28"
-                                Background="#6366F1" Foreground="White" BorderThickness="0" Cursor="Hand" FontSize="12"
-                                Margin="4,0,0,0" />
+                        <Button Grid.Column="2" Style="{StaticResource IconBtn}" Command="{Binding SearchCommand}"
+                                ToolTip="搜索" Margin="4,0,0,0">
+                            <TextBlock Text="🔍" FontSize="14" />
+                        </Button>
                     </Grid>
                 </Border>
                 <ComboBox Grid.Column="1" ItemsSource="{Binding ProjectNameOptions}"
@@ -304,10 +305,16 @@
                 </Grid>
 
                 <Border Background="#F9FAFB" CornerRadius="6" Padding="12,10" Margin="0,6,0,0">
-                    <UniformGrid Columns="2">
+                    <UniformGrid Columns="3">
                         <StackPanel>
                             <TextBlock Text="到期日" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock Text="{Binding DetailItem.DisplayDate}" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="{Binding DetailItem.DisplayDate}" FontSize="13" Foreground="#EF4444" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="完成时间" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                       Visibility="{Binding DetailItem.HasCompletionDate, Converter={StaticResource BoolToVisibility}}" />
+                            <TextBlock Text="{Binding DetailItem.DisplayCompletionDate}" FontSize="13" Foreground="#10B981"
+                                       Visibility="{Binding DetailItem.HasCompletionDate, Converter={StaticResource BoolToVisibility}}" />
                         </StackPanel>
                         <StackPanel>
                             <TextBlock Text="创建日期" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
@@ -367,6 +374,17 @@
                     <StackPanel Grid.Column="1" Margin="6,0,0,0">
                         <TextBlock Text="开始日期" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                         <DatePicker SelectedDate="{Binding EditingItem.StartDate}" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                        <TextBlock Text="完成时间" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                        <DatePicker SelectedDate="{Binding EditingItem.CompletionDate}" />
                     </StackPanel>
                 </Grid>
 
