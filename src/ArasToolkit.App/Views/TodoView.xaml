@@ -1,0 +1,341 @@
+﻿<UserControl x:Class="ArasToolkit.App.Views.TodoView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:converters="clr-namespace:ArasToolkit.App.Converters"
+             mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="1000"
+             Background="Transparent">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:InverseBoolConverter x:Key="InverseBool" />
+        <converters:StringToVisibilityConverter x:Key="StringToVisibility" />
+        <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
+        <converters:ProgressToColorConverter x:Key="ProgressToColorConverter" />
+        <Style x:Key="TaskCard" TargetType="Border">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#E5E7EB" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="Width" Value="290" />
+            <Setter Property="Margin" Value="0,0,16,16" />
+        </Style>
+    </UserControl.Resources>
+    <Grid>
+
+    <Grid Margin="32,28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Title -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Todo" FontSize="26" FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Text="Manage and track personal todo tasks" FontSize="14"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="Export Template" Command="{Binding ExportTemplateCommand}"
+                    Style="{StaticResource PrimaryButton}" />
+        </Grid>
+
+        <!-- Row 1: Search + Actions -->
+        <Grid Grid.Row="1" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <Button Content="New" Command="{Binding AddCommand}"
+                        Style="{StaticResource PrimaryButton}" />
+                <Button Content="Import Excel" Command="{Binding ImportExcelCommand}"
+                        Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" />
+                <Button Content="Batch Delete" Command="{Binding BatchDeleteCommand}"
+                        Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <TextBlock Text="Search:" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" Margin="8,0,6,0" />
+                <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Width="200" />
+                <TextBlock Text="Status:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" Margin="8,0,6,0" VerticalAlignment="Center" />
+                <ComboBox ItemsSource="{Binding StatusFilterList}" SelectedItem="{Binding SelectedStatus}"
+                          Width="120" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Row 2: Card List -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Entries}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource TaskCard}" Cursor="Hand" MouseLeftButtonDown="Card_MouseLeftButtonDown" Tag="{Binding}">
+                            <Border.Triggers>
+                                <EventTrigger RoutedEvent="MouseEnter">
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                                                            To="#6366F1" Duration="0:0:0.15" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                                <EventTrigger RoutedEvent="MouseLeave">
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                                                            To="#E5E7EB" Duration="0:0:0.15" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Border.Triggers>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <!-- Row 0: Checkbox + Task Name -->
+                                <Grid Grid.Row="0" Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
+                                              VerticalAlignment="Top" Margin="0,2,8,0"
+                                              Checked="CardCheckBox_Changed" Unchecked="CardCheckBox_Changed" />
+                                    <TextBlock Grid.Column="1" Text="{Binding TaskName}" FontSize="15" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="220" />
+                                </Grid>
+                                <!-- Row 1: Project + Status -->
+                                <Grid Grid.Row="1" Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding ProjectName}" FontSize="12"
+                                               Foreground="{StaticResource AccentBrush}"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="120"
+                                               Visibility="{Binding ProjectName, Converter={StaticResource StringToVisibility}}" />
+                                    <Border Grid.Column="2" CornerRadius="10" Padding="10,4"
+                                            Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}">
+                                        <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                                    </Border>
+                                </Grid>
+                                <!-- Row 2: Description -->
+                                <TextBlock Grid.Row="2" Text="{Binding Description}" FontSize="13"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis" MaxHeight="38"
+                                           TextWrapping="Wrap" Margin="0,0,0,10"
+                                           Visibility="{Binding Description, Converter={StaticResource StringToVisibility}}" />
+                                <!-- Row 3: Progress Bar -->
+                                <Grid Grid.Row="3" Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ProgressBar Grid.Column="0" Value="{Binding CompletionPercent}"
+                                                 Height="6" Minimum="0" Maximum="100"
+                                                 Background="#F3F4F6" BorderThickness="0" VerticalAlignment="Center"
+                                                 Foreground="{Binding CompletionPercent, Converter={StaticResource ProgressToColorConverter}}"
+                                                 Style="{StaticResource DarkProgressBar}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding CompletionPercent, StringFormat={}{0}%}"
+                                               FontSize="13" FontWeight="SemiBold"
+                                               Foreground="{StaticResource AccentBrush}" Margin="8,0,0,0" />
+                                </Grid>
+                                <!-- Row 5: Date + Actions -->
+                                <Grid Grid.Row="5" Margin="0,0,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding DisplayDate, StringFormat='{} {0}'}"
+                                               FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
+                                               Margin="0,0,10,0" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Remarks}" FontSize="12"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="120" VerticalAlignment="Center"
+                                               Visibility="{Binding Remarks, Converter={StaticResource StringToVisibility}}" />
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <Button Content="Edit" Tag="{Binding}" Click="EditButton_Click"
+                                                Style="{StaticResource PrimaryButton}" />
+                                        <Button Content="Delete" Tag="{Binding}" Click="DeleteButton_Click"
+                                                Style="{StaticResource PrimaryButton}" Margin="4,0,0,0" />
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Row 3: Pagination -->
+        <Border Grid.Row="3" Margin="0,16,0,0" Padding="12" Background="White" CornerRadius="8"
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="Prev" Command="{Binding PrevPageCommand}"
+                        Style="{StaticResource PrimaryButton}" />
+                <TextBlock Text="{Binding PageInfo}" FontSize="13" VerticalAlignment="Center" Margin="16,0" />
+                <Button Content="Next" Command="{Binding NextPageCommand}"
+                        Style="{StaticResource PrimaryButton}" />
+            </StackPanel>
+        </Border>
+    </Grid>
+
+    <!-- Overlay: Detail/Edit Panel -->
+    <Border Visibility="{Binding ShowDetail, Converter={StaticResource BoolToVisibility}}"
+            Background="#80000000" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+        <Grid>
+            <Border Width="500" Height="600" Background="White" CornerRadius="12" Padding="24" 
+                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,20,20,0"
+                    BorderBrush="#E5E7EB" BorderThickness="1">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <!-- Detail View -->
+                        <StackPanel Visibility="{Binding IsEditing, Converter={StaticResource InverseBool}}">
+                            <TextBlock Text="Task Detail" FontSize="20" FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16" />
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Project" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding DetailItem.ProjectName}" FontSize="14"
+                                           Foreground="{StaticResource AccentBrush}" />
+                            </Grid>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Status" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <Border Grid.Column="1" CornerRadius="10" Padding="10,4" HorizontalAlignment="Left"
+                                        Background="{Binding DetailItem.Status, Converter={StaticResource StatusToColorConverter}}">
+                                    <TextBlock Text="{Binding DetailItem.Status}" FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                                </Border>
+                            </Grid>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Progress" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <ProgressBar Value="{Binding DetailItem.CompletionPercent}" Height="6" Minimum="0" Maximum="100"
+                                                 Background="#F3F4F6" Width="200" VerticalAlignment="Center"
+                                                 Foreground="{Binding DetailItem.CompletionPercent, Converter={StaticResource ProgressToColorConverter}}" />
+                                    <TextBlock Text="{Binding DetailItem.CompletionPercent, StringFormat={}{0}%}"
+                                               FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" Margin="8,0,0,0" />
+                                </StackPanel>
+                            </Grid>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Due Date" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding DetailItem.DisplayDate}" FontSize="14"
+                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                            </Grid>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Created" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding DetailItem.DisplayCreatedDate}" FontSize="14"
+                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                            </Grid>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Description" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding DetailItem.Description}" FontSize="14"
+                                           Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap" MaxHeight="80" />
+                            </Grid>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Remarks" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding DetailItem.Remarks}" FontSize="14"
+                                           Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap" MaxHeight="60" />
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                                <Button Content="Edit" Tag="{Binding DetailItem}" Click="DetailEditButton_Click"
+                                        Style="{StaticResource PrimaryButton}" />
+                                <Button Content="Close" Command="{Binding CloseDetailCommand}"
+                                        Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Edit Panel -->
+                        <StackPanel Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="Edit Task" FontSize="20" FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16" />
+                            <TextBlock Text="Task Name *" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                            <TextBox Text="{Binding EditingItem.TaskName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+                            <TextBlock Text="Description" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                            <TextBox Text="{Binding EditingItem.Description, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" Height="60" TextWrapping="Wrap" AcceptsReturn="True" />
+                            <TextBlock Text="Project" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                            <TextBox Text="{Binding EditingItem.ProjectName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+                            <TextBlock Text="Remarks" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                    <TextBlock Text="Due Date" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                                    <DatePicker SelectedDate="{Binding EditingItem.DueDate, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                    <TextBlock Text="Start Date" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                                    <DatePicker SelectedDate="{Binding EditingItem.StartDate, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                            </Grid>
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                    <TextBlock Text="Status" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{Binding StatusList}" SelectedItem="{Binding EditingItem.Status}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                    <TextBlock Text="Progress(%)" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                                    <TextBox Text="{Binding EditingItem.CompletionPercent, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="Priority" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                            <ComboBox ItemsSource="{Binding PriorityList}" SelectedItem="{Binding EditingItem.Priority}" Margin="0,0,0,16" Width="150" HorizontalAlignment="Left" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="Cancel" Command="{Binding CancelCommand}"
+                                        Style="{StaticResource PrimaryButton}" />
+                                <Button Content="Save" Command="{Binding SaveCommand}"
+                                        Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Border>
+
+    <!-- Status Message Overlay -->
+    <Border Visibility="{Binding StatusMessage, Converter={StaticResource StringToVisibility}}"
+            Background="#80000000" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
+        <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontSize="14"
+                   HorizontalAlignment="Center" Margin="0,0,0,20" Padding="20,12"
+                   Background="{StaticResource AccentBrush}" />
+    </Border>
+
+    <!-- Loading Indicator -->
+    <ProgressBar Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"
+                 Style="{StaticResource DarkProgressBar}" Height="4" VerticalAlignment="Top"
+                 IsIndeterminate="True" />
+
+    </Grid></UserControl>
