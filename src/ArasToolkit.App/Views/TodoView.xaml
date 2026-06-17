@@ -104,7 +104,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="🔍" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
-                        <TextBox Grid.Column="1" Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox Grid.Column="1" Text="{Binding SearchKeyword, Delay=300}"
                                  BorderThickness="0" Background="Transparent" VerticalAlignment="Center" FontSize="13" />
                     </Grid>
                 </Border>
@@ -273,8 +273,8 @@
                             Background="{Binding DetailItem.Status, Converter={StaticResource StatusToColorConverter}}" VerticalAlignment="Center">
                         <TextBlock Text="{Binding DetailItem.Status}" FontSize="12" FontWeight="SemiBold" Foreground="White" />
                     </Border>
-                    <TextBlock Grid.Column="1" Text="{Binding DetailItem.ProjectName}" FontSize="13" Margin="10,0,0,0"
-                               Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"
+                    <TextBlock Grid.Column="1" Text="{Binding DetailItem.ProjectName}" FontSize="13"
+                               Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" HorizontalAlignment="Right"
                                Visibility="{Binding DetailItem.ProjectName, Converter={StaticResource StringToVisibility}}" />
                 </Grid>
 
