@@ -1,0 +1,94 @@
+<UserControl x:Class="ArasToolkit.App.Views.ExcelImportView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ArasToolkit.App.Converters"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="900"
+             Background="Transparent">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:StringToVisibilityConverter x:Key="StringToVisibility" />
+    </UserControl.Resources>
+
+    <Grid Margin="32,28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 标题 -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="导入表格" FontSize="26" FontWeight="Bold" 
+                       Foreground="{StaticResource TextPrimaryBrush}" />
+            <TextBlock Text="读取Excel文件并显示数据" FontSize="14" 
+                       Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <!-- 文件选择和Sheet选择工具栏 -->
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="20,16" Margin="0,0,0,16">
+            <WrapPanel>
+                <!-- 文件路径 -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                    <TextBlock Text="文件:" VerticalAlignment="Center" 
+                               Foreground="{StaticResource TextSecondaryBrush}" 
+                               FontSize="13" Margin="0,0,8,0" />
+                    <TextBox Text="{Binding SelectedFilePath, Mode=OneWay}" 
+                             Style="{StaticResource DarkTextBox}" 
+                             Width="280" IsReadOnly="True" />
+                </StackPanel>
+
+                <!-- 浏览按钮 -->
+                <Button Content="📂 浏览文件" 
+                        Command="{Binding BrowseFileCommand}" 
+                        Style="{StaticResource PrimaryButton}"
+                        Margin="0,0,16,8"
+                        Height="38" FontSize="13" />
+
+                <!-- Sheet选择 -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                    <TextBlock Text="Sheet:" VerticalAlignment="Center" 
+                               Foreground="{StaticResource TextSecondaryBrush}" 
+                               FontSize="13" Margin="0,0,8,0" />
+                    <ComboBox ItemsSource="{Binding SheetNames}" 
+                              SelectedItem="{Binding SelectedSheetName}"
+                              Style="{StaticResource DarkComboBox}"
+                              Width="180" />
+                </StackPanel>
+
+                <!-- 加载按钮 -->
+                <Button Content="加载Sheet" 
+                        Command="{Binding LoadSheetCommand}" 
+                        Style="{StaticResource PrimaryButton}"
+                        Margin="0,0,8,8"
+                        Height="38" FontSize="13" />
+            </WrapPanel>
+        </Border>
+
+        <!-- 状态消息和加载动画 -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,8">
+            <ProgressBar Style="{StaticResource DarkProgressBar}"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="{Binding StatusMessage}" 
+                       Foreground="{StaticResource TextSecondaryBrush}" 
+                       FontSize="13"
+                       Margin="4,8,0,0"
+                       Visibility="{Binding StatusMessage, Converter={StaticResource StringToVisibility}}" />
+        </StackPanel>
+
+        <!-- Excel数据显示 -->
+        <DataGrid Grid.Row="3" 
+                  ItemsSource="{Binding ExcelData}" 
+                  Style="{StaticResource DarkDataGrid}"
+                  IsReadOnly="True"
+                  AutoGenerateColumns="True"
+                  CanUserSortColumns="True"
+                  CanUserResizeColumns="True"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Auto" />
+    </Grid>
+</UserControl>

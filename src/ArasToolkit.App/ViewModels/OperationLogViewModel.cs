@@ -77,9 +77,10 @@ public class OperationLogViewModel : ObservableObject
                 CurrentPage, _pageSize,
                 FilterOperationType == "全部" ? null : FilterOperationType);
 
-            Entries = new ObservableCollection<OperationLog>(items);
-            TotalCount = total;
-            StatusMessage = $"共 {total} 条操作记录";
+           Entries = new ObservableCollection<OperationLog>(items);
+           TotalCount = total;
+            UpdatePagingCommands();
+           StatusMessage = $"共 {total} 条操作记录";
 
             if (CurrentPage > TotalPages && TotalPages > 0)
             {

@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Librame.AspNetCore.Authentication.OpenIdConnect" Version="7.6.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Aras.OAuth.Server.Infrastructure">
+      <HintPath>..\..\..\Bin\Aras.OAuth.Server.Infrastructure.dll</HintPath>
+    </Reference>
+    <Reference Include="IOM">
+      <HintPath>..\..\..\Bin\IOM.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

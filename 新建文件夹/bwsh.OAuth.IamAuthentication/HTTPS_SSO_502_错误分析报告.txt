@@ -1,0 +1,151 @@
+﻿===============================================================================
+  bwsh.OAuth.IamAuthentication — HTTPS SSO 502 Bad Gateway 错误分析报告
+===============================================================================
+
+日期: 2026-06-18
+项目: bwsh.OAuth.IamAuthentication (Aras Innovator OAuth 插件)
+环境: .NET 8.0, ASP.NET Core OAuthHandler
+
+------------------------------------------------------------------------------
+一、问题现象
+------------------------------------------------------------------------------
+
+  HTTP 方式登录 IAM 系统进行 SSO 单点登录验证时功能正常。
+  切换到 HTTPS 后，完成验证、跳转回相关地址时，浏览器报错 502 Bad Gateway。
+
+------------------------------------------------------------------------------
+二、SSO 认证流程（源码梳理）
+------------------------------------------------------------------------------
+
+  1. 用户访问应用 → 被重定向到 IAM 登录页（获取 authorization code）
+  2. IAM 验证完成后重定向回回调地址:
+     /OAuthServer/External/callback?code=xxx&StartItem=xxx
+  3. HandleRequestAsync() 接收回调
+     → HandleRemoteAuthenticateAsync()
+       → ExchangeCodeAsync():    用 code 换取 access_token（调 IAM TokenEndpoint）
+       → CreateTicketAsync():    用 token 获取用户信息（调 IAM UserInformationEndpoint）
+  4. 认证成功 → Context.SignInAsync() 写入 Cookie
+  5. Response.Redirect(newUrl) 将浏览器重定向回应用主页
+
+------------------------------------------------------------------------------
+三、根因分析
+------------------------------------------------------------------------------
+
+  【直接原因】重定向 URL 的 scheme 被降级为 HTTP
+
+  关键代码位置: IamHandler.cs 第 155-166 行
+
+    callbackUrl = Request.GetDisplayUrl();
+    string newUrl = callbackUrl.Substring(0, callbackUrl.IndexOf("/OAuthServer"));
+    // ...
+    Response.Redirect(newUrl);
+
+  问题链:
+
+    用户 HTTPS 访问
+      → 反向代理(nginx/IIS)将 HTTPS 转为 HTTP 转发给 ASP.NET Core
+      → Request.GetDisplayUrl() 返回 http://hostname/OAuthServer/...
+      → newUrl = http://hostname          ← scheme 从 https 降级为 http
+      → Response.Redirect("http://hostname")
+      → 浏览器收到 302 跳转到 HTTP 地址
+      → 反向代理收到 HTTP 请求（或端口不匹配）→ 返回 502 Bad Gateway
+
+  【根本原因】未配置 Forwarded Headers 中间件
+
+  项目采用三层部署架构:
+
+    用户浏览器
+      │
+      ▼  HTTPS
+    反向代理（nginx / IIS ARR / HAProxy）
+      │
+      ▼  HTTP（内部转发）
+    ASP.NET Core 应用（OAuth handler）
+
+  反向代理将 HTTPS 解密后以 HTTP 转发给应用。但 ASP.NET Core 默认
+  只感知到内部 HTTP 连接的 scheme。
+
+  关键文件: HostingStartup.cs
+  该文件中没有任何 ForwardedHeadersOptions 配置。
+
+  缺少该配置时:
+  - Request.GetDisplayUrl()        → 永远返回 http:// 前缀
+  - BuildRedirectUri()              → 构造的 redirect_uri 也是 http://
+  - 传给 IAM 的 redirect_uri 参数   → 也是 http://（可能导致 IAM 端校验失败）
+
+  【次要问题】HttpClient 使用不规范
+
+  文件位置: IamHandler.cs 第 380 行、第 408 行
+
+    GetTokenRequest() 和 GetUserRequest() 每次调用都 new HttpClient()
+
+  这是已知的反模式，会导致 socket 耗尽。ASP.NET Core OAuthHandler
+  提供了 Backchannel 属性应优先使用。
+
+------------------------------------------------------------------------------
+四、问题影响总结
+------------------------------------------------------------------------------
+
+  # | 问题描述                                          | 影响
+  --+---------------------------------------------------+-------------------
+  1 | Response.Redirect(newUrl) 中的 URL scheme 为 http | 直接导致 502
+  2 | 未启用 ForwardedHeadersMiddleware                 | 问题 1 的根因
+  3 | BuildRedirectUri() 构造的 callback URL 也是 http  | 可能导致 IAM 端
+    |                                                   | redirect_uri 校验失败
+  4 | 每次 new HttpClient()（无复用）                   | 非 502 相关，
+    |                                                   | 但建议修复
+
+------------------------------------------------------------------------------
+五、解决方案
+------------------------------------------------------------------------------
+
+  修复需要在宿主应用（承载此 OAuth handler 的 ASP.NET Core 主项目）
+  中添加 Forwarded Headers 中间件配置。
+
+  步骤 1：在宿主应用的 Startup.cs 或 Program.cs 中注册服务:
+
+    // 注意: 将此代码放在 services.AddAuthentication() 之前
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+        // 如果反向代理与 ASP.NET Core 运行在同一台机器，
+        // 可能需要清除默认的已知网络/代理列表:
+        // options.KnownNetworks.Clear();
+        // options.KnownProxies.Clear();
+    });
+
+  步骤 2：启用中间件（注意顺序，必须放在 UseAuthentication 之前）:
+
+    app.UseForwardedHeaders();   // ← 新增，必须放在 UseAuthentication 之前
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+  配置后效果:
+
+    反向代理在转发请求时会自动添加请求头:
+      X-Forwarded-Proto: https
+      X-Forwarded-For: 客户端真实IP
+
+    UseForwardedHeaders() 让 ASP.NET Core 读取这些请求头，
+    从而正确识别原始 scheme 为 HTTPS。
+    此后 Request.GetDisplayUrl() 将返回 https:// 前缀，
+    重定向到 HTTPS URL，浏览器不会再触发反向代理的 502 错误。
+
+------------------------------------------------------------------------------
+六、补充建议
+------------------------------------------------------------------------------
+
+  1. HttpClient 复用:
+     建议将 GetTokenRequest()、GetUserRequest() 中的
+     new HttpClient() 替换为使用 Backchannel 属性
+     （OAuthHandler 基类已提供），或注入 IHttpClientFactory。
+
+  2. 日志检查:
+     启用后可通过查看宿主应用日志确认 ForwardedHeaders 是否生效，
+     确认 Request.Scheme 已正确变为 https。
+
+===============================================================================
+  — 文档结束 —
+===============================================================================

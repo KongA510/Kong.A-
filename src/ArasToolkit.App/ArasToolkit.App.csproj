@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ArasToolkit.Core\ArasToolkit.Core.csproj" />
+    <ProjectReference Include="..\ArasToolkit.Services\ArasToolkit.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="MaterialDesignColors" Version="3.0.0" />
+    <PackageReference Include="MaterialDesignThemes" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="OxyPlot.Wpf" Version="2.2.0" />
+  </ItemGroup>
+
+  <!-- 构建时将 R37lib 全部 DLL 复制到输出目录（IOM.dll 运行时依赖） -->
+  <Target Name="CopyR37Libs" AfterTargets="Build">
+    <ItemGroup>
+      <R37Dlls Include="..\R37lib\*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(R37Dlls)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- 构建时将 DBSeeting.json 复制到输出目录（EF Core 连接字符串） -->
+  <Target Name="CopyConfigFiles" AfterTargets="Build">
+    <ItemGroup>
+      <ConfigFiles Include="..\ArasToolkit.Core\DBSeeting.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ConfigFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="app.ico" />
+    <Resource Include="app.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+</Project>

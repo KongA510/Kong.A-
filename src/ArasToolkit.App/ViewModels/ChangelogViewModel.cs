@@ -57,8 +57,9 @@ public class ChangelogViewModel : ObservableObject
         try
         {
             var allItems = await _changelogService.GetAllEntriesAsync();
-            TotalCount = allItems.Count;
-            var paged = allItems.Skip((CurrentPage - 1) * _pageSize).Take(_pageSize).ToList();
+           TotalCount = allItems.Count;
+            UpdatePagingCommands();
+           var paged = allItems.Skip((CurrentPage - 1) * _pageSize).Take(_pageSize).ToList();
             Entries = new ObservableCollection<Changelog>(paged);
             StatusMessage = $"共 {TotalCount} 条记录";
             if (CurrentPage > TotalPages && TotalPages > 0)

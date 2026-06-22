@@ -1,0 +1,294 @@
+﻿<Window x:Class="ArasToolkit.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ArasToolkit.App"
+        xmlns:views="clr-namespace:ArasToolkit.App.Views"
+        xmlns:placeholder="clr-namespace:ArasToolkit.App.Views.Placeholder"
+        xmlns:converters="clr-namespace:ArasToolkit.App.Converters"
+        xmlns:models="clr-namespace:ArasToolkit.Core.Models;assembly=ArasToolkit.Core"
+        mc:Ignorable="d"
+        Title="个人工具箱"
+        Height="720" Width="1280"
+        MinHeight="600" MinWidth="1000"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="{StaticResource PrimaryBrush}"
+        ResizeMode="CanResizeWithGrip">
+
+    <Window.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:InverseBoolConverter x:Key="InverseBool" />
+
+        <!-- ===== 导航菜单 HierarchicalDataTemplate（仅用于子节点数据源绑定） ===== -->
+        <HierarchicalDataTemplate DataType="{x:Type models:MenuItemInfo}"
+                                  ItemsSource="{Binding Children}">
+            <!-- Header 由 NavTreeItemStyle 的 ControlTemplate 完整定义，此处为空占位 -->
+            <ContentPresenter Content="{Binding Name}" Visibility="Collapsed" />
+        </HierarchicalDataTemplate>
+
+        <!-- TreeViewItem 样式 — 仿原侧边栏导航 -->
+        <Style x:Key="NavTreeItemStyle" TargetType="TreeViewItem">
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="Margin" Value="4,1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TreeViewItem">
+                        <StackPanel>
+                            <!-- 当前节点 -->
+                            <Border x:Name="NavBorder"
+                                    Background="Transparent"
+                                    CornerRadius="8"
+                                    Padding="8,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="20" />
+                                        <ColumnDefinition Width="24" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- 展开/折叠箭头（仅父节点显示） -->
+                                    <ToggleButton x:Name="ExpandToggle"
+                                                  Grid.Column="0"
+                                                  IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                  Visibility="{Binding HasChildren, Converter={StaticResource BoolToVisibility}}"
+                                                  Width="16" Height="16"
+                                                  Margin="0,0,4,0"
+                                                  Background="Transparent"
+                                                  BorderThickness="0"
+                                                  Cursor="Hand"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalAlignment="Center">
+                                        <ToggleButton.Template>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <TextBlock x:Name="Arrow"
+                                                           Text="▶"
+                                                           FontSize="8"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Center"
+                                                           RenderTransformOrigin="0.5,0.5">
+                                                    <TextBlock.RenderTransform>
+                                                        <RotateTransform Angle="0" />
+                                                    </TextBlock.RenderTransform>
+                                                </TextBlock>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="Arrow" Property="Text" Value="▼" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </ToggleButton.Template>
+                                    </ToggleButton>
+
+                                    <!-- 图标 -->
+                                    <TextBlock x:Name="IconText"
+                                               Grid.Column="1"
+                                               Text="●"
+                                               FontSize="10"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Center" />
+
+                                    <!-- 菜单名 -->
+                                    <TextBlock x:Name="NavLabel"
+                                               Grid.Column="2"
+                                               Text="{Binding Name}"
+                                               FontSize="14"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0,0,0" />
+                                </Grid>
+                            </Border>
+
+                            <!-- 子节点容器 -->
+                            <ItemsPresenter x:Name="ChildrenHost" Margin="16,0,0,0" Visibility="Collapsed" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <!-- 展开时显示子节点 -->
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ChildrenHost" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <!-- 鼠标悬停 -->
+                            <Trigger SourceName="NavBorder" Property="IsMouseOver" Value="True">
+                                <Setter TargetName="NavBorder" Property="Background" Value="{StaticResource SurfaceBrush}" />
+                                <Setter TargetName="IconText" Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="NavLabel" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <!-- 选中状态 -->
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="NavBorder" Property="Background" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="IconText" Property="Foreground" Value="White" />
+                                <Setter TargetName="NavLabel" Property="Foreground" Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- 主布局 -->
+    <Border Background="{StaticResource PrimaryBrush}" CornerRadius="0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="32" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 标题栏 -->
+            <Grid Grid.Row="0" Background="{StaticResource SecondaryBrush}" 
+                  MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="12,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="🛠" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <TextBlock Text="Aras 开发工具箱" FontSize="12" 
+                               Foreground="{StaticResource TextSecondaryBrush}" 
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Grid.Column="1">
+                    <Button Content="─" Click="MinimizeButton_Click" 
+                            Width="36" Height="28"
+                            Background="Transparent" Foreground="{StaticResource TextSecondaryBrush}"
+                            BorderThickness="0" Cursor="Hand" FontSize="14" />
+                    <Button Content="□" Click="MaximizeButton_Click" 
+                            Width="36" Height="28"
+                            Background="Transparent" Foreground="{StaticResource TextSecondaryBrush}"
+                            BorderThickness="0" Cursor="Hand" FontSize="14" />
+                    <Button x:Name="CloseButton" Content="✕" Click="CloseButton_Click" 
+                            Width="36" Height="28"
+                            Background="Transparent" Foreground="{StaticResource TextSecondaryBrush}"
+                            BorderThickness="0" Cursor="Hand" FontSize="14" />
+                </StackPanel>
+            </Grid>
+
+            <!-- 主体布局: 左侧导航 + 右侧内容 -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 左侧导航栏（登录前隐藏） -->
+                <Border Grid.Column="0" Background="{StaticResource SecondaryBrush}" Width="240"
+                        Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Logo区域 -->
+                        <StackPanel Grid.Row="0" Margin="20,24,20,20">
+                            <TextBlock Text="个人工具箱" FontSize="20" FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="开发工具集" FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}" 
+                                       Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <!-- 导航菜单（TreeView 支持二级菜单） -->
+                        <TreeView Grid.Row="1"
+                                  ItemsSource="{Binding MenuItems}"
+                                  PreviewMouseLeftButtonDown="NavTree_PreviewMouseLeftButtonDown"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  ItemContainerStyle="{StaticResource NavTreeItemStyle}"
+                                  Margin="8,0" />
+
+                        <!-- 底部用户信息/操作按钮 -->
+                        <Border Grid.Row="2"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="0,1,0,0"
+                                Padding="16,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="已登录"
+                                           FontSize="12"
+                                           Foreground="{StaticResource SuccessBrush}"
+                                           VerticalAlignment="Center" />
+                                <Button Grid.Column="1"
+                                        Content="🔍 数据库检查"
+                                        Click="DatabaseCheckButton_Click"
+                                        Background="Transparent"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="8,4"
+                                        Cursor="Hand" FontSize="11" Margin="8,0,8,0"
+                                        HorizontalAlignment="Center">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4" />
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                                <Button Grid.Column="2"
+                                        Content="退出"
+                                        Click="LogoutButton_Click"
+                                        Background="Transparent"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="12,4"
+                                        Cursor="Hand" FontSize="12">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4" />
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- 分隔线（登录前隐藏） -->
+                <Border Grid.Column="1" Background="{StaticResource BorderBrush}" Width="1"
+                        Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}}" />
+
+                <!-- 右侧内容区域 -->
+                <Border Grid.Column="2" Background="{StaticResource PrimaryBrush}">
+                    <Grid>
+                        <!-- 登录界面（覆盖层） -->
+                        <ContentControl x:Name="LoginContentControl" 
+                                        Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
+
+                        <!-- 主内容区域 -->
+                        <ContentControl x:Name="MainContentControl"
+                                        Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}}" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- 状态栏 -->
+            <Border Grid.Row="2" Background="{StaticResource SecondaryBrush}" 
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                    Padding="16,4">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="个人工具箱 v1.0" FontSize="11" 
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                    <TextBlock Text=" | .NET 8.0" FontSize="11" 
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="12,0,0,0" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

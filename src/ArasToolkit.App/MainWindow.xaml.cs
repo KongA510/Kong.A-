@@ -1,0 +1,217 @@
+﻿using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System;
+using ArasToolkit.App.ViewModels;
+using ArasToolkit.App.Views;
+using ArasToolkit.App.Views.Placeholder;
+using ArasToolkit.Core.Models;
+using ArasToolkit.Services.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace ArasToolkit.App;
+
+/// <summary>
+/// MainWindow.xaml 的交互逻辑 - 主窗口（含左侧导航）
+/// </summary>
+public partial class MainWindow : Window
+{
+    private readonly MainViewModel _mainVM;
+
+    public MainWindow(MainViewModel mainViewModel)
+    {
+        InitializeComponent();
+        _mainVM = mainViewModel;
+        DataContext = _mainVM;
+
+        // 初始化显示登录界面
+        ShowLoginView();
+    }
+
+    /// <summary>
+    /// TreeView 鼠标点击事件 — 父节点：展开/折叠 + 子级仪表盘；叶节点：导航到功能页
+    /// </summary>
+    private void NavTree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var treeViewItem = FindParentTreeViewItem(e.OriginalSource as DependencyObject);
+        if (treeViewItem?.DataContext is not MenuItemInfo menuItem)
+            return;
+
+        if (menuItem.HasChildren)
+        {
+            treeViewItem.IsExpanded = !treeViewItem.IsExpanded;
+            if (treeViewItem.IsExpanded)
+                ShowChildDashboard(menuItem);
+            e.Handled = true;
+        }
+        else
+        {
+            NavigateToPage(menuItem);
+        }
+    }
+
+    private static TreeViewItem? FindParentTreeViewItem(DependencyObject? child)
+    {
+        while (child != null)
+        {
+            if (child is TreeViewItem tvi)
+                return tvi;
+            child = VisualTreeHelper.GetParent(child);
+        }
+        return null;
+    }
+
+    private void ShowChildDashboard(MenuItemInfo parentItem)
+    {
+        var dashboard = new PlaceholderView();
+        dashboard.SetTitle(parentItem.Name, $"共 {parentItem.Children.Count} 个子功能");
+        dashboard.AddChildItems(parentItem.Children, NavigateToPage);
+        MainContentControl.Content = dashboard;
+        _mainVM.SelectedMenuItem = parentItem;
+    }
+
+    public void NavigateToPage(string name)
+    {
+        NavigateToPage(new MenuItemInfo { Name = name });
+    }
+
+    private void ShowLoginView()
+    {
+        var loginVM = App.Services.GetRequiredService<LoginViewModel>();
+        loginVM.LoginSucceeded += OnLoginSucceeded;
+        LoginContentControl.Content = new LoginView { DataContext = loginVM };
+    }
+
+    private void OnLoginSucceeded()
+    {
+        _mainVM.IsLoggedIn = true;
+
+        if (_mainVM.MenuItems.Count > 0)
+        {
+            _mainVM.SelectedMenuItem = _mainVM.MenuItems[0];
+            NavigateToPage(_mainVM.MenuItems[0]);
+        }
+    }
+
+    /// <summary>
+    /// 根据菜单项切换右侧内容
+    /// </summary>
+    private void NavigateToPage(MenuItemInfo menuItem)
+    {
+        try
+        {
+            object? view = menuItem.Name switch
+            {
+                "仪表盘" => new DashboardView { DataContext = App.Services.GetRequiredService<DashboardViewModel>() },
+                "导入表格" => new ExcelImportView { DataContext = App.Services.GetRequiredService<ExcelImportViewModel>() },
+                "字段翻译" => CreatePlaceholder("字段翻译", "Aras字段翻译工具 - 功能开发中，敬请期待..."),
+                "表单翻译" => CreatePlaceholder("表单翻译", "Aras表单翻译工具 - 功能开发中，敬请期待..."),
+                "窗体翻译" => CreatePlaceholder("窗体翻译", "Aras窗体翻译工具 - 功能开发中，敬请期待..."),
+                "窗体配置" => CreatePlaceholder("窗体配置", "Aras窗体配置工具 - 功能开发中，敬请期待..."),
+                "对象类配置" => CreatePlaceholder("对象类配置", "Aras对象类配置工具 - 功能开发中，敬请期待..."),
+                "属性配置" => CreatePlaceholder("属性配置", "Aras属性配置工具 - 功能开发中，敬请期待..."),
+                "List配置" => CreatePlaceholder("List配置", "Aras List配置工具 - 功能开发中，敬请期待..."),
+                "权限配置" => CreatePlaceholder("权限配置", "Aras权限配置工具 - 功能开发中，敬请期待..."),
+                "更新日志" => new ChangelogView { DataContext = App.Services.GetRequiredService<ChangelogViewModel>() },
+                "错误日志" => new ErrorLogView { DataContext = App.Services.GetRequiredService<ErrorLogViewModel>() },
+                "敏感操作日志" => new OperationLogView { DataContext = App.Services.GetRequiredService<OperationLogViewModel>() },
+                "数据报表" => new ChartView { DataContext = App.Services.GetRequiredService<ChartViewModel>() },
+                "待办项目" => new TodoView { DataContext = App.Services.GetRequiredService<TodoViewModel>() },
+                _ => null
+            };
+
+            if (view != null)
+            {
+                MainContentControl.Content = view;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[NavigateToPage] 导航失败 ({menuItem.Name}): {ex.Message}");
+            MainContentControl.Content = new TextBlock
+            {
+                Text = $"页面加载失败: {ex.Message}",
+                FontSize = 16,
+                Foreground = new SolidColorBrush(Color.FromRgb(0xDC, 0x26, 0x26)),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+        }
+    }
+
+    private async Task RunDatabaseCheckAsync()
+    {
+        var result = MessageBox.Show(
+            "即将检查数据库表结构完整性，可能执行 ALTER TABLE 操作补充缺失字段。\n\n是否继续？",
+            "数据库完整性检查", MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        try
+        {
+            var factory = App.Services.GetRequiredService<IDbContextFactory<ArasToolkitDbContext>>();
+            await using var context = await factory.CreateDbContextAsync();
+            await context.EnsureSchemaAsync();
+
+            MessageBox.Show("数据库检查完成，表结构已同步至最新。",
+                "检查完成", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"数据库检查失败:\n{ex.Message}",
+                "检查失败", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private static PlaceholderView CreatePlaceholder(string title, string description)
+    {
+        var view = new PlaceholderView();
+        view.SetTitle(title, description);
+        return view;
+    }
+
+    #region 标题栏事件
+    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 1)
+            DragMove();
+        else if (e.ClickCount == 2)
+            ToggleMaximize();
+    }
+
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void MaximizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleMaximize();
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        Application.Current.Shutdown();
+    }
+
+    private void ToggleMaximize()
+    {
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    }
+
+    private async void DatabaseCheckButton_Click(object sender, RoutedEventArgs e)
+    {
+        await RunDatabaseCheckAsync();
+    }
+
+    private void LogoutButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainVM.IsLoggedIn = false;
+        MainContentControl.Content = null;
+        _mainVM.SelectedMenuItem = null;
+        ShowLoginView();
+    }
+    #endregion
+}

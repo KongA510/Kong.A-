@@ -69,9 +69,10 @@ public class ErrorLogViewModel : ObservableObject
         {
             var (items, total) = await _errorLogService.GetPagedEntriesAsync(
                 CurrentPage, _pageSize, FilterLevel, FilterFromDate, FilterToDate);
-            Entries = new ObservableCollection<ErrorLog>(items);
-            TotalCount = total;
-            StatusMessage = $"共 {total} 条记录";
+           Entries = new ObservableCollection<ErrorLog>(items);
+           TotalCount = total;
+            UpdatePagingCommands();
+           StatusMessage = $"共 {total} 条记录";
             if (CurrentPage > TotalPages && TotalPages > 0)
             {
                 CurrentPage = TotalPages;

@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ArasToolkit.Core\ArasToolkit.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EPPlus" Version="7.2.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.11" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Aras Innovator R37 IOM 核心库 -->
+    <Reference Include="IOM">
+      <HintPath>..\R37lib\IOM.dll</HintPath>
+    </Reference>
+    <Reference Include="Aras.Net">
+      <HintPath>..\R37lib\Aras.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="Aras.Cryptography">
+      <HintPath>..\R37lib\Aras.Cryptography.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- 构建时将 R37lib 全部 DLL 复制到输出目录（IOM.dll 运行时依赖） -->
+  <Target Name="CopyR37Libs" AfterTargets="Build">
+    <ItemGroup>
+      <R37Dlls Include="..\R37lib\*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(R37Dlls)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
