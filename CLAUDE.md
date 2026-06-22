@@ -432,3 +432,44 @@ await changelogService.AddEntryAsync(new Changelog
 ---
 
 > 此技能在打开 ArasToolkit 项目时自动加载。可根据实际开发经验持续更新。
+
+
+
+## 十一、Git 分支与推送策略 ⚠️ 必须遵守
+
+### 11.1 分支结构
+
+```
+master   → 最新版本（唯一推送目标，云端源码托管主分支）
+develop  → 历史版本归档（保留上一轮推送的完整提交历史，用于回溯/还原）
+```
+
+### 11.2 推送规则（铁律）
+
+1. **每次推送前必须先备份当前 master 到 develop：**
+   - 推送前：`git checkout develop && git merge master && git push origin develop`
+   - 推送时：`git checkout master && git push origin master --force`
+   - 目的：保证 `develop` 始终保留上一轮完整历史，可随时恢复
+
+2. **master 使用 force push：**
+   - 本地 master 是唯一代码真相来源
+   - 远程 master 通过 `git push origin master --force` 覆盖，保持与本地完全一致
+
+3. **develop 保留完整线性历史：**
+   - 存放所有历史版本提交记录
+   - 每次 master 推送前，将 master 合并到 develop，确保历史不丢失
+   - develop 包含完整的 Todo 模块 v1.0.1 ~ v1.0.6 开发历史
+
+### 11.3 恢复操作
+
+```bash
+# 从 develop 恢复上一版本到 master
+git checkout master
+git reset --hard develop~1   # develop~1 = 上一轮推送前的 master
+git push origin master --force
+```
+
+---
+
+> 此技能在打开 ArasToolkit 项目时自动加载。可根据实际开发经验持续更新。
+
