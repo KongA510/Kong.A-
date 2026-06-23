@@ -4,7 +4,7 @@ priority: P0
 type: spec
 created: 2026-06-24
 source: Claude Code
-status: pending_review
+status: done
 ---
 
 # Git 本地备份与推送流程 — 每次编码强制遵守
@@ -69,4 +69,5 @@ git push origin master --force
 - [ ] 编码前已执行 `git stash push -m "backup-before-TASK-XXX"`
 - [ ] 编码后已 `git commit`
 - [ ] 审核通过后已执行推送（develop 备份 + master force push）
+
 
