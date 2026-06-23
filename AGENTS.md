@@ -1,4 +1,4 @@
----
+﻿---
 name: aras
 description: Aras Innovator 开发工具箱技能 — 提供 Aras 登录认证、API 调用、项目架构规范及常用开发技巧。在打开 ArasToolkit 项目或进行 Aras 相关开发时自动调用。
 keywords: Aras,ArasToolkit,Innovator,登录,HttpServerConnection,ScalcMD5,Item,AML,applyItem,工具箱
@@ -476,6 +476,8 @@ git push origin master --force
 
 ---
 
+---
+
 ## 十二、Codex 与 Claude Code 协作规范 ⚠️ 必须遵守
 
 ### 12.1 角色分工
@@ -485,15 +487,104 @@ git push origin master --force
 | **Codex**（当前对话） | 代码编写、自动化管理、功能实装 |
 | **Claude Code** | 任务分析、方案输出到公共文件、代码审查、项目监听与状态监控、排版与文档格式化 |
 
-### 12.2 协作流程
+### 12.2 协作流程（迭代闭环）
 
-1. **方案输出** — Claude Code 对任务进行分析，将技术方案写入公共文件（如 	asks/ 目录下的约定文件），供 Codex 读取执行
-2. **代码编写** — Codex 根据公共文件中的方案执行代码编写（编码、编译、测试、部署）
-3. **输出检查任务** — Codex 编码完成后，输出一份检查任务清单（Checklist），写入公共文件，供 Claude Code 进行审查
-4. **代码审查** — Claude Code 根据检查清单对 Codex 编写的代码进行审查，输出审查意见
-5. **自动化监听** — 自动化任务承担 Claude Code 的持续监控角色，定时检查项目状态并输出格式化报告
+```
+Claude Code ──方案输出──→ tasks/TASK-NNN.md (status: pending)
+                              ↓
+                         Codex 编写代码
+                              ↓
+                         tasks/ 写入检查清单 (status: pending_review)
+                              ↓
+                     ┌── Claude Code 审查 ─────────┐
+                     │                              │
+                     │  审查结论:「需修改: ...」       │  审查结论:「通过」
+                     │                              │
+                     ↓                              ↓
+                  Codex 修正                      review_passed
+                  (status 改回 pending_review)       │
+                     │                              ↓
+                     └──→ 返回审查 ←──┘        Codex 读取结论:
+                                                  │ 「通过」→ 编译 → done/
+                                                  │ 「需修改」→ 继续修正循环
+                                                  ↓
+                                            Codex 编译验证
+                                                  │
+                                                  ↓
+                                            status: done
+                                                  │
+                                                  ↓
+                                           移入 tasks/done/
+```
 
-### 12.3 核心原则
+**各步骤说明：**
+
+| 步骤 | 执行者 | 输出 | status 变更 |
+|------|--------|------|-------------|
+| 1. 方案输出 | Claude Code | 分析/技术方案 → `tasks/TASK-NNN.md` | `pending` |
+| 2. 代码编写 | Codex | 编码、修改项目文件 | 不变 |
+| 3. 输出检查清单 | Codex | 检查清单写入同文件 | `pending` → `pending_review` |
+| 4. 代码审查 | Claude Code | 审查意见、通过/修改 | `pending_review` → `review_passed` |
+| 5. 代码修正 | Codex | 按审查意见修改代码，status 改回 `pending_review` | 等待再次审查 |
+| 6. 再次审查 | Claude Code | 确认修改已修复，写出审查结论 | 同步骤 4 |
+| 7. 编译验证 | Codex | `dotnet build` | `review_passed` → `done` → 移入 `done/` |
+| 8. 自动化监听 | 自动化任务 | 扫描任务 + 状态检查 | 持续运行 |
+
+### 12.3 任务文件生命周期（状态流转）
+
+```
+pending                 ← Claude Code 写完方案到 tasks/
+  ↓
+pending_review          ← Codex 写完代码 + 检查清单，等待审查
+  ↓
+review_passed           ← Claude Code 第一次审查通过
+  ↑↓ (可循环多次)
+pending_review          ← Codex 按审查意见修正后，再次等待审查
+  ↓
+done                    ← Codex 编译通过，任务完成
+                          （文件移入 tasks/done/）
+```
+
+**铁律：**
+- ✅ 新任务放 `tasks/` 根目录，`status: pending`
+- ✅ Codex 编码后将 status 改为 `pending_review`，写入检查清单
+- ✅ Claude Code 审查**必须**写出明确的审查结论，供 Codex 判断下一步
+- ✅ 审查结论为「通过」→ `review_passed`，Codex 执行编译归档
+- ✅ 审查结论为「需修改: ...」→ 保持 `review_passed`，Codex 按意见修改后 status 改回 `pending_review` 等待再次审查
+- ✅ 可以多次循环，直到审查通过
+- ✅ 审查通过后 Codex 编译，通过后 status 改为 `done`，移入 `tasks/done/`
+- ❌ 新任务不要直接放 `tasks/done/`
+- ❌ Codex 不要在审查通过前执行构建
+- ❌ 已完成审查报告可直接放 `tasks/done/`（如 TASK-006、TASK-007）
+- ❌ Claude Code 不要自行将文件移入 `tasks/done/`（归档由 Codex 统一执行）
+
+`
+tasks/                                   ← Claude Code 放置新任务（status: pending）
+├── TASK-NNN.md  status: pending         ← Codex 读取并编码
+├── TASK-NNN.md  status: pending_review  ← Codex 写入检查清单，等审查
+├── TASK-NNN.md  status: review_passed   ← Claude Code 审查通过
+└── done/                                ← 编译验证通过后移入
+    └── TASK-NNN.md  status: done        ← Codex 完成编译
+`
+
+**生命周期状态流转：**
+`
+pending → (Claude Code写完方案)
+       → pending_review → (Codex写完代码+检查清单，等待审查)
+                       → review_passed → (Claude Code审查通过)
+                                       → done → (Codex编译通过，移入done/)
+`
+
+**铁律：**
+- ✅ 新任务文件**必须**放在 tasks/ 根目录，status 设为 pending
+- ✅ Codex 编码后**必须**将 status 改为 pending_review，写入检查清单
+- ✅ Claude Code 审查通过后**必须**将 status 改为 review_passed
+- ✅ Codex 收到 review_passed 后执行编译，通过后改为 done 并移入 tasks/done/
+- ❌ 新任务不要直接放入 tasks/done/（否则自动化无法识别）
+- ❌ 已经完成的审查报告可直接放 tasks/done/（如 TASK-005）
+- ❌ Codex 不要在审查通过前执行构建（避免提前编译导致审查流于形式）
+
+### 12.4 核心原则
 
 - 各自发挥所长，各司其职，不强求对方做不擅长的事
 - Claude Code 专注于「想清楚怎么说/怎么组织」，输出高质量的分析/方案/审查意见到公共文件
@@ -501,12 +592,18 @@ git push origin master --force
 - Codex 编码完成后必须输出检查任务清单，触发 Claude Code 审查环节
 - 不越界：Codex 不做深度分析与排版，Claude Code 不直接写代码
 
-### 12.4 自动化监听模式
+### 12.5 自动化监听模式
 
-- 自动化任务以固定间隔进入监听模式，持续检查项目状态
-- 监听内容包括：任务进度、文件变更、构建状态、待办事项
-- 监听结果以格式化报告输出，供开发者决策下一步行动
+- 自动化任务以 5 分钟为间隔进入监听模式（通过 Codex App 的 heartbeat 机制）
+- 每次唤醒执行：
+  1. git status + git log 检查文件变更和提交历史
+  2. dotnet build --no-restore 检查编译状态
+  3. 扫描 tasks/ 根目录下 status: pending 的 TASK-*.md 文件
+  4. 输出格式化报告（分支/提交/待处理任务/变更/构建状态/下一步建议）
+- 自动化 ID（用于 Claude Code 感知）：automation（Codex App 心跳自动化）
 
 ---
 
 > 此技能在打开 ArasToolkit 项目时自动加载。可根据实际开发经验持续更新。
+
+

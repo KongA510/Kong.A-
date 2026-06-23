@@ -208,54 +208,26 @@
                                   ItemContainerStyle="{StaticResource NavTreeItemStyle}"
                                   Margin="8,0" />
 
-                        <!-- 底部用户信息/操作按钮 -->
+                        <!-- 底部设置按钮 -->
                         <Border Grid.Row="2"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="0,1,0,0"
                                 Padding="16,12">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="已登录"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SuccessBrush}"
-                                           VerticalAlignment="Center" />
-                                <Button Grid.Column="1"
-                                        Content="🔍 数据库检查"
-                                        Click="DatabaseCheckButton_Click"
-                                        Background="Transparent"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                        BorderBrush="{StaticResource BorderBrush}"
-                                        BorderThickness="1"
-                                        Padding="8,4"
-                                        Cursor="Hand" FontSize="11" Margin="8,0,8,0"
-                                        HorizontalAlignment="Center">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="4" />
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
-                                <Button Grid.Column="2"
-                                        Content="退出"
-                                        Click="LogoutButton_Click"
-                                        Background="Transparent"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                        BorderBrush="{StaticResource BorderBrush}"
-                                        BorderThickness="1"
-                                        Padding="12,4"
-                                        Cursor="Hand" FontSize="12">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="4" />
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
-                            </Grid>
+                            <Button Content="⚙️ 设置"
+                                    Click="SettingsButton_Click"
+                                    Background="Transparent"
+                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    Padding="16,8"
+                                    Cursor="Hand" FontSize="13"
+                                    HorizontalAlignment="Center">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="4" />
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
                         </Border>
                     </Grid>
                 </Border>

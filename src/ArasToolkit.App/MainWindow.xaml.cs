@@ -7,8 +7,6 @@ using ArasToolkit.App.ViewModels;
 using ArasToolkit.App.Views;
 using ArasToolkit.App.Views.Placeholder;
 using ArasToolkit.Core.Models;
-using ArasToolkit.Services.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ArasToolkit.App;
@@ -141,29 +139,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task RunDatabaseCheckAsync()
-    {
-        var result = MessageBox.Show(
-            "即将检查数据库表结构完整性，可能执行 ALTER TABLE 操作补充缺失字段。\n\n是否继续？",
-            "数据库完整性检查", MessageBoxButton.YesNo, MessageBoxImage.Information);
-
-        if (result != MessageBoxResult.Yes) return;
-
-        try
-        {
-            var factory = App.Services.GetRequiredService<IDbContextFactory<ArasToolkitDbContext>>();
-            await using var context = await factory.CreateDbContextAsync();
-            await context.EnsureSchemaAsync();
-
-            MessageBox.Show("数据库检查完成，表结构已同步至最新。",
-                "检查完成", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"数据库检查失败:\n{ex.Message}",
-                "检查失败", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
 
     private static PlaceholderView CreatePlaceholder(string title, string description)
     {
@@ -201,17 +176,19 @@ public partial class MainWindow : Window
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     }
 
-    private async void DatabaseCheckButton_Click(object sender, RoutedEventArgs e)
+    private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
-        await RunDatabaseCheckAsync();
-    }
-
-    private void LogoutButton_Click(object sender, RoutedEventArgs e)
-    {
-        _mainVM.IsLoggedIn = false;
-        MainContentControl.Content = null;
-        _mainVM.SelectedMenuItem = null;
-        ShowLoginView();
+        var settingsVM = App.Services.GetRequiredService<SettingsViewModel>();
+        var window = new SettingsWindow(settingsVM);
+        window.Owner = this;
+        settingsVM.LogoutRequested += () =>
+        {
+            _mainVM.IsLoggedIn = false;
+            MainContentControl.Content = null;
+            _mainVM.SelectedMenuItem = null;
+            ShowLoginView();
+        };
+        window.ShowDialog();
     }
     #endregion
 }

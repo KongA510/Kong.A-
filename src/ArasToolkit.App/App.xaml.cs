@@ -44,6 +44,8 @@ public partial class App : Application
         services.AddTransient<OperationLogViewModel>();
         services.AddTransient<TodoViewModel>();
         services.AddTransient<ChartViewModel>();
+        services.AddTransient<SettingsViewModel>();
+        services.AddTransient<SettingsWindow>();
 
         // 注册Views
         services.AddTransient<MainWindow>();
