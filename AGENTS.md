@@ -10,7 +10,42 @@ keywords: Aras,ArasToolkit,Innovator,登录,HttpServerConnection,ScalcMD5,Item,A
 
 ## 一、Aras 登录认证方式（R37 标准实现）
 
-```csharp
+``
+
+### 11.4 编码前强制备份流程 ⚠️ 每次编码前必须执行
+
+**目的**：每次编码前备份当前工作区，代码出错时可快速回滚到编码前状态。
+
+#### 编码前（每次必须执行）
+
+```bash
+git add -A
+git stash push -m "backup-before-TASK-XXX"
+git stash pop   # 立即恢复，stash 中保留快照
+```
+
+> 注意：若编码出错，通过 `git stash list` 查看备份，用 `git stash apply stash@{N}` 恢复。
+
+#### 编码后
+
+```bash
+git add -A
+git commit -m "功能描述: 具体变更内容"
+```
+
+#### 审查通过后推送
+
+```bash
+# 备份 master → develop
+git checkout develop
+git merge master
+git push origin develop
+
+# 推送 master（force push）
+git checkout master
+git push origin master --force
+```
+`csharp
 // ===== Aras 登录核心代码 =====
 // 文件位置: src/ArasToolkit.Services/Services/LoginService.cs
 
@@ -555,6 +590,7 @@ done                    ← Codex 编译通过，任务完成
 - ✅ 审查通过后 Codex 编译，通过后 status 改为 `done`，移入 `tasks/done/`
 - ❌ 新任务不要直接放 `tasks/done/`
 - ❌ Codex 不要在审查通过前执行构建
+- ✅ 每次编码前必须执行 `git stash push -m "backup-before-TASK-NNN"` 备份工作区
 - ❌ 已完成审查报告可直接放 `tasks/done/`（如 TASK-006、TASK-007）
 - ❌ Claude Code 不要自行将文件移入 `tasks/done/`（归档由 Codex 统一执行）
 
