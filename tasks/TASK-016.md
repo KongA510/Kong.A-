@@ -114,18 +114,19 @@ public class DataImportConfig
 新增方法：
 
 ```csharp
-// 获取 Sheet 的列数（自动检测数据范围）
-Task<int> GetColumnCountAsync(string filePath, string sheetName);
+// 获取 Sheet 中指定列的列头文本（第一行）
+Task<List<string>> GetColumnHeadersAsync(string filePath, string sheetName, int startCol, int endCol);
 
-// 生成列字母列表（如 ["A","B","C",...,"Z","AA","AB"...]）
-List<string> GetColumnLetters(int count);
+// 获取 Sheet 实际数据行数
+Task<int> GetRowCountAsync(string filePath, string sheetName);
 
-// 按范围读取 Sheet 数据（预览用，返回 DataTable）
+// 按范围读取 Sheet 数据（预览用，返回 DataTable，列头=真实Excel列头）
 // endRow=-1 → 读到最后一行, endCol=-1 → 自动检测最后一列
 Task<ExcelSheetData> ReadSheetRangeAsync(string filePath, string sheetName,
     int startRow, int endRow, int startCol, int endCol);
 
 // 逐行流式读取（汇入用，callback 每行处理）
+// 每行数据以 Dictionary<列字母, 值> 传递，如 {"A":"MAT001", "B":"螺栓", "C":"100"}
 // 返回: (totalRows, successCount, failureCount)
 Task<(int Total, int Success, int Failed)> StreamRowsAsync(
     string filePath, string sheetName,
@@ -133,11 +134,22 @@ Task<(int Total, int Success, int Failed)> StreamRowsAsync(
     Func<int, Dictionary<string, string>, Task<bool>> rowProcessor);
 ```
 
-**列字母映射表**：
+**预览读取逻辑**：
 ```
-1→A, 2→B, ..., 26→Z, 27→AA, 28→AB, ..., 52→AZ, 53→BA, ...
+1. 读取第1行（表头行）→ 真实列头，用作 DataTable 的 ColumnName
+   例如: "物料编号"、"物料名称"、"数量"
+2. 构建列映射表: {"A": "物料编号", "B": "物料名称", "C": "数量", ...}
+3. 从第2行开始读取数据行，填充到 DataTable
+4. DataGrid 显示: 真实列头 + 数据行
 ```
-EPPlus 自带 `ExcelCellAddress.GetColumnLetter(col)` 可直接使用。
+
+**逐行汇入逻辑**：
+```
+1. 从 startRow 开始逐行读取
+2. 每行数据: {"A": "MAT001", "B": "螺栓", "C": "100"}
+3. 传入 rowProcessor → 内部替换AML: @A→MAT001, @B→螺栓, @C→100
+4. rowProcessor 返回 true=成功, false=失败
+```
 
 ### 4.4 新建 Service: DataImportService
 
@@ -149,24 +161,36 @@ public interface IDataImportService
     Task<DataImportConfig> SaveConfigAsync(DataImportConfig config);
     Task DeleteConfigAsync(string id);
 
-    // ---- 列字母工具 ----
-    List<string> GetColumnLetters(int count);
-
     // ---- Excel 读取（委托给 IExcelService） ----
     Task<List<string>> GetSheetNamesAsync(string filePath);
     Task<ExcelSheetData> ReadSheetRangeAsync(string filePath, string sheetName,
         int startRow, int endRow, int startCol, int endCol);
+    Task<List<ColumnMapping>> GetColumnMappingsAsync(string filePath, string sheetName,
+        int startCol, int endCol);
 
-    // ---- AML 预览 ----
-    // 将 AML 中的 @A @B 替换为实际数据行对应列的值
-    string PreviewAml(string amlTemplate, Dictionary<string, string> rowData);
+    // ---- AML 替换 ----
+    // 将 AML 中的 @A @B @C... 替换为 rowData 中对应列的值
+    // rowData key 是列字母（"A","B","C"...），value 是该行对应列的值
+    string ReplaceAmlPlaceholders(string amlTemplate, Dictionary<string, string> rowData);
 
-    // ---- 汇入执行（壳方法） ----
-    // 逐行读取 Excel → 调用 rowProcessor → 写日志
-    // 实际 Aras API 调用由用户在 rowProcessor 中实现
+    // 用第一行数据预览 AML 替换效果（返回替换后的完整 AML 文本）
+    string PreviewAml(string amlTemplate, Dictionary<string, string> firstRowData);
+
+    // ---- 汇入执行 ----
+    // 逐行读取 Excel → 替换AML中的@A@B → 调用 arasImporter
+    // arasImporter 为 null 时，所有行标记为"跳过"
     Task<ImportResult> ExecuteImportAsync(
         string filePath, DataImportConfig config,
-        Func<int, Dictionary<string, string>, string, Task<bool>>? arasImporter = null);
+        Func<int, string, Task<bool>>? arasImporter = null);
+        // arasImporter 参数: (行号, 替换后的AML) → 返回是否成功
+}
+
+// 列映射模型
+public class ColumnMapping
+{
+    public string Letter { get; set; }  // "A", "B", "C", ..., "AA", "AB"...
+    public string Header { get; set; }  // 真实列头名，如 "物料编号"
+    public int Index { get; set; }      // 列索引（0=第1列即A列）
 }
 
 public class ImportResult
@@ -174,6 +198,7 @@ public class ImportResult
     public int TotalRows { get; set; }
     public int SuccessCount { get; set; }
     public int FailureCount { get; set; }
+    public int SkippedCount { get; set; }
     public DateTime ImportTime { get; set; }
     public string LogFilePath { get; set; } = string.Empty;
 }
@@ -227,9 +252,12 @@ int EndCol { get; set; } = -1            // 结束列（-1=自动）
 ICommand LoadPreviewCommand             // 按范围加载数据到预览表格
 
 // ---- 数据预览 ----
-DataTable? PreviewData                    // 预览数据（列名为 @A @B ...）
-ObservableCollection<string> ColumnLetters // 列字母列表
-ICommand LoadSheetsCommand              // 选中 Sheet 后加载列信息
+DataTable? PreviewData                    // 预览数据（显示真实列头）
+ObservableCollection<string> ColumnHeaders // 真实列头名称
+
+// ---- 列映射表（@A ↔ 真实列头） ----
+ObservableCollection<ColumnMapping> ColumnMappings // @A=物料编号, @B=物料名称 ...
+// ColumnMapping 包含: Letter("A"), Header("物料编号"), Index(0)
 
 // ---- AML 配置管理 ----
 ObservableCollection<DataImportConfig> SavedConfigs  // 已保存配置列表
@@ -237,23 +265,48 @@ DataImportConfig? SelectedConfig          // 当前选中配置
 string AmlContent                         // 当前 AML 模板内容（双向绑定）
 ICommand SaveConfigCommand             // 保存当前 AML + 范围设置
 ICommand DeleteConfigCommand           // 删除选中配置
-ICommand SelectConfigCommand           // 打开弹窗选择配置 → 带入
-ICommand PreviewAmlCommand             // 用第一行数据预览 AML 替换效果
+ICommand OpenConfigSelectorCommand    // 打开弹窗选择配置 → 带入
+ICommand PreviewAmlCommand             // 用第一行数据替换AML中的@A@B → 展示替换后AML
 
 // ---- 汇入执行 ----
 bool IsImporting                          // 汇入进行中
-bool IsPaused                             // 暂停中（暂未实现，预留）
-ImportResult? LastResult                  // 上次汇入结果
+bool IsPaused                             // 暂停中
 ICommand ExecuteImportCommand           // 执行汇入
+ICommand PauseCommand                   // 暂停/继续汇入（Toggle）
+CancellationTokenSource? _cts             // 取消令牌，暂停时取消当前行
+
+// ---- 结果 ----
+ImportResult? LastResult                  // 上次汇入结果
 
 // ---- 状态 ----
 string StatusMessage
 bool IsLoading
 ```
 
+**汇入流程（逐行替换 @A@B → 执行）：**
+
+```
+1. 用户加载文件 → 选择 Sheet → 设置范围 → 加载预览
+2. 界面显示: 列映射表（@A=物料编号） + 数据表格（真实列头）
+3. 用户编写/选择 AML 模板（含 @A @B 占位符）
+4. 点击"预览AML" → 取第一行数据替换 @A,@B → 展示替换后的完整 AML
+5. 点击"执行汇入" → 从 StartRow 开始逐行:
+   a. 检查 IsPaused，若暂停则 await 等待取消令牌
+   b. 读取当前行 A列值 → 替换 AML 中 @A
+   c. 读取 B列值 → 替换 @B ...（替换全部占位符）
+   d. 调用 arasImporter(rowNumber, replacedAml) 
+   e. 成功 → successCount++; 失败 → 写入日志文件
+6. 汇入完成 → 显示结果汇总
+```
+
+**暂停机制**：
+- `PauseCommand` → `IsPaused = true` → `_cts.Cancel()`
+- 当前正在执行的行完成后阻塞等待
+- 再次点击 → `IsPaused = false` → 重新创建 `_cts` → 继续下一行
+
 ### 4.7 View: DataImportView.xaml
 
-布局结构（参考截图风格，上下分区）：
+布局结构（上下分区）：
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -264,29 +317,51 @@ bool IsLoading
 │  起始行: [2]  结束行: [-1]  起始列: [1] 结束列: [-1]  │
 │  [加载预览]                                    │
 ├──────────────────────────────────────────────┤
-│  ┌─ 数据预览（列头 @A @B @C ...）─┐           │
-│  │  @A    @B    @C    @D    ...   │           │
-│  │  ----  ----  ----  ----       │           │
-│  │  ...数据行...                  │           │
-│  └────────────────────────────────┘           │
+│  ┌─ 列映射表（@A @B ... ↔ 真实列头）──┐      │
+│  │  @A = 物料编号    @D = 规格        │      │
+│  │  @B = 物料名称    @E = 单位        │      │
+│  │  @C = 数量        @F = 备注        │      │
+│  └────────────────────────────────────┘      │
+├──────────────────────────────────────────────┤
+│  ┌─ 数据预览（显示真实列头）─────────┐        │
+│  │  物料编号 │ 物料名称 │ 数量 │ ... │        │
+│  │  ────────┼──────────┼──────┼──── │        │
+│  │  MAT001  │ 螺栓     │ 100  │ ... │        │
+│  │  MAT002  │ 螺母     │ 200  │ ... │        │
+│  └──────────────────────────────────┘        │
 ├──────────────────────────────────────────────┤
 │  AML模板:                     [选择配置▼]     │
 │  ┌──────────────────────────────────┐       │
 │  │ <AML>                            │       │
 │  │   <Item type="Part">             │       │
-│  │     <item_number>@A</item_number>│       │
+│  │     <item_number>@A</item_number>│  ← @A将被替换为A列当前行的值
+│  │     <name>@B</name>              │  ← @B将被替换为B列当前行的值
 │  │   </Item>                        │       │
 │  │ </AML>                           │       │
 │  └──────────────────────────────────┘       │
-│  [预览AML] [保存配置] [删除配置]              │
+│  [预览AML（用第一行数据替换@A@B）]              │
+│  [保存配置] [删除配置]                        │
 ├──────────────────────────────────────────────┤
 │  汇入结果: 总行100  成功95  失败5             │
 │  日志: Logs/Import/import_20260625_143052.log│
-│  [执行汇入]                                    │
+│  [执行汇入]  [⏸ 暂停]                        │
 └──────────────────────────────────────────────┘
 ```
 
-**暗色主题**：背景 #1E1E2E, 卡片 #2A2A3C, 文字 #CDD6F4, 输入框 #313244
+**@A @B 占位符机制说明：**
+
+```
+AML模板中的 @A → 汇入时替换为当前行第1列（A列）的值
+AML模板中的 @B → 汇入时替换为当前行第2列（B列）的值
+...
+以此类推，@Z → 第26列，@AA → 第27列 ...
+
+示例：
+  模板: <item_number>@A</item_number><name>@B</name>
+  第3行数据: A列=MAT001, B列=螺栓
+  替换后AML: <item_number>MAT001</item_number><name>螺栓</name>
+  → 将替换后的AML发送到Aras执行汇入
+```
 
 ### 4.8 AML配置选择弹窗: ConfigSelectWindow
 
