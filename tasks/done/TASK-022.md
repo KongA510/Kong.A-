@@ -4,7 +4,7 @@ priority: P1
 type: feature
 created: 2026-06-25
 source: Claude Code（产品方案）
-status: pending_review
+status: done
 reviewed: 2026-06-25
 reviewer: Claude Code
 ---
