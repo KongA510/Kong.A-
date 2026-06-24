@@ -692,3 +692,10 @@ git push origin master --force
 **结论: 需修改** 🔴
 1. 文件 `src\ArasToolkit.App\Views\DataImportView.xaml:111-137` — 执行按钮+进度条错放在左侧数据预览面板（Column="0"）的 Grid 内，且该 Grid 无 RowDefinitions，`Grid.Row="4"` 无效。应将这27行移到右侧面板（Column="2"）的 `</ScrollViewer>` 之后、`</Grid>` 之前，并从左侧面板删除。
 2. 文件 `src\ArasToolkit.App\ViewModels\DataImportViewModel.cs:277-284` — `ExecuteImportAsync` 导入过程中 `ImportProgress` 始终为0，仅在完成后设100%。需在循环中逐行更新 `ImportProgress` 和 `ProgressText`。
+
+---
+
+## Claude Code 审查结论 (17:45)
+
+**结论: 需修改** 🔴
+1. 文件 `src\ArasToolkit.App\ViewModels\DataImportViewModel.cs:277-286` — `ExecuteImportAsync` 导入过程中 `ImportProgress` 始终为0，仅在完成后设100%。`_dataImportService.ExecuteImportAsync` 传了 `null` 作为 arasImporter 参数，导致 `result.SkippedCount++` 直接跳过所有行而不执行导入。需实现真正的逐行导入逻辑：传入 arasImporter 回调，在其中逐行更新 `ImportProgress = (double)current / total * 100` 和 `ProgressText = $"{current}/{total}"`。
