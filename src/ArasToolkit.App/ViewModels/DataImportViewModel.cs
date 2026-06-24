@@ -6,6 +6,7 @@ using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
 using ArasToolkit.App.Views;
+using System.Threading;
 using Microsoft.Win32;
 using System.IO;
 
@@ -72,7 +73,7 @@ public class DataImportViewModel : ObservableObject
     public int StartCol { get => _startCol; set => SetProperty(ref _startCol, value); }
     public int EndCol { get => _endCol; set => SetProperty(ref _endCol, value); }
 
-    public string AmlContent { get => _amlContent; set => SetProperty(ref _amlContent, value); }
+    public string AmlContent { get => _amlContent; set { SetProperty(ref _amlContent, value); RefreshCommands(); } }
     public string PreviewResult { get => _previewResult; set => SetProperty(ref _previewResult, value); }
 
     public DataTable? PreviewData { get => _previewData; set => SetProperty(ref _previewData, value); }
@@ -83,7 +84,7 @@ public class DataImportViewModel : ObservableObject
     public string ErrorMessage { get => _errorMessage; set => SetProperty(ref _errorMessage, value); }
     public bool IsLoading { get => _isLoading; set { SetProperty(ref _isLoading, value); RefreshCommands(); } }
     public bool IsImporting { get => _isImporting; set { SetProperty(ref _isImporting, value); RefreshCommands(); OnPropertyChanged(nameof(IsProgressVisible)); } }
-    public bool IsPaused { get => _isPaused; set { SetProperty(ref _isPaused, value); OnPropertyChanged(nameof(IsProgressVisible)); } }
+    public bool IsPaused { get => _isPaused; set { SetProperty(ref _isPaused, value); RefreshCommands(); OnPropertyChanged(nameof(IsProgressVisible)); } }
     public bool IsProgressVisible => IsImporting || IsPaused;
     public double ImportProgress { get => _importProgress; set => SetProperty(ref _importProgress, value); }
     public string ProgressText { get => _progressText; set => SetProperty(ref _progressText, value); }
@@ -274,6 +275,8 @@ public class DataImportViewModel : ObservableObject
             };
 
                         LastResult = await _dataImportService.ExecuteImportAsync(SelectedFilePath, config, null);
+            ImportProgress = 0;
+            ProgressText = "导入中...";
             if (LastResult != null && LastResult.TotalRows > 0)
             {
                 ImportProgress = 100;

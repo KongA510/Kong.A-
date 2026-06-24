@@ -633,3 +633,62 @@ git push origin master --force
 ```
 
 插入方式：删除当前文件第 161 行 `</Grid>` 之后到文件末尾的所有内容，替换为上述代码。
+
+---
+
+## Claude Code 审查结论 (16:30)
+
+**结论: 需修改** 🔴
+1. 文件 `src\ArasToolkit.App\Views\DataImportView.xaml:67-72` — 执行按钮+暂停+继续+进度条被错放在 Row 1 文件选择卡片内部 Grid 中。应删除此处，移到右侧面板 AML 预览区域下方（`</ScrollViewer>` 之后、`</Grid>` 之前），分两行：Row 4 执行按钮行（执行导入、暂停、继续），Row 5 进度条行（ProgressBar + ProgressText）。同步删除外层 Grid 的空 Row 4 RowDefinition，状态栏 `Grid.Row="5"` 改为 `Grid.Row="4"`。详见任务文件末尾的参考 XAML 代码块。
+2. 文件 `src\ArasToolkit.App\ViewModels\DataImportViewModel.cs:184` — `CanSaveConfig()` 去掉 `&& !string.IsNullOrEmpty(SelectedSheetName)` 条件，允许未选文件时保存 AML 模板。
+3. 文件 `src\ArasToolkit.App\ViewModels\DataImportViewModel.cs:75` — `AmlContent` setter 增加 `RefreshCommands()` 调用，否则用户输入 AML 后 Save 按钮 CanExecute 不刷新。
+4. 文件 `src\ArasToolkit.App\Views\DataImportView.xaml:145` — TextBox 绑定增加 `UpdateSourceTrigger=PropertyChanged`，否则失焦前 ViewModel 收不到 AML 输入。
+5. 文件 `src\ArasToolkit.App\ViewModels\DataImportViewModel.cs:86` — `IsPaused` setter 增加 `RefreshCommands()` 调用，否则暂停/继续按钮 CanExecute 在状态变化后不刷新。
+6. 文件 `src\ArasToolkit.App\ViewModels\DataImportViewModel.cs:276-283` — `ExecuteImportAsync` 导入过程中 `ImportProgress` 始终为 0，仅在完成后设 100%。基于 `LastResult.TotalRows` 在循环中逐行更新 `ImportProgress` 和 `ProgressText`。
+
+---
+
+## 参考：执行栏 XAML（插入到右侧面板 ScrollViewer 之后）
+
+```xml
+        </ScrollViewer>
+
+        <!-- 执行按钮行 -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,10,0,0">
+            <Button Content="执行导入" Command="{Binding ExecuteImportCommand}"
+                    Style="{StaticResource PrimaryButton}" Height="32" FontSize="13"
+                    Padding="20,0"
+                    Visibility="{Binding IsImporting, Converter={StaticResource InverseBool}}" />
+            <Button Content="暂停" Command="{Binding PauseCommand}"
+                    Height="32" FontSize="13" Padding="16,0" Margin="8,0,0,0"
+                    Background="#F59E0B" Foreground="White" BorderThickness="0" Cursor="Hand"
+                    Visibility="{Binding IsPaused, Converter={StaticResource InverseBool}}" />
+            <Button Content="继续" Command="{Binding ResumeCommand}"
+                    Style="{StaticResource PrimaryButton}" Height="32" FontSize="13"
+                    Padding="16,0" Margin="8,0,0,0"
+                    Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibility}}" />
+        </StackPanel>
+
+        <!-- 进度条行 -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,8,0,0"
+                    Visibility="{Binding IsProgressVisible, Converter={StaticResource BoolToVisibility}}">
+            <ProgressBar Value="{Binding ImportProgress}" Minimum="0" Maximum="100"
+                         Height="6" Width="180"
+                         Foreground="{StaticResource AccentBrush}"
+                         Background="{StaticResource BorderBrush}" BorderThickness="0" />
+            <TextBlock Text="{Binding ProgressText}" FontSize="11"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       Margin="12,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+```
+
+> 右侧面板 Grid 需增加 Row 4 和 Row 5 两个 RowDefinition（Height="Auto"）。
+
+---
+
+## Claude Code 审查结论 (17:00)
+
+**结论: 需修改** 🔴
+1. 文件 `src\ArasToolkit.App\Views\DataImportView.xaml:111-137` — 执行按钮+进度条错放在左侧数据预览面板（Column="0"）的 Grid 内，且该 Grid 无 RowDefinitions，`Grid.Row="4"` 无效。应将这27行移到右侧面板（Column="2"）的 `</ScrollViewer>` 之后、`</Grid>` 之前，并从左侧面板删除。
+2. 文件 `src\ArasToolkit.App\ViewModels\DataImportViewModel.cs:277-284` — `ExecuteImportAsync` 导入过程中 `ImportProgress` 始终为0，仅在完成后设100%。需在循环中逐行更新 `ImportProgress` 和 `ProgressText`。
