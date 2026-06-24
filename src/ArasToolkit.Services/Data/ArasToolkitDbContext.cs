@@ -25,6 +25,9 @@ public class ArasToolkitDbContext : DbContext
      /// <summary>应用用户表</summary>
      public DbSet<AppUser> AppUsers => Set<AppUser>();
 
+    /// <summary>数据导入配置表</summary>
+    public DbSet<DataImportConfig> DataImportConfigs => Set<DataImportConfig>();
+
     /// <summary>缓存的连接字符串（避免重复读取文件）</summary>
     private static string? _cachedConnectionString;
 
@@ -105,6 +108,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.Level).HasColumnName("level").HasMaxLength(20);
             entity.Property(e => e.StackTrace).HasColumnName("stack_trace");
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+            entity.Property(e => e.UserName).HasColumnName("user_name").HasMaxLength(100);
 
             entity.Ignore(e => e.DisplayDate);
         });
@@ -305,6 +309,27 @@ public class ArasToolkitDbContext : DbContext
                  BEGIN
                      ALTER TABLE app_user ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                  END
+
+                -- ===== data_import_config 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='data_import_config')
+                BEGIN
+                    CREATE TABLE data_import_config (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        config_name NVARCHAR(200) NOT NULL,
+                        aml_content NVARCHAR(MAX) NOT NULL,
+                        sheet_name NVARCHAR(200) NULL,
+                        start_row INT NOT NULL DEFAULT 2,
+                        end_row INT NOT NULL DEFAULT -1,
+                        start_col INT NOT NULL DEFAULT 1,
+                        end_col INT NOT NULL DEFAULT -1,
+                        user_name NVARCHAR(100) NOT NULL,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+                ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='data_import_config' AND COLUMN_NAME='creator_on')
+                BEGIN
+                    ALTER TABLE data_import_config ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
+                END
             ";
             await Database.ExecuteSqlRawAsync(sql);
         }

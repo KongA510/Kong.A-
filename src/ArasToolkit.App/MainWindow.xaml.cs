@@ -110,7 +110,7 @@ public partial class MainWindow : Window
                 "窗体配置" => CreatePlaceholder("窗体配置", "Aras窗体配置工具 - 功能开发中，敬请期待..."),
                 "对象类配置" => CreatePlaceholder("对象类配置", "Aras对象类配置工具 - 功能开发中，敬请期待..."),
                 "属性配置" => CreatePlaceholder("属性配置", "Aras属性配置工具 - 功能开发中，敬请期待..."),
-                "List配置" => CreatePlaceholder("List配置", "Aras List配置工具 - 功能开发中，敬请期待..."),
+                "数据汇入" => new DataImportView { DataContext = App.Services.GetRequiredService<DataImportViewModel>() },
                 "权限配置" => CreatePlaceholder("权限配置", "Aras权限配置工具 - 功能开发中，敬请期待..."),
                 "更新日志" => new ChangelogView { DataContext = App.Services.GetRequiredService<ChangelogViewModel>() },
                 "错误日志" => new ErrorLogView { DataContext = App.Services.GetRequiredService<ErrorLogViewModel>() },

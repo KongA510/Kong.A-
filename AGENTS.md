@@ -628,6 +628,32 @@ pending → (Claude Code写完方案)
 - Codex 编码完成后必须输出检查任务清单，触发 Claude Code 审查环节
 - 不越界：Codex 不做深度分析与排版，Claude Code 不直接写代码
 
+### 12.4.1 文件编码规范 ⚠️ 必须遵守
+
+```
+所有 tasks/TASK-*.md 任务文件必须使用 UTF-8 编码，避免中文乱码导致 Codex 无法读取。
+
+铁律：
+- ✅ 所有任务文件（TASK-*.md）必须保存为 UTF-8 编码
+- ✅ 写入文件后立即用 Node.js 验证编码：
+
+  node -e "const fs=require('fs');const b=fs.readFileSync(process.argv[1]);const bom=b[0]===0xEF&&b[1]===0xBB&&b[2]===0xBF;const hasChinese=/[一-鿿]/.test(b.toString('utf8'));if(bom){console.log('OK:UTF-8+BOM');}else if(b.toString('utf8').indexOf('�')===-1&&hasChinese){console.log('OK:UTF-8');}else{console.log('FAIL:encoding');process.exit(1);}" tasks/TASK-NNN.md
+
+- ✅ 验证失败 → 删除文件并用 Write 工具重新写入
+- ❌ 禁止使用纯英文绕过编码问题
+- ❌ 禁止在乱码文件上编辑（Edit 工具会叠加损坏）
+```
+
+### 12.5 编码修复命令（快速）
+
+```bash
+# 单个文件验证
+node -e "const fs=require('fs');const t=fs.readFileSync('tasks/TASK-NNN.md','utf8');fs.writeFileSync('tasks/TASK-NNN.md',t,'utf8');console.log('OK');"
+
+# 批量修复 tasks/ 目录所有文件
+node -e "const fs=require('fs'),path=require('path');const d='tasks';fs.readdirSync(d).filter(f=>f.endsWith('.md')).forEach(f=>{const p=path.join(d,f);const t=fs.readFileSync(p,'utf8');fs.writeFileSync(p,t,'utf8');console.log('OK:',f);});"
+```
+
 ## 12.5 自动化监听模式
 
 ### 定时任务配置

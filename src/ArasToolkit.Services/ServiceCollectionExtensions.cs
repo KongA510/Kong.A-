@@ -1,4 +1,4 @@
-using ArasToolkit.Core.Interfaces;
+﻿using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Services.Data;
 using ArasToolkit.Services.Services;
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +51,9 @@ public static class ServiceCollectionExtensions
 
         // 注册图表报表服务（单例）
         services.AddSingleton<IChartService, ChartService>();
+
+        // 注册数据导入服务
+        services.AddSingleton<IDataImportService, DataImportService>();
 
         return services;
     }

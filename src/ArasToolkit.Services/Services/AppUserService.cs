@@ -1,3 +1,4 @@
+﻿using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Services.Data;
@@ -26,7 +27,12 @@ public class AppUserService : IAppUserService
         var user = await context.Set<AppUser>()
             .FirstOrDefaultAsync(u => u.Username == username);
 
-        if (user == null || user.Password != password)
+        if (user == null)
+            return null;
+
+        string hashedInput = IsMd5Format(password) ? password : password.ToMd5();
+
+        if (user.Password != hashedInput)
             return null;
 
         return user;
@@ -41,7 +47,7 @@ public class AppUserService : IAppUserService
         var user = new AppUser
         {
             Username = username,
-            Password = password,
+            Password = password.ToMd5(),
             DisplayName = displayName ?? username,
             IsAdmin = false,
             CreatorOn = DateTime.Now
@@ -93,6 +99,15 @@ public class AppUserService : IAppUserService
             ";
             await context.Database.ExecuteSqlRawAsync(sql);
 
+            // Update existing plaintext passwords to MD5
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(
+                    "UPDATE app_user SET password = N'915d92dbc92c8b655764d3df7e22161b' WHERE username = N'xinke.wang';" +
+                    "UPDATE app_user SET password = N'21232f297a57a5a743894a0e4a801fc3' WHERE username = N'admin';");
+            }
+            catch { }
+
             // 插入默认管理员（如果不存在）
             var adminExists = await context.Set<AppUser>().AnyAsync(u => u.Username == "admin");
             if (!adminExists)
@@ -100,7 +115,7 @@ public class AppUserService : IAppUserService
                 context.Set<AppUser>().Add(new AppUser
                 {
                     Username = "admin",
-                    Password = "admin",
+                    Password = "21232f297a57a5a743894a0e4a801fc3",
                     DisplayName = "系统管理员",
                     IsAdmin = true,
                     CreatorOn = DateTime.Now
@@ -115,7 +130,7 @@ public class AppUserService : IAppUserService
                 context.Set<AppUser>().Add(new AppUser
                 {
                     Username = "xinke.wang",
-                    Password = "xwxy51020",
+                    Password = "915d92dbc92c8b655764d3df7e22161b",
                     DisplayName = "王新轲",
                     IsAdmin = true,
                     CreatorOn = DateTime.Now
@@ -127,5 +142,19 @@ public class AppUserService : IAppUserService
         {
             System.Diagnostics.Debug.WriteLine($"[AppUserService] Schema同步失败: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// 判断字符串是否已经是 32 位小写十六进制 MD5 格式
+    /// </summary>
+    private static bool IsMd5Format(string s)
+    {
+        if (s == null || s.Length != 32) return false;
+        foreach (char c in s)
+        {
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
+                return false;
+        }
+        return true;
     }
 }

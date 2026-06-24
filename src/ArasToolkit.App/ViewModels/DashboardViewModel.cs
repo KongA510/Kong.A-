@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
@@ -66,13 +66,13 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "窗体配置", Description = "Aras窗体配置工具", Icon = "⚙️" },
         new() { Name = "对象类配置", Description = "Aras对象类配置工具", Icon = "📦" },
         new() { Name = "属性配置", Description = "Aras属性配置工具", Icon = "🔧" },
-        new() { Name = "List配置", Description = "Aras List配置工具", Icon = "📋" },
+        new() { Name = "数据汇入", Description = "Aras 数据汇入工具", Icon = "📀" },
         new() { Name = "权限配置", Description = "Aras权限配置工具", Icon = "🔒" },
         new() { Name = "更新日志", Description = "系统更新日志与版本记录", Icon = "📜" },
         new() { Name = "错误日志", Description = "系统错误记录与排查", Icon = "🐛" },
         new() { Name = "敏感操作日志", Description = "业务操作审计轨迹记录", Icon = "🔒" },
         new() { Name = "数据报表", Description = "数据统计与图表可视化", Icon = "📊" },
-        new() { Name = "待办项目", Description = "个人待办任务管理与追踪", Icon = "📋" },
+        new() { Name = "待办项目", Description = "个人待办任务管理与追踪", Icon = "📀" },
     };
 
     public ICommand RefreshCommand { get; }

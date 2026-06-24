@@ -1,6 +1,8 @@
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
+using ArasToolkit.Services.Data;
+using Microsoft.EntityFrameworkCore;
 using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.App.ViewModels;
@@ -12,6 +14,7 @@ public class AppLoginViewModel : ObservableObject
 {
     private readonly IAppUserService _appUserService;
     private readonly IConfigService _configService;
+    private readonly IDbContextFactory<ArasToolkitDbContext> _contextFactory;
 
     private string _username = string.Empty;
     private string _password = string.Empty;
@@ -22,10 +25,11 @@ public class AppLoginViewModel : ObservableObject
     private string _errorMessage = string.Empty;
     private string _statusMessage = string.Empty;
 
-    public AppLoginViewModel(IAppUserService appUserService, IConfigService configService)
+    public AppLoginViewModel(IAppUserService appUserService, IConfigService configService, IDbContextFactory<ArasToolkitDbContext> contextFactory)
     {
         _appUserService = appUserService;
         _configService = configService;
+        _contextFactory = contextFactory;
 
         LoginCommand = new RelayCommand(async _ => await LoginAsync(), _ => CanSubmit());
         RegisterCommand = new RelayCommand(async _ => await RegisterAsync(), _ => CanSubmit());
@@ -109,6 +113,9 @@ public class AppLoginViewModel : ObservableObject
     private async Task InitializeAsync()
     {
         await _appUserService.EnsureSchemaAsync();
+            // Sync all business tables
+            await using var dbContext = await _contextFactory.CreateDbContextAsync();
+            await dbContext.EnsureSchemaAsync();
 
         // 加载记住的密码
         var saved = await _configService.LoadAppSettingAsync<AppLoginCredential>("appLogin");

@@ -47,8 +47,11 @@ public partial class App : Application
         services.AddTransient<ChartViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<ArasLoginViewModel>();
+        services.AddTransient<DataImportViewModel>();
         services.AddTransient<SettingsWindow>();
         services.AddTransient<ArasLoginWindow>();
+        services.AddTransient<DataImportView>();
+        services.AddTransient<ConfigSelectWindow>();
 
         // 注册Views
         services.AddTransient<MainWindow>();
