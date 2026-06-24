@@ -1,6 +1,6 @@
 ﻿using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Entities;
-using ArasToolkit.Core.Entities;
+using ArasToolkit.Core.Models;
 using ArasToolkit.Services.Data;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
@@ -112,6 +112,7 @@ public class TodoService : ITodoService
             item.Id = Guid.NewGuid().ToString("N")[..12];
             item.CreatedDate = DateTime.Now;
             item.CreatorOn = DateTime.Now;
+            item.CreatedBy = CurrentUserContext.CurrentUserName;
 
             context.PersonalTasks.Add(item);
             await context.SaveChangesAsync();
@@ -153,6 +154,7 @@ public class TodoService : ITodoService
             existing.CompletionPercent = item.CompletionPercent;
             existing.Status = item.Status;
             existing.ModifiedDate = DateTime.Now;
+            existing.ModifiedBy = CurrentUserContext.CurrentUserName;
 
             await context.SaveChangesAsync();
 

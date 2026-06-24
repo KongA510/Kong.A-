@@ -36,6 +36,7 @@ public partial class App : Application
 
         // 注册ViewModels
         services.AddSingleton<MainViewModel>();
+        services.AddTransient<AppLoginViewModel>();
         services.AddTransient<LoginViewModel>();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<ExcelImportViewModel>();
@@ -45,10 +46,13 @@ public partial class App : Application
         services.AddTransient<TodoViewModel>();
         services.AddTransient<ChartViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<ArasLoginViewModel>();
         services.AddTransient<SettingsWindow>();
+        services.AddTransient<ArasLoginWindow>();
 
         // 注册Views
         services.AddTransient<MainWindow>();
+        services.AddTransient<AppLoginView>();
         services.AddTransient<LoginView>();
         services.AddTransient<DashboardView>();
         services.AddTransient<ExcelImportView>();

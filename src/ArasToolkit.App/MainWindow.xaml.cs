@@ -24,11 +24,11 @@ public partial class MainWindow : Window
         _mainVM = mainViewModel;
         DataContext = _mainVM;
 
-        // 初始化显示登录界面
-        ShowLoginView();
-    }
+       // 初始化显示登录界面
+        ShowAppLoginView();
+   }
 
-    /// <summary>
+   /// <summary>
     /// TreeView 鼠标点击事件 — 父节点：展开/折叠 + 子级仪表盘；叶节点：导航到功能页
     /// </summary>
     private void NavTree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -70,28 +70,28 @@ public partial class MainWindow : Window
         _mainVM.SelectedMenuItem = parentItem;
     }
 
-    public void NavigateToPage(string name)
-    {
-        NavigateToPage(new MenuItemInfo { Name = name });
-    }
+   public void NavigateToPage(string name)
+   {
+       NavigateToPage(new MenuItemInfo { Name = name });
+   }
 
-    private void ShowLoginView()
-    {
-        var loginVM = App.Services.GetRequiredService<LoginViewModel>();
-        loginVM.LoginSucceeded += OnLoginSucceeded;
-        LoginContentControl.Content = new LoginView { DataContext = loginVM };
-    }
+    private void ShowAppLoginView()
+   {
+        var appLoginVM = App.Services.GetRequiredService<AppLoginViewModel>();
+        appLoginVM.LoginSucceeded += OnAppLoginSucceeded;
+        LoginContentControl.Content = new AppLoginView { DataContext = appLoginVM };
+   }
 
-    private void OnLoginSucceeded()
-    {
-        _mainVM.IsLoggedIn = true;
+    private void OnAppLoginSucceeded()
+   {
+       _mainVM.IsLoggedIn = true;
 
-        if (_mainVM.MenuItems.Count > 0)
-        {
-            _mainVM.SelectedMenuItem = _mainVM.MenuItems[0];
-            NavigateToPage(_mainVM.MenuItems[0]);
-        }
-    }
+       if (_mainVM.MenuItems.Count > 0)
+       {
+           _mainVM.SelectedMenuItem = _mainVM.MenuItems[0];
+           NavigateToPage(_mainVM.MenuItems[0]);
+       }
+   }
 
     /// <summary>
     /// 根据菜单项切换右侧内容
@@ -181,14 +181,22 @@ public partial class MainWindow : Window
         var settingsVM = App.Services.GetRequiredService<SettingsViewModel>();
         var window = new SettingsWindow(settingsVM);
         window.Owner = this;
-        settingsVM.LogoutRequested += () =>
-        {
-            _mainVM.IsLoggedIn = false;
-            MainContentControl.Content = null;
-            _mainVM.SelectedMenuItem = null;
-            ShowLoginView();
-        };
-        window.ShowDialog();
+            settingsVM.LogoutRequested += () =>
+            {
+                _mainVM.IsLoggedIn = false;
+                MainContentControl.Content = null;
+                _mainVM.SelectedMenuItem = null;
+                ShowAppLoginView();
+            };
+            window.ShowDialog();
+        }
+ 
+         private void ArasLoginButton_Click(object sender, RoutedEventArgs e)
+         {
+             var vm = App.Services.GetRequiredService<ArasLoginViewModel>();
+             var window = new ArasLoginWindow(vm);
+             window.Owner = this;
+             window.ShowDialog();
+         }
+        #endregion
     }
-    #endregion
-}

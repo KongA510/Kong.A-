@@ -1,3 +1,3 @@
 {
-  "sql": "Data Source=192.168.0.58,1437;Initial Catalog=Kong.A;Persist Security Info=True;User ID=sa;Password=innovator; Trust Server Certificate=True"
+  "sql": "Data Source=10.7.44.28,1437;Initial Catalog=Kong.A;Persist Security Info=True;User ID=sa;Password=innovator; Trust Server Certificate=True"
 }

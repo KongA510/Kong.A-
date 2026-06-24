@@ -1,12 +1,13 @@
-using ArasToolkit.Core.Interfaces;
+﻿using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Services.Data;
 using Microsoft.EntityFrameworkCore;
+using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.Services.Services;
 
 /// <summary>
-/// 错误日志服务实现 — EF Core 数据库持久化
+/// 閿欒鏃ュ織鏈嶅姟瀹炵幇 鈥?EF Core 鏁版嵁搴撴寔涔呭寲
 /// </summary>
 public class ErrorLogService : IErrorLogService
 {
@@ -18,31 +19,32 @@ public class ErrorLogService : IErrorLogService
         _contextFactory = contextFactory;
     }
 
-    public async Task LogErrorAsync(string functionName, string errorMessage,
-        string? level = null, string? stackTrace = null)
-    {
-        try
-        {
-            await _lock.WaitAsync();
-            try
-            {
-                await using var context = await _contextFactory.CreateDbContextAsync();
-                context.ErrorLogs.Add(new ErrorLog
-                {
-                    FunctionName = functionName,
-                    ErrorMessage = errorMessage,
-                    StackTrace = stackTrace,
-                    Level = level ?? ErrorLog.LevelP1,
-                    RecordDate = DateTime.Now
-                });
+   public async Task LogErrorAsync(string functionName, string errorMessage,
+       string? level = null, string? stackTrace = null)
+   {
+       try
+       {
+           await _lock.WaitAsync();
+           try
+           {
+               await using var context = await _contextFactory.CreateDbContextAsync();
+               context.ErrorLogs.Add(new ErrorLog
+               {
+                   FunctionName = functionName,
+                   ErrorMessage = errorMessage,
+                   StackTrace = stackTrace,
+                    UserName = CurrentUserContext.CurrentUserName,
+                   Level = level ?? ErrorLog.LevelP1,
+                   RecordDate = DateTime.Now
+               });
                 await context.SaveChangesAsync();
             }
             finally { _lock.Release(); }
         }
         catch
         {
-            // 错误日志写入失败不能阻止主流程，静默处理
-            System.Diagnostics.Debug.WriteLine($"[ErrorLog] 写入失败: {functionName} - {errorMessage}");
+            // 閿欒鏃ュ織鍐欏叆澶辫触涓嶈兘闃绘涓绘祦绋嬶紝闈欓粯澶勭悊
+            System.Diagnostics.Debug.WriteLine($"[ErrorLog] 鍐欏叆澶辫触: {functionName} - {errorMessage}");
         }
     }
 
@@ -54,7 +56,7 @@ public class ErrorLogService : IErrorLogService
             await using var context = await _contextFactory.CreateDbContextAsync();
             var query = context.ErrorLogs.AsQueryable();
 
-            if (!string.IsNullOrEmpty(levelFilter) && levelFilter != "全部")
+            if (!string.IsNullOrEmpty(levelFilter) && levelFilter != "鍏ㄩ儴")
                 query = query.Where(e => e.Level == levelFilter);
 
             if (fromDate.HasValue)
@@ -63,8 +65,15 @@ public class ErrorLogService : IErrorLogService
             if (toDate.HasValue)
                 query = query.Where(e => e.RecordDate <= toDate.Value.AddDays(1));
 
-            var total = await query.CountAsync();
-            var items = await query
+       var total = await query.CountAsync();
+ 
+             // 闈炵鐞嗗憳浠呮煡鐪嬭嚜宸辩殑鏃ュ織
+             if (!CurrentUserContext.IsAdmin)
+             {
+                 query = query.Where(e => e.UserName == CurrentUserContext.CurrentUserName);
+             }
+ 
+           var items = await query
                 .OrderByDescending(e => e.CreatorOn)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -83,7 +92,14 @@ public class ErrorLogService : IErrorLogService
         try
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
-            return await context.ErrorLogs
+            var query = context.ErrorLogs.AsQueryable();
+
+            if (!CurrentUserContext.IsAdmin)
+            {
+                query = query.Where(e => e.UserName == CurrentUserContext.CurrentUserName);
+            }
+
+            return await query
                 .OrderByDescending(e => e.CreatorOn)
                 .ToListAsync();
         }
@@ -109,7 +125,7 @@ public class ErrorLogService : IErrorLogService
         }
         catch
         {
-            // 静默处理
+            // 闈欓粯澶勭悊
         }
     }
 }

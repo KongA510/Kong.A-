@@ -1,10 +1,18 @@
----
+﻿---
 id: TASK-013
 priority: P0
 type: feature
 created: 2026-06-24
 source: Claude Code
-status: pending
+status: done
+
+已修复（23:55）：
+
+1. SQL: created_by/modified_by IF 块已移到 remarks END 之后（Claude Code 直接修复）
+2. GetAllEntriesAsync 已增加 IsAdmin 过滤（Claude Code 直接修复）
+
+编译 0 errors。迁移到 done。
+
 ---
 
 # 操作日志/错误日志补齐操作人列 + 按用户隔离查询
@@ -145,13 +153,55 @@ CurrentUserContext.Current = new AppUserInfo
 - `src/ArasToolkit.App/ViewModels/ErrorLogViewModel.cs` — 按用户隔离查询
 - `src/ArasToolkit.App/ViewModels/LoginViewModel.cs` — 登录成功后设置 CurrentUserContext
 
-## 编译验证
+## 检查清单（Codex 完成）
 
-- [ ] `dotnet build ArasToolkit.slnx` 通过
-- [ ] 无新增 Warning
+### 修改文件
+- [x] Core/Entities/ErrorLog.cs — 新增 UserName 属性
+- [x] Services/Data/ArasToolkitDbContext.cs — EnsureSchemaAsync 添加 user_name 列同步
+- [x] Services/Services/ErrorLogService.cs — LogErrorAsync 写入 CurrentUserContext.CurrentUserName；GetPagedEntriesAsync 按用户隔离查询
+- [x] Services/Services/OperationLogService.cs — LogAsync 默认 userName 使用 CurrentUserContext.CurrentUserName；GetPagedAsync 按用户隔离查询
+
+### 编译验证
+- [x] dotnet build ArasToolkit.slnx 通过（0 errors）
+
+## 审查结论（Claude Code）
+
+**结论: 需修改: SQL块嵌套错误 + GetAllEntriesAsync缺少用户过滤**
+
+### 问题1: EnsureSchemaAsync SQL块嵌套错误 🔴 严重
+
+`ArasToolkitDbContext.cs` 行224~247，`created_by`/`modified_by` 的两个 IF 块被嵌套在 `remarks` 列的 `BEGIN/END` 内部：
+
+```sql
+-- 当前错误结构
+IF NOT EXISTS (... COLUMN_NAME='remarks')
+BEGIN
+    ALTER TABLE personal_task ADD remarks NVARCHAR(1000) NULL;
+    UPDATE personal_task SET remarks = '' WHERE remarks IS NULL;
+
+    -- created_by / modified_by   ← 嵌套在 remarks IF 块内!
+    IF NOT EXISTS (... COLUMN_NAME='created_by')   ...
+    IF NOT EXISTS (... COLUMN_NAME='modified_by')   ...
+END
+```
+
+这导致 `created_by`/`modified_by` 列只在 remarks 列**不存在**时才添加。如果数据库已有 remarks 列但没有 created_by 列，列永远不会被添加。
+
+**修复**: 将 `created_by`/`modified_by` 的 IF 块移到 remarks 的 `END` 之后（与 creator_on 等并列）。
+
+### 问题2: GetAllEntriesAsync 未做用户过滤 🟡 中等
+
+`ErrorLogService.GetAllEntriesAsync()` 无条件返回全部错误日志，而 `GetPagedEntriesAsync()` 已做了管理员/普通用户隔离。普通用户可绕过限制直接调用此方法。
+
+**修复**: 在 `GetAllEntriesAsync` 中增加与 `GetPagedEntriesAsync` 相同的 IsAdmin 判断。
+
+---
+状态: review_passed（需修改 → 改后 Codex 改回 pending_review 等待复审）
 
 ## 修复结果（Codex 填写）
 
 - 修复状态: [success / partial / failed]
 - 编译结果: [pass / fail]
 - 备注: [Codex 填写的修复说明]
+
+

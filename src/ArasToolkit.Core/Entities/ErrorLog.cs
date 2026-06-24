@@ -42,6 +42,11 @@ public class ErrorLog
     /// <summary>堆栈跟踪</summary>
     [Column("stack_trace")]
     public string? StackTrace { get; set; }
+ 
+     /// <summary>操作人用户名</summary>
+     [Column("user_name")]
+     [MaxLength(100)]
+     public string? UserName { get; set; }
 
     /// <summary>记录创建时间（系统级）</summary>
     [Column("creator_on")]

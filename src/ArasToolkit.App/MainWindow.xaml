@@ -209,25 +209,41 @@
                                   Margin="8,0" />
 
                         <!-- 底部设置按钮 -->
-                        <Border Grid.Row="2"
-                                BorderBrush="{StaticResource BorderBrush}"
-                                BorderThickness="0,1,0,0"
-                                Padding="16,12">
-                            <Button Content="⚙️ 设置"
-                                    Click="SettingsButton_Click"
-                                    Background="Transparent"
-                                    Foreground="{StaticResource TextSecondaryBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
-                                    BorderThickness="1"
-                                    Padding="16,8"
-                                    Cursor="Hand" FontSize="13"
-                                    HorizontalAlignment="Center">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="4" />
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
+                       <Border Grid.Row="2"
+                               BorderBrush="{StaticResource BorderBrush}"
+                               BorderThickness="0,1,0,0"
+                                Padding="12,12">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Button Content="⚙️ 设置"
+                                        Click="SettingsButton_Click"
+                                        Background="Transparent"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="12,8"
+                                        Cursor="Hand" FontSize="13">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4" />
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                                <Button Content="🔆 Aras登录信息"
+                                        Click="ArasLoginButton_Click"
+                                        Background="Transparent"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="8,8"
+                                        Cursor="Hand" FontSize="13"
+                                        Margin="6,0,0,0">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4" />
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </StackPanel>
                         </Border>
                     </Grid>
                 </Border>

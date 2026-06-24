@@ -1,10 +1,10 @@
----
+﻿---
 id: TASK-011
 priority: P0
 type: feature
 created: 2026-06-24
 source: Claude Code
-status: pending
+status: done
 ---
 
 # 新增应用独立登录系统
@@ -100,13 +100,41 @@ public class AppUser
 - `src/ArasToolkit.Services/ServiceCollectionExtensions.cs` — DI注册
 - `src/ArasToolkit.Core/Models/LoginInfo.cs` — 保持不变（Aras连接信息用）
 
-## 编译验证
+## 检查清单（Codex 完成）
 
-- [ ] `dotnet build ArasToolkit.slnx` 通过
+### 新增文件
+- [x] Core/Entities/AppUser.cs — 应用用户实体
+- [x] Core/Interfaces/IAppUserService.cs — 应用用户服务接口
+- [x] Services/Services/AppUserService.cs — 应用用户服务实现（登录/注册/Schema同步）
+- [x] Core/Models/CurrentUserContext.cs — 全局当前用户上下文
+- [x] App/ViewModels/AppLoginViewModel.cs — 应用登录 ViewModel
+- [x] App/Views/AppLoginView.xaml — 应用登录界面
+- [x] App/Views/AppLoginView.xaml.cs — 应用登录代码后端
+
+### 修改文件
+- [x] Services/Data/ArasToolkitDbContext.cs — DbSet<AppUser> + OnModelCreating + EnsureSchema
+- [x] App/MainWindow.xaml.cs — 启动时显示 AppLoginView，替换旧 LoginView
+- [x] App/App.xaml.cs — DI 注册 AppLoginViewModel + AppLoginView
+- [x] Services/ServiceCollectionExtensions.cs — DI 注册 IAppUserService
+
+### 编译验证
+- [x] dotnet build ArasToolkit.slnx 通过（0 errors, 2 warnings，warnings 为预有依赖冲突）
 - [ ] 无新增 Warning
+
+## 编译结果（Codex 填写）
+- 修复状态: success
+- 编译结果: pass
+- 备注: 应用登录系统完成，启动时显示登录界面，支持登录/注册，注册后自动登录
+
+## 审查结论（Claude Code）
+
+**结论: 通过** ✅
+
+TASK-011 审查通过 -- AppUser 实体/表设计完整，登录/注册逻辑正确，DI注册完整，CurrentUserContext 设置正确。编译 0 errors。迁移到 done。
 
 ## 修复结果（Codex 填写）
 
 - 修复状态: [success / partial / failed]
 - 编译结果: [pass / fail]
 - 备注: [Codex 填写的修复说明]
+

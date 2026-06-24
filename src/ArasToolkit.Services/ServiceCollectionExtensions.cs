@@ -22,6 +22,9 @@ public static class ServiceCollectionExtensions
             // 连接字符串在 ArasToolkitDbContext.OnConfiguring 中从 DBSeeting.json 读取
         });
 
+        // 注册应用用户服务
+        services.AddSingleton<IAppUserService, AppUserService>();
+
         // 注册操作日志服务（单例）
         services.AddSingleton<IOperationLogService, OperationLogService>();
 

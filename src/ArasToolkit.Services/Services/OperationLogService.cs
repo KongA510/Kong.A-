@@ -1,6 +1,7 @@
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Entities;
+using ArasToolkit.Core.Models;
 using ArasToolkit.Services.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -51,7 +52,7 @@ public class OperationLogService : IOperationLogService
                 EntityId = entityId,
                 Description = description,
                 OperateTime = DateTime.Now,
-                UserName = userName ?? GetCurrentUserName()
+                UserName = userName ?? CurrentUserContext.CurrentUserName ?? GetCurrentUserName()
             });
             await context.SaveChangesAsync();
         }
@@ -76,6 +77,13 @@ public class OperationLogService : IOperationLogService
             query = query.Where(l => l.OperationType == operationTypeFilter);
 
         var total = await query.CountAsync();
+ 
+         // 非管理员仅查看自己的日志
+         if (!CurrentUserContext.IsAdmin)
+         {
+             query = query.Where(l => l.UserName == CurrentUserContext.CurrentUserName);
+         }
+ 
         var items = await query
             .OrderByDescending(l => l.CreatorOn)
             .Skip((page - 1) * pageSize)

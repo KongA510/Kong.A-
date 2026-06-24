@@ -1,10 +1,10 @@
----
+﻿---
 id: TASK-014
 priority: P1
 type: fix
 created: 2026-06-24
 source: Claude Code
-status: pending
+status: done
 ---
 
 # Todo卡片备注高度限制 — 固定最大高度保证至少两行显示
@@ -99,12 +99,24 @@ status: pending
 - [ ] 3列卡片高度一致，布局整齐
 - [ ] 详情弹窗内备注不受影响，完整显示
 
-## 编译验证
+## 检查清单（Codex 完成）
 
-- [ ] `dotnet build ArasToolkit.slnx` 通过
+### 修改文件
+- [x] App/Views/TodoView.xaml — Row 3(Description) 和 Row 4(Remarks) 添加 MaxHeight="30" + TextWrapping="Wrap"
+- [ ] 详情弹窗内的备注不受影响（已确认无 MaxHeight）
+
+### 编译验证
+- [x] dotnet build ArasToolkit.slnx 通过（0 errors）
+
+## 审查结论（Claude Code）
+
+**结论: 通过** ✅
+
+TASK-014 审查通过 -- Description/Remarks 均添加 MaxHeight="30" + TextWrapping="Wrap"，详情弹窗不受限制，编译 0 errors。迁移到 done。
 
 ## 修复结果（Codex 填写）
 
 - 修复状态: [success / partial / failed]
 - 编译结果: [pass / fail]
 - 备注: [Codex 填写的修复说明]
+

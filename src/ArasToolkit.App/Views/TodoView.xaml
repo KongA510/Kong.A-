@@ -257,21 +257,27 @@
                                                VerticalAlignment="Center" Margin="8,0,0,0" />
                                 </Grid>
 
-                                <!-- Row 3: 说明 -->
-                                <TextBlock Grid.Row="3" Text="{Binding Description}" FontSize="11"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           TextTrimming="CharacterEllipsis" Margin="0,0,0,3"
+                               <!-- Row 3: 说明 -->
+                               <TextBlock Grid.Row="3" Text="{Binding Description}" FontSize="11"
+                                          Foreground="{StaticResource TextSecondaryBrush}"
+                                          TextWrapping="Wrap"
+                                          MaxHeight="30"
+                                          TextTrimming="CharacterEllipsis" Margin="0,0,0,3"
                                            Visibility="{Binding Description, Converter={StaticResource StringToVisibility}}" />
 
-                                <!-- Row 4: 备注说明 -->
-                                <TextBlock Grid.Row="4" Text="{Binding Remarks}" FontSize="11"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           TextTrimming="CharacterEllipsis" Margin="0,0,0,4"
+                               <!-- Row 4: 备注说明 -->
+                               <TextBlock Grid.Row="4" Text="{Binding Remarks}" FontSize="11"
+                                          Foreground="{StaticResource TextSecondaryBrush}"
+                                          TextWrapping="Wrap"
+                                          MaxHeight="30"
+                                          TextTrimming="CharacterEllipsis" Margin="0,0,0,4"
                                            Visibility="{Binding Remarks, Converter={StaticResource StringToVisibility}}" />
 
                                 <!-- Row 5: 到期时间(左下) + 编辑/删除(右下) -->
+                                <!-- Row 5: 到期时间(左) + 创建人(中) + 编辑/删除(右) -->
                                 <Grid Grid.Row="5">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
@@ -282,7 +288,13 @@
                                                    Foreground="#10B981" VerticalAlignment="Center" Margin="6,0,0,0"
                                                    Visibility="{Binding HasCompletionDate, Converter={StaticResource BoolToVisibility}}" />
                                     </StackPanel>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <!-- 创建人 -->
+                                    <TextBlock Grid.Column="1" Text="{Binding CreatedBy, StringFormat='由 {}'}"
+                                               FontSize="10" Foreground="#9CA3AF"
+                                               VerticalAlignment="Center" HorizontalAlignment="Right"
+                                               Margin="0,0,8,0"
+                                               Visibility="{Binding CreatedBy, Converter={StaticResource StringToVisibility}}" />
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
                                         <Button Style="{StaticResource IconBtn}" Tag="{Binding}" Click="EditButton_Click"
                                                 ToolTip="编辑">
                                             <TextBlock Text="✏" FontSize="12" />

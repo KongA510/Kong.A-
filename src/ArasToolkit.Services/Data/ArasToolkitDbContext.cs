@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using ArasToolkit.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,8 +19,11 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>错误日志表</summary>
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
 
-    /// <summary>更新日志表</summary>
-    public DbSet<Changelog> Changelogs => Set<Changelog>();
+   /// <summary>更新日志表</summary>
+   public DbSet<Changelog> Changelogs => Set<Changelog>();
+ 
+     /// <summary>应用用户表</summary>
+     public DbSet<AppUser> AppUsers => Set<AppUser>();
 
     /// <summary>缓存的连接字符串（避免重复读取文件）</summary>
     private static string? _cachedConnectionString;
@@ -119,11 +122,25 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.Author).HasColumnName("author").HasMaxLength(100);
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
 
-            entity.Ignore(e => e.DisplayDate);
-        });
-    }
+           entity.Ignore(e => e.DisplayDate);
+       });
+ 
+         // AppUser → app_user 表
+         modelBuilder.Entity<AppUser>(entity =>
+         {
+             entity.ToTable("app_user");
+             entity.HasKey(e => e.Id);
+             entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+             entity.Property(e => e.Username).HasColumnName("username").IsRequired().HasMaxLength(100);
+             entity.Property(e => e.Password).HasColumnName("password").IsRequired().HasMaxLength(100);
+             entity.Property(e => e.DisplayName).HasColumnName("display_name").HasMaxLength(100);
+             entity.Property(e => e.IsAdmin).HasColumnName("is_admin");
+             entity.Property(e => e.Avatar).HasColumnName("avatar").HasMaxLength(500);
+             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+         });
+   }
 
-    /// <summary>
+   /// <summary>
     /// 从 DBSeeting.json 读取 SQL Server 连接字符串（带缓存）
     /// </summary>
     private static string GetConnectionString()
@@ -210,6 +227,17 @@ public class ArasToolkitDbContext : DbContext
                     UPDATE personal_task SET remarks = '' WHERE remarks IS NULL;
                 END
 
+                -- created_by / modified_by
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='personal_task' AND COLUMN_NAME='created_by')
+                BEGIN
+                    ALTER TABLE personal_task ADD created_by NVARCHAR(100) NULL;
+                END
+
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='personal_task' AND COLUMN_NAME='modified_by')
+                BEGIN
+                    ALTER TABLE personal_task ADD modified_by NVARCHAR(100) NULL;
+                END
+
                 -- ===== operation_log 表列同步 =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='operation_log' AND COLUMN_NAME='creator_on')
                 BEGIN
@@ -230,6 +258,11 @@ public class ArasToolkitDbContext : DbContext
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
                 END
+                ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='error_log' AND COLUMN_NAME='user_name')
+                BEGIN
+                    ALTER TABLE error_log ADD user_name NVARCHAR(100) NULL;
+                END
+
                 ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='error_log' AND COLUMN_NAME='creator_on')
                 BEGIN
                     ALTER TABLE error_log ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
@@ -253,7 +286,25 @@ public class ArasToolkitDbContext : DbContext
                 BEGIN
                     ALTER TABLE changelog ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                     UPDATE changelog SET creator_on = ISNULL(release_date, GETDATE());
-                END
+               END
+ 
+                 -- ===== app_user 表 =====
+                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='app_user')
+                 BEGIN
+                     CREATE TABLE app_user (
+                         id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                         username NVARCHAR(100) NOT NULL,
+                         password NVARCHAR(100) NOT NULL,
+                         display_name NVARCHAR(100) NULL,
+                         is_admin BIT NOT NULL DEFAULT 0,
+                         avatar NVARCHAR(500) NULL,
+                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                     );
+                 END
+                 ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='app_user' AND COLUMN_NAME='creator_on')
+                 BEGIN
+                     ALTER TABLE app_user ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
+                 END
             ";
             await Database.ExecuteSqlRawAsync(sql);
         }

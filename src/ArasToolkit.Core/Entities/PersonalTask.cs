@@ -65,6 +65,16 @@ public class PersonalTask
     /// <summary>记录创建时间（系统级，不可修改）</summary>
     [Column("creator_on")]
     public DateTime CreatorOn { get; set; } = DateTime.Now;
+ 
+     /// <summary>创建人</summary>
+     [Column("created_by")]
+     [MaxLength(100)]
+     public string? CreatedBy { get; set; }
+ 
+     /// <summary>最后修改人</summary>
+     [Column("modified_by")]
+     [MaxLength(100)]
+     public string? ModifiedBy { get; set; }
 
     // ===== UI / 计算属性（不映射到数据库） =====
 

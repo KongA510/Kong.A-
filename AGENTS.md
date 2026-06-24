@@ -628,15 +628,66 @@ pending → (Claude Code写完方案)
 - Codex 编码完成后必须输出检查任务清单，触发 Claude Code 审查环节
 - 不越界：Codex 不做深度分析与排版，Claude Code 不直接写代码
 
-### 12.5 自动化监听模式
+## 12.5 自动化监听模式
 
-- 自动化任务以 5 分钟为间隔进入监听模式（通过 Codex App 的 heartbeat 机制）
-- 每次唤醒执行：
-  1. git status + git log 检查文件变更和提交历史
-  2. dotnet build --no-restore 检查编译状态
-  3. 扫描 tasks/ 根目录下 status: pending 的 TASK-*.md 文件
-  4. 输出格式化报告（分支/提交/待处理任务/变更/构建状态/下一步建议）
-- 自动化 ID（用于 Claude Code 感知）：automation（Codex App 心跳自动化）
+### 定时任务配置
+
+| 项目 | 值 |
+|------|-----|
+| 任务ID | `codex-auto-review` |
+| 频率 | 每分钟（`* * * * *`） |
+| 状态 | ✅ 已启用 |
+| 存储路径 | `C:\Users\89190\.claude\scheduled-tasks\codex-auto-review\SKILL.md` |
+
+### 工作流
+
+```
+每分钟唤醒 → 扫描 tasks/TASK-*.md (status: pending_review)
+  │
+  ├─ 无 pending_review → 静默结束
+  │
+  └─ 有 pending_review → 对每个任务:
+       1. 读取任务全文，理解需求
+       2. git diff HEAD 了解代码变更
+       3. 按 CLAUDE.md 规范逐文件审查
+       4. dotnet build 验证编译
+       5. 写入审查结论到任务文件末尾
+       6. 更新 status: pending_review → review_passed
+```
+
+### 审查结论格式
+
+**通过:**
+```
+## Claude Code 审查结论 (HH:MM)
+**结论: 通过** ✅
+- [简要说明]
+```
+
+**需修改:**
+```
+## Claude Code 审查结论 (HH:MM)
+**结论: 需修改** 🔴
+1. 文件 `path` — 问题 + 修复建议
+```
+
+### 分工边界
+
+| Claude Code | Codex |
+|-------------|-------|
+| 审查代码 | 编写代码 |
+| 写审查结论到任务文件 | 读审查结论并修正 |
+| 更新 status → review_passed | 编译通过 → status: done → 移入 done/ |
+| 不写代码、不移文件到 done/ | 不审查、不写方案文档 |
+
+
+---
+
+## 十三、Codex 工作启动指令 ⚠️ 必须遵守
+
+**今后接收到用户指令时，默认直接开始执行具体工作。** 不再输出冗长的确认、状态说明或询问是否开始。直接阅读状态、分析需求，然后动手编码或执行所需操作。
+
+此指令旨在提高协作效率，防止每次启动时产生过多输出。用户只需下达指令即可触发工作，无需额外铺垫。
 
 ---
 
