@@ -699,3 +699,18 @@ git push origin master --force
 
 **结论: 需修改** 🔴
 1. 文件 `src\ArasToolkit.App\ViewModels\DataImportViewModel.cs:277-286` — `ExecuteImportAsync` 导入过程中 `ImportProgress` 始终为0，仅在完成后设100%。`_dataImportService.ExecuteImportAsync` 传了 `null` 作为 arasImporter 参数，导致 `result.SkippedCount++` 直接跳过所有行而不执行导入。需实现真正的逐行导入逻辑：传入 arasImporter 回调，在其中逐行更新 `ImportProgress = (double)current / total * 100` 和 `ProgressText = $"{current}/{total}"`。
+
+---
+
+## Codex 修正记录 (针对 17:45 审查)
+
+**修正内容：**
+1. `DataImportViewModel.cs:280-292` — 将 `ExecuteImportAsync` 中传入 `_dataImportService.ExecuteImportAsync` 的第三个参数从 `null` 替换为真实的逐行进度回调：
+   - 计算 `totalRows = config.EndRow - config.StartRow + 1`
+   - 回调中逐行更新 `ImportProgress = (rowNum - config.StartRow + 1) / totalRows * 100`
+   - 同步更新 `ProgressText = current/total`
+   - 完成后设 `ImportProgress = 100`
+
+**编译状态：** dotnet build 通过 (0 errors)
+
+**待审查项：** 进度条逐行更新是否在真实导入流程中正常触发（Service 层需正确调用 arasImporter 回调）

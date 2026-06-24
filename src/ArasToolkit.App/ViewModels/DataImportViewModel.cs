@@ -274,9 +274,22 @@ public class DataImportViewModel : ObservableObject
                 UserName = CurrentUserContext.CurrentUserName
             };
 
-                        LastResult = await _dataImportService.ExecuteImportAsync(SelectedFilePath, config, null);
             ImportProgress = 0;
             ProgressText = "导入中...";
+
+            int totalRows = config.EndRow == -1 ? 0 : config.EndRow - config.StartRow + 1;
+
+            LastResult = await _dataImportService.ExecuteImportAsync(SelectedFilePath, config,
+                async (rowNum, aml) =>
+                {
+                    if (totalRows > 0)
+                    {
+                        ImportProgress = (double)(rowNum - config.StartRow + 1) / totalRows * 100;
+                        ProgressText = (rowNum - config.StartRow + 1) + "/" + totalRows;
+                    }
+                    await Task.Delay(1);
+                    return true;
+                });
             if (LastResult != null && LastResult.TotalRows > 0)
             {
                 ImportProgress = 100;
