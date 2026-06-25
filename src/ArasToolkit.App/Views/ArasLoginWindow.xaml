@@ -62,14 +62,14 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
                     <Button Content="＋ 新增" Style="{StaticResource ConnectBtn}" Height="28" FontSize="12" Padding="10,0" Margin="0,0,8,0"
-                            Click="AddButton_Click" />
+                            Command="{Binding ToggleFormCommand}" />
                     <Button Content="✕" Style="{StaticResource WindowButton}" Click="CloseButton_Click" />
                 </StackPanel>
             </Grid>
 
             <!-- 新增表单（可折叠） -->
             <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="14,12" Margin="0,0,0,12"
-                    Visibility="{Binding NewUrl, Converter={StaticResource StringToVisibility}, ConverterParameter=Invert, FallbackValue=Collapsed}">
+                    Visibility="{Binding IsFormVisible, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel>
                     <TextBlock Text="新增连接" FontSize="14" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10" />

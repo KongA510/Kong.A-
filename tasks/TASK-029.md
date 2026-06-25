@@ -450,3 +450,14 @@ private void NewPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
 | 6 | ArasLoginWindow.xaml ＋新增按钮 + 折叠表单(URL/DB/User/Password) | ✅ |
 | 7 | ArasLoginWindow.xaml.cs PasswordBox 事件 + 表单切换逻辑 | ✅ |
 | 8 | 编译验证 | ✅ 通过 (0 errors) |
+
+
+---
+
+## Codex 修正 (自查修复)
+
+- ✅ 用 IsFormVisible (bool) 替换 NewUrl 空字符串 hack 控制表单折叠
+- ✅ 新增 ToggleFormCommand 命令替换 Click 事件
+- ✅ SaveAsync 成功后 IsFormVisible = false 自动收起表单
+- ✅ 连接成功后 Reinitialize(10) 重建连接池
+- ✅ SetConnection 预 Logout 旧连接

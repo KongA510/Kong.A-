@@ -36,6 +36,7 @@ public class ArasLoginViewModel : ObservableObject
         ConnectCommand = new RelayCommand(async p => await ConnectAsync(p), _ => !IsProcessing);
         DeleteCommand = new RelayCommand(async p => await DeleteAsync(p), _ => !IsProcessing);
         SaveCommand = new RelayCommand(async _ => await SaveAsync(), _ => !IsProcessing && !string.IsNullOrEmpty(NewUrl));
+        ToggleFormCommand = new RelayCommand(_ => IsFormVisible = !IsFormVisible);
         RefreshCommand = new RelayCommand(async _ => await LoadAsync());
 
         _ = LoadAsync();
@@ -69,6 +70,7 @@ public class ArasLoginViewModel : ObservableObject
     public ICommand DeleteCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand SaveCommand { get; }
+    public ICommand ToggleFormCommand { get; }
 
     // ---- 新增表单属性 ----
     private string _newUrl = string.Empty;
@@ -79,7 +81,8 @@ public class ArasLoginViewModel : ObservableObject
 
     private string _newUsername = string.Empty;
     public string NewUsername { get => _newUsername; set => SetProperty(ref _newUsername, value); }
-    // Password 由 PasswordBox 单独管理，不在 ViewModel 中存储明文
+    private bool _isFormVisible;
+    public bool IsFormVisible { get => _isFormVisible; set { SetProperty(ref _isFormVisible, value); if (!value) { NewUrl = ""; NewDatabase = ""; NewUsername = ""; } } }
 
     private void RefreshCommands()
     {
@@ -180,7 +183,7 @@ public class ArasLoginViewModel : ObservableObject
             await _loginService.LoginAsync(info);
             await _configService.SaveLoginInfoAsync(info);
             StatusMessage = "已保存: " + NewUsername + "@" + NewDatabase;
-            NewUrl = ""; NewDatabase = ""; NewUsername = "";
+            IsFormVisible = false;
             await LoadAsync();
         }
         catch (Exception ex)
