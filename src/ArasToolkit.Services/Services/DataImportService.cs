@@ -16,6 +16,7 @@ public class DataImportService : IDataImportService
     private readonly IOperationLogService _operationLogService;
     private readonly ArasConnectionService _connectionService;
     private readonly ArasConnectionPool _connectionPool;
+    private readonly object _writeLock = new(); // StreamWriter 线程安全锁
 
     public DataImportService(
         IDbContextFactory<ArasToolkitDbContext> contextFactory,
@@ -359,7 +360,7 @@ public class DataImportService : IDataImportService
                     {
                         Interlocked.Increment(ref failure);
                         var errMsg = resultItem.getErrorString();
-                        await writer.WriteLineAsync("[失败] 行" + item.rowNum + ": " + errMsg);
+                        lock (_writeLock) { writer.WriteLine("[失败] 行" + item.rowNum + ": " + errMsg); }
                     }
                 }
                 catch (OperationCanceledException)
@@ -369,7 +370,7 @@ public class DataImportService : IDataImportService
                 catch (Exception ex)
                 {
                     Interlocked.Increment(ref failure);
-                    await writer.WriteLineAsync("[失败] 行" + item.rowNum + ": " + ex.Message);
+                    lock (_writeLock) { writer.WriteLine("[失败] 行" + item.rowNum + ": " + ex.Message); }
                 }
                 finally
                 {

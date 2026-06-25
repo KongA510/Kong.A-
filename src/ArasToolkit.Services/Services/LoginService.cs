@@ -33,13 +33,14 @@ public class LoginService : ILoginService
                     loginInfo.Username,
                     md5Password);
 
-                var connectionInfo = new ArasConnectionInfo
-                {
-                    Url = loginInfo.Url,
-                    Database = loginInfo.Database,
-                    Username = loginInfo.Username,
-                    LoginTime = DateTime.Now
-                };
+               var connectionInfo = new ArasConnectionInfo
+               {
+                   Url = loginInfo.Url,
+                   Database = loginInfo.Database,
+                   Username = loginInfo.Username,
+                   Md5Password = md5Password,
+                   LoginTime = DateTime.Now
+               };
 
                 // 持久化连接
                 _connectionService.SetConnection(connectionInfo, new Innovator(connection), connection);

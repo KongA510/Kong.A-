@@ -38,6 +38,7 @@ public class ArasConnectionService : IArasConnectionService
     /// </summary>
     public void Disconnect()
     {
+      
         try
         {
             _httpConnection?.Logout();
