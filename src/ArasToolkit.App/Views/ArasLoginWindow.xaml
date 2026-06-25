@@ -43,6 +43,7 @@
         <Grid Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -59,12 +60,43 @@
                     <TextBlock Text="查看和管理已保存的 Aras 连接配置" FontSize="12"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,16" />
                 </StackPanel>
-                <Button Grid.Column="1" Content="✕" Style="{StaticResource WindowButton}"
-                        Click="CloseButton_Click" VerticalAlignment="Top" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                    <Button Content="＋ 新增" Style="{StaticResource ConnectBtn}" Height="28" FontSize="12" Padding="10,0" Margin="0,0,8,0"
+                            Click="AddButton_Click" />
+                    <Button Content="✕" Style="{StaticResource WindowButton}" Click="CloseButton_Click" />
+                </StackPanel>
             </Grid>
 
+            <!-- 新增表单（可折叠） -->
+            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="14,12" Margin="0,0,0,12"
+                    Visibility="{Binding NewUrl, Converter={StaticResource StringToVisibility}, ConverterParameter=Invert, FallbackValue=Collapsed}">
+                <StackPanel>
+                    <TextBlock Text="新增连接" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Text="{Binding NewUrl, UpdateSourceTrigger=PropertyChanged}"
+                                 FontSize="12" Margin="0,0,4,0" ToolTip="URL" />
+                        <TextBox Grid.Column="1" Text="{Binding NewDatabase, UpdateSourceTrigger=PropertyChanged}"
+                                 FontSize="12" Margin="4,0,4,0" ToolTip="数据库" />
+                        <TextBox Grid.Column="2" Text="{Binding NewUsername, UpdateSourceTrigger=PropertyChanged}"
+                                 FontSize="12" Margin="4,0,4,0" ToolTip="用户名" />
+                        <PasswordBox Grid.Column="3" x:Name="NewPasswordBox"
+                                     FontSize="12" Margin="4,0,4,0" PasswordChanged="NewPasswordBox_PasswordChanged" />
+                        <Button Grid.Column="4" Content="保存" Command="{Binding SaveCommand}"
+                                Style="{StaticResource ConnectBtn}" Height="28" FontSize="12" Padding="12,0" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- 连接列表 -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding LoginInfos}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -107,7 +139,7 @@
             </ScrollViewer>
 
             <!-- 状态栏 -->
-            <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}"
+            <Border Grid.Row="3" BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="0,1,0,0" Padding="0,12,0,0">
                 <StackPanel>
                     <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource ErrorBrush}"

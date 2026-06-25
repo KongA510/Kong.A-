@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Aras.IOM;
+using ArasToolkit.Core.Interfaces;
 
 namespace ArasToolkit.Services.Services;
 
@@ -8,9 +9,15 @@ namespace ArasToolkit.Services.Services;
 /// 供数据汇入多线程并发执行 AML 时使用。
 /// 每个连接独立持有 Cookie/Session，线程间无竞态。
 /// </summary>
-public class ArasConnectionPool
+public class ArasConnectionPool : IArasConnectionPool
 {
+    private readonly IArasConnectionService _connectionService;
     private readonly ConcurrentBag<PooledConnection> _pool = [];
+
+    public ArasConnectionPool(IArasConnectionService connectionService)
+    {
+        _connectionService = connectionService;
+    }
 
     /// <summary>当前池大小（=线程数上限）</summary>
     public int PoolSize { get; private set; }
@@ -43,6 +50,23 @@ public class ArasConnectionPool
             var innovator = loginResult.getInnovator();
             _pool.Add(new PooledConnection(conn, innovator, i));
         }
+    }
+
+    /// <summary>
+    /// 从全局单例 CurrentConnection 读取登录信息重建连接池。
+    /// 切换全局连接后调用此方法同步池状态。poolSize=0 时仅清空。
+    /// </summary>
+    public void Reinitialize(int poolSize)
+    {
+        // 先清空旧连接
+        Clear();
+        if (poolSize <= 0) return;
+
+        var connInfo = _connectionService.CurrentConnection;
+        if (connInfo == null) return;
+
+        // 使用全局连接信息重建池
+        Initialize(connInfo.Url, connInfo.Database, connInfo.Username, connInfo.Md5Password, poolSize);
     }
 
     /// <summary>

@@ -4,7 +4,7 @@ priority: P0
 type: feat
 created: 2026-06-26
 source: Claude Code
-status: pending_review
+status: review_failed
 ---
 
 # 数据汇入并发化 — 真实暂停/继续 + Aras连接池 + 多线程执行
@@ -30,22 +30,28 @@ status: pending_review
 
 ```
 导入前:
-  ArasConnectionPool.NewLogin(url, db, user, md5, count=10)
+  ArasConnectionPool.Reinitialize(poolSize)
+    → 从全局 CurrentConnection 读取登录信息
     → 创建 N 个独立 HttpServerConnection + Innovator
-    → 入池 (ConcurrentQueue)
+    → 入池 (ConcurrentBag)
 
 导入中:
   Parallel.ForEachAsync(rows, maxConcurrency: 10)
-    → 每行从池借一个连接
-    → Excel 读行 → 拼 AML → innovator.applyAML()
-    → 还回连接池
+    → 每行从池借一个连接 → 执行 applyAML() → 还回连接池
     → 检查 CancellationToken → 支持暂停
 
-暂停:
-  _cts.Cancel() → Parallel.ForEachAsync 收到取消信号
-    → 正在执行的请求完成后退出
-    → 已处理行数/失败行数保留在 ImportResult 中
+导入完成:
+  → 清空连接池：逐一 httpConn.Logout() 销毁池中连接
+  → 仅保留全局单例 _connectionService.HttpConnection 不销毁
 ```
+
+**连接池生命周期铁律：**
+- 连接池为**临时对象**，仅服务于单次导入任务
+- 导入正常完成或暂停后 → `ArasConnectionPool.Clear()` 统一销毁池中全部连接
+- **不销毁** `_connectionService.HttpConnection`（全局单例，供其他功能持续使用）
+- 两条销毁路径：
+  - 池中连接 → `Clear()` 逐一 `httpConn.Logout()`（导入完成后）
+  - 全局单例 → `ArasConnectionService.Disconnect()` 时 `_httpConnection.Logout()`（用户主动登出）
 
 ## 涉及文件
 
@@ -674,3 +680,95 @@ var innovator = loginResult.getInnovator();
 1. ✅ ArasConnectionService.HttpConnection — 显式接口实现 object? IArasConnectionService.HttpConnection + 公开属性 HttpServerConnection? HttpConnection
 2. ✅ StreamWriter 线程安全 — lock+WriteLine 改为 SemaphoreSlim+WriteLineAsync（保持异步）
 3. ✅ LoginService — new Innovator(connection) 改为 connection.Login().getInnovator()
+
+
+---
+
+## 审查结果 #3 — 2026-06-26（Claude Code 审查）
+
+**审查结论: ❌ 未通过（review_failed）**
+
+### 发现 1：🔴 严重 — 连接池从未初始化（第3次审查，仍未修复）
+
+`ArasConnectionPool.Initialize()` 方法已实现，但**整个代码库中无任何调用点**。
+
+`DataImportService.cs:273-277`：
+```csharp
+if (maxConcurrency > 1 && _connectionPool.PoolSize < maxConcurrency)
+{
+    await writer.WriteLineAsync("[警告] 连接池大小(" + _connectionPool.PoolSize + ")不足，回退为单线程");
+    maxConcurrency = 1;
+}
+```
+
+`ArasConnectionPool.PoolSize` 初始值为 **0**。用户设置线程数=3 → PoolSize=0 → 触发警告 → 回退单线程。**多线程功能从第一版起从未生效，三轮审查仍未修复。**
+
+根因：缺少懒初始化。当 PoolSize=0 且 maxConcurrency>1 时，应从 `_connectionService.CurrentConnection` 读取登录信息并自动调用 `_connectionPool.Initialize()`。
+
+### 发现 2：🔴 严重 — _pauseOffset 死代码，暂停后无法继续（第3次审查，仍未修复）
+
+三段代码互相矛盾：
+
+1. `DataImportViewModel.cs:39` — 声明了但**全文件无赋值**（除 finally 中归零）
+2. `DataImportViewModel.cs:305` — 传入的仍是原始 `StartRow`，未加 `_pauseOffset`
+3. `DataImportViewModel.cs:323` — 只有泛型 `catch (Exception ex)`，无 `catch (OperationCanceledException)`
+
+暂停后 `_pauseOffset` 始终为 0，点击继续 → 从第一行重新开始，而非从中断处继续。
+
+### 发现 3：🔴 严重 — 单线程路径每行重复 Login()（第3次审查，仍未修复）
+
+`DataImportService.cs:328-341`：
+```csharp
+else  // 单线程(maxConcurrency=1)
+{
+    var httpConn = _connectionService.HttpConnection as HttpServerConnection;
+    if (httpConn != null)
+    {
+        var loginResult = httpConn.Login();   // ← Parallel.ForEachAsync 内每行一次!
+        innovator = loginResult.getInnovator();
+    }
+}
+```
+
+`Parallel.ForEachAsync` 的 lambda 对**每一行**执行一次，单线程路径下每行都调用 `httpConn.Login()`——每次创建新 Session、覆盖旧 Session。正确做法是直接用 `_connectionService.TypedInnovator`（已登录的全局单例）。
+
+### 发现 4：🔴 严重 — 导入完成后未销毁连接池
+
+`DataImportService.cs:386` 之后（`Parallel.ForEachAsync` 结束）→ 直接到 `result.SuccessCount = success` 赋值 → 到 `writer` using 块结束 → return。**全程无 `_connectionPool.Clear()` 调用。**
+
+违反 TASK-028 铁律：
+> 导入正常完成或暂停后 → `ArasConnectionPool.Clear()` 统一销毁池中全部连接
+
+应在 `OperationCanceledException` catch 块（暂停路径）和正常完成路径（`result.SuccessCount = ...` 之前）都调用 `_connectionPool.Clear()`。
+
+### 发现 5：🟡 — OperationCanceledException 被泛型 catch 错误展示
+
+`DataImportViewModel.cs:323-326`：
+```csharp
+catch (Exception ex)
+{
+    ErrorMessage = "导入失败: " + ex.Message;
+}
+```
+
+暂停时 `Parallel.ForEachAsync` 抛出 `OperationCanceledException` → 被泛型 catch 捕获 → 展示为红色"导入失败"错误 → `_pauseOffset` 未赋值。应添加专门的 `catch (OperationCanceledException)` 块。
+
+### 发现 6：🟢 已修复 — StreamWriter 线程安全
+
+`SemaphoreSlim` 替代 `lock`，保持异步写入。✅
+
+### 变更总结
+
+| 问题 | 审查#1 | 审查#2 | 审查#3 |
+|------|--------|--------|--------|
+| 连接池从未初始化 | ❌ | ❌ | ❌ **仍未修复** |
+| _pauseOffset 死代码 | ❌ | ❌ | ❌ **仍未修复** |
+| 单线程 Login() 回归 | — | 🔴 | 🔴 **仍未修复** |
+| 缺少 Clear() 销毁池 | — | — | 🔴 **新发现** |
+| OperationCanceledException | ❌ | ❌ | ❌ **仍未修复** |
+| StreamWriter 锁 | ❌ | ✅ | ✅ |
+| 连接池重复 Login() | — | 🟡 | ⚪ 非问题 |
+| ArasConnectionInfo.Md5Password | — | ✅ | ✅ |
+| XAML 线程数输入框 | ❌ | ✅ | ✅ |
+
+**审查结论: ❌ 未通过** — 3 轮审查后，5 项核心问题零修复。本轮新增发现 1 项（缺少 Clear()）。

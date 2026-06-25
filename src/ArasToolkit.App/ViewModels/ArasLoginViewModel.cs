@@ -12,6 +12,7 @@ public class ArasLoginViewModel : ObservableObject
     private readonly IConfigService _configService;
     private readonly ILoginService _loginService;
     private readonly IArasConnectionService _connectionService;
+    private readonly IArasConnectionPool _connectionPool;
     private readonly IErrorLogService _errorLogService;
 
     private ObservableCollection<LoginInfo> _loginInfos = [];
@@ -23,15 +24,18 @@ public class ArasLoginViewModel : ObservableObject
         IConfigService configService,
         ILoginService loginService,
         IArasConnectionService connectionService,
+        IArasConnectionPool connectionPool,
         IErrorLogService errorLogService)
     {
         _configService = configService;
         _loginService = loginService;
         _connectionService = connectionService;
+        _connectionPool = connectionPool;
         _errorLogService = errorLogService;
 
         ConnectCommand = new RelayCommand(async p => await ConnectAsync(p), _ => !IsProcessing);
         DeleteCommand = new RelayCommand(async p => await DeleteAsync(p), _ => !IsProcessing);
+        SaveCommand = new RelayCommand(async _ => await SaveAsync(), _ => !IsProcessing && !string.IsNullOrEmpty(NewUrl));
         RefreshCommand = new RelayCommand(async _ => await LoadAsync());
 
         _ = LoadAsync();
@@ -64,6 +68,18 @@ public class ArasLoginViewModel : ObservableObject
     public ICommand ConnectCommand { get; }
     public ICommand DeleteCommand { get; }
     public ICommand RefreshCommand { get; }
+    public ICommand SaveCommand { get; }
+
+    // ---- 新增表单属性 ----
+    private string _newUrl = string.Empty;
+    public string NewUrl { get => _newUrl; set { SetProperty(ref _newUrl, value); (SaveCommand as RelayCommand)?.RaiseCanExecuteChanged(); } }
+
+    private string _newDatabase = string.Empty;
+    public string NewDatabase { get => _newDatabase; set => SetProperty(ref _newDatabase, value); }
+
+    private string _newUsername = string.Empty;
+    public string NewUsername { get => _newUsername; set => SetProperty(ref _newUsername, value); }
+    // Password 由 PasswordBox 单独管理，不在 ViewModel 中存储明文
 
     private void RefreshCommands()
     {
@@ -98,7 +114,9 @@ public class ArasLoginViewModel : ObservableObject
         try
         {
             await _loginService.LoginAsync(info);
-            StatusMessage = "已切换到 " + info.Username + "@" + info.Database;
+            // 连接成功后重建连接池（使用新连接信息）
+            _connectionPool.Reinitialize(10);
+            StatusMessage = "已切换到 " + info.Username + "@" + info.Database + "，连接池已更新";
         }
         catch (Exception ex)
         {
@@ -134,4 +152,51 @@ public class ArasLoginViewModel : ObservableObject
             IsProcessing = false;
         }
     }
+
+    /// <summary>
+    /// 新增保存登录信息 — 验证连接可用后持久化
+    /// </summary>
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrEmpty(NewUrl) || string.IsNullOrEmpty(NewUsername))
+        {
+            ErrorMessage = "URL 和用户名不能为空";
+            return;
+        }
+
+        IsProcessing = true;
+        ErrorMessage = string.Empty;
+        try
+        {
+            // 从 View 读取密码
+            var pwd = OnRequestPassword?.Invoke() ?? "";
+            var info = new LoginInfo
+            {
+                Url = NewUrl,
+                Database = NewDatabase,
+                Username = NewUsername,
+                Password = pwd
+            };
+            await _loginService.LoginAsync(info);
+            await _configService.SaveLoginInfoAsync(info);
+            StatusMessage = "已保存: " + NewUsername + "@" + NewDatabase;
+            NewUrl = ""; NewDatabase = ""; NewUsername = "";
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "保存失败: " + ex.Message;
+            await _errorLogService.LogErrorAsync("Aras登录-新增配置", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    /// <summary>
+    /// 请求密码回调 — 由 View 层注册，从 PasswordBox 获取当前输入的密码
+    /// </summary>
+    public Func<string>? OnRequestPassword { get; set; }
 }

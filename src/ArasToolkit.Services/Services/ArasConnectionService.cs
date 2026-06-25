@@ -27,8 +27,18 @@ public class ArasConnectionService : IArasConnectionService
    /// <summary>
    /// 登录成功后保存连接
     /// </summary>
+    /// <summary>
+    /// 登录成功后保存连接 — 如有旧连接先 Logout 再替换
+    /// </summary>
     public void SetConnection(ArasConnectionInfo connectionInfo, object innovator, object httpConnection)
     {
+        // 替换前先注销旧连接（避免连接泄漏）
+        if (_httpConnection != null)
+        {
+            try { _httpConnection.Logout(); }
+            catch { /* 静默 */ }
+        }
+
         _currentConnection = connectionInfo;
         _currentConnection.LoginTime = DateTime.Now;
         _innovator = innovator as Innovator;
