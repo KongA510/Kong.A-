@@ -4,7 +4,7 @@ priority: P1
 type: fix
 created: 2026-06-25
 source: Claude Code
-status: pending_review
+status: done
 ---
 
 # 修复 StringToVisibilityConverter 不支持 ConverterParameter=Invert
