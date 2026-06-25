@@ -259,6 +259,13 @@ public class DataImportService : IDataImportService
 
         try
         {
+            var conn= _connectionService.HttpConnection;
+            if(conn == null)
+            {
+                await writer.WriteLineAsync("[错误] 未连接Aras");
+                return result;
+            }
+            var inn = conn.Login().getInnovator();
             using var package = new ExcelPackage(new FileInfo(filePath), true);
             var worksheet = sheetName != null ? package.Workbook.Worksheets[sheetName] : package.Workbook.Worksheets[0];
             if (worksheet?.Dimension != null)
@@ -295,11 +302,10 @@ public class DataImportService : IDataImportService
                     {
                         // 替换Excel占位符(如@A→A列值)后执行AML
                         var replacedAml = ReplaceAmlPlaceholders(amlContent, rowData);
-                        var resultItem = innovator.applyAML(replacedAml);
+                        var resultItem = inn.applyAML(replacedAml);
                         if (!resultItem.isError())
                         {
                             result.SuccessCount++;
-                            await writer.WriteLineAsync("[成功] 行" + r + ": AML执行成功");
                         }
                         else
                         {

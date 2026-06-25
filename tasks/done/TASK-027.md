@@ -4,7 +4,7 @@ priority: P0
 type: feat
 created: 2026-06-26
 source: Claude Code
-status: pending_review
+status: done
 ---
 
 # 数据汇入 — DataImportService 内部执行 AML，打通 Aras 全局连接
