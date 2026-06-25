@@ -1,4 +1,4 @@
-﻿---
+---
 id: TASK-014
 priority: P1
 type: fix

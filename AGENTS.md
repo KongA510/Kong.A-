@@ -1,4 +1,4 @@
-﻿---
+---
 name: aras
 description: Aras Innovator 开发工具箱技能 — 提供 Aras 登录认证、API 调用、项目架构规范及常用开发技巧。在打开 ArasToolkit 项目或进行 Aras 相关开发时自动调用。
 keywords: Aras,ArasToolkit,Innovator,登录,HttpServerConnection,ScalcMD5,Item,AML,applyItem,工具箱

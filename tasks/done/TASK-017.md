@@ -1,4 +1,4 @@
-﻿---
+---
 id: TASK-017
 priority: P0
 type: bug

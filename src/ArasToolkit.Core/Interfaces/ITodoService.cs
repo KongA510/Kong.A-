@@ -1,4 +1,4 @@
-﻿using ArasToolkit.Core.Entities;
+using ArasToolkit.Core.Entities;
 
 namespace ArasToolkit.Core.Interfaces;
 

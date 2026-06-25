@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using ArasToolkit.App.ViewModels;
 using ArasToolkit.App.Views;
 using ArasToolkit.Services;

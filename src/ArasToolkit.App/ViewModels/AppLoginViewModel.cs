@@ -1,4 +1,4 @@
-﻿using System.Windows.Input;
+using System.Windows.Input;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Services.Data;

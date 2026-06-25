@@ -1,4 +1,4 @@
-﻿using ArasToolkit.Core.Extensions;
+using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Services.Data;

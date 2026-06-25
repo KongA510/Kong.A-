@@ -1,4 +1,4 @@
-﻿---
+---
 id: TASK-010
 priority: P0
 type: spec

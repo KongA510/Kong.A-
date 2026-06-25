@@ -1,4 +1,4 @@
-﻿using Aras.IOM;
+using Aras.IOM;
 class Test { static void Main() { 
     // Test 1
     var t = typeof(Innovator);

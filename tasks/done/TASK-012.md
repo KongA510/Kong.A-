@@ -1,4 +1,4 @@
-﻿---
+---
 id: TASK-012
 priority: P1
 type: feature

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using ArasToolkit.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 

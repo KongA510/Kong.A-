@@ -1,4 +1,4 @@
-﻿using ArasToolkit.Core.Interfaces;
+using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Services.Data;
 using Microsoft.EntityFrameworkCore;

@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using ArasToolkit.App.ViewModels;
 using ArasToolkit.Core.Entities;
