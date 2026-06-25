@@ -37,8 +37,10 @@ public class ArasConnectionPool
         // IOM 的 IomFactory 不支持并发创建，串行逐个建立连接
         for (int i = 0; i < poolSize; i++)
         {
+            // Aras IOM 标准登录：CreateHttpServerConnection → Login() → getInnovator()
             HttpServerConnection conn = IomFactory.CreateHttpServerConnection(url, database, username, md5Password);
-            var innovator = new Innovator(conn);
+            var loginResult = conn.Login();
+            var innovator = loginResult.getInnovator();
             _pool.Add(new PooledConnection(conn, innovator, i));
         }
     }
