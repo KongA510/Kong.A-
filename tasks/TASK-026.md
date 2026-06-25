@@ -4,7 +4,7 @@ priority: P1
 type: fix
 created: 2026-06-25
 source: Claude Code
-status: pending
+status: pending_review
 ---
 
 # 修复 StringToVisibilityConverter 不支持 ConverterParameter=Invert
@@ -97,3 +97,16 @@ public class StringToVisibilityConverter : IValueConverter
 2. git commit -m "fix: StringToVisibilityConverter 添加 Invert 参数支持 + 非字符串 null 检查"
 3. git push origin master --force  (推送前确保 develop 已备份)
 ```
+
+
+---
+
+## Codex 实现检查清单
+
+| # | 检查项 | 状态 |
+|---|--------|------|
+| 1 | StringToVisibilityConverter — 区分 string 类型和 null 检查 | ✅ 已实现 |
+| 2 | Invert 参数支持 — ConverterParameter=Invert 逻辑反转 | ✅ 已实现 |
+| 3 | DataImportView.xaml:109 占位文本行为正确 | ✅ 已实现 |
+| 4 | 其他使用点不受影响（均未使用 Invert） | ✅ 已验证 |
+| 5 | 编译验证 | ✅ 通过 (0 errors) |

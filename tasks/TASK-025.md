@@ -4,7 +4,7 @@ priority: P0
 type: fix
 created: 2026-06-25
 source: Claude Code
-status: pending
+status: pending_review
 ---
 
 # 修复 ChangelogViewModel 绑定失败 — 补充6个缺失属性
@@ -129,3 +129,19 @@ CurrentVersion = _changelogService.GetCurrentVersion();
 2. git commit -m "fix: ChangelogViewModel 绑定失败 — 补充 CurrentVersion/统计计数/类型筛选 6 个缺失属性"
 3. git push origin master --force  (推送前确保 develop 已备份)
 ```
+
+
+---
+
+## Codex 实现检查清单
+
+| # | 检查项 | 状态 |
+|---|--------|------|
+| 1 | CurrentVersion 属性 — 绑定 ChangelogView.xaml:81 | ✅ 已实现 |
+| 2 | NewCount 属性 — 绑定 :106 统计卡片 | ✅ 已实现 |
+| 3 | FixCount 属性 — 绑定 :115 统计卡片 | ✅ 已实现 |
+| 4 | OptimizeCount 属性 — 绑定 :126 统计卡片 | ✅ 已实现 |
+| 5 | FilterTypes 集合 — 绑定 :136 ListBox | ✅ 已实现 |
+| 6 | FilterType 属性 — 绑定 :137 选中项 + 切换重载 | ✅ 已实现 |
+| 7 | LoadDataAsync 按类型筛选 + 全量统计 | ✅ 已实现 |
+| 8 | 编译验证 | ✅ 通过 (0 errors) |
