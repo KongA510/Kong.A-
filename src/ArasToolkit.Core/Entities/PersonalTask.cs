@@ -76,6 +76,11 @@ public class PersonalTask
      [MaxLength(100)]
      public string? ModifiedBy { get; set; }
 
+     /// <summary>所属用户ID（用于按用户筛选）</summary>
+     [Column("user_id")]
+     [MaxLength(100)]
+     public string? UserId { get; set; }
+
     // ===== UI / 计算属性（不映射到数据库） =====
 
     /// <summary>UI 多选状态</summary>

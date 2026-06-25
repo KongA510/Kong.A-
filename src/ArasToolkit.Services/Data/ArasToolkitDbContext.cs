@@ -108,7 +108,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.Level).HasColumnName("level").HasMaxLength(20);
             entity.Property(e => e.StackTrace).HasColumnName("stack_trace");
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
-            entity.Property(e => e.UserName).HasColumnName("user_name").HasMaxLength(100);
+            entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(100);
 
             entity.Ignore(e => e.DisplayDate);
         });
@@ -253,6 +253,12 @@ public class ArasToolkitDbContext : DbContext
                     ALTER TABLE personal_task ADD modified_by NVARCHAR(100) NULL;
                 END
 
+                -- ===== personal_task 用户ID列同步 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='personal_task' AND COLUMN_NAME='user_id')
+                BEGIN
+                    ALTER TABLE personal_task ADD user_id NVARCHAR(100) NULL;
+                END
+
                 -- ===== operation_log 表列同步 =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='operation_log' AND COLUMN_NAME='creator_on')
                 BEGIN
@@ -273,9 +279,12 @@ public class ArasToolkitDbContext : DbContext
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
                 END
-                ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='error_log' AND COLUMN_NAME='user_name')
+                ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='error_log' AND COLUMN_NAME='user_id')
                 BEGIN
-                    ALTER TABLE error_log ADD user_name NVARCHAR(100) NULL;
+                    ALTER TABLE error_log ADD user_id NVARCHAR(100) NULL;
+                    -- 清理旧列
+                    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='error_log' AND COLUMN_NAME='user_name')
+                        ALTER TABLE error_log DROP COLUMN user_name;
                 END
 
                 ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='error_log' AND COLUMN_NAME='creator_on')

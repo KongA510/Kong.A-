@@ -37,6 +37,7 @@ public class TodoService : ITodoService
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
             var query = context.PersonalTasks.AsQueryable();
+            query = query.Where(t => t.UserId == CurrentUserContext.CurrentUserId);
 
             if (!string.IsNullOrEmpty(statusFilter) && statusFilter != "全部")
                 query = query.Where(t => t.Status == statusFilter);
@@ -113,6 +114,7 @@ public class TodoService : ITodoService
             item.CreatedDate = DateTime.Now;
             item.CreatorOn = DateTime.Now;
             item.CreatedBy = CurrentUserContext.CurrentUserName;
+            item.UserId = CurrentUserContext.CurrentUserId;
 
             context.PersonalTasks.Add(item);
             await context.SaveChangesAsync();

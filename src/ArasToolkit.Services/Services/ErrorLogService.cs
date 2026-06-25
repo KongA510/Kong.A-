@@ -33,7 +33,7 @@ public class ErrorLogService : IErrorLogService
                    FunctionName = functionName,
                    ErrorMessage = errorMessage,
                    StackTrace = stackTrace,
-                    UserName = CurrentUserContext.CurrentUserName,
+                    UserId = CurrentUserContext.CurrentUserId,
                    Level = level ?? ErrorLog.LevelP1,
                    RecordDate = DateTime.Now
                });
@@ -70,7 +70,7 @@ public class ErrorLogService : IErrorLogService
              // 闈炵鐞嗗憳浠呮煡鐪嬭嚜宸辩殑鏃ュ織
              if (!CurrentUserContext.IsAdmin)
              {
-                 query = query.Where(e => e.UserName == CurrentUserContext.CurrentUserName);
+                 query = query.Where(e => e.UserId == CurrentUserContext.CurrentUserId);
              }
  
            var items = await query
@@ -96,7 +96,7 @@ public class ErrorLogService : IErrorLogService
 
             if (!CurrentUserContext.IsAdmin)
             {
-                query = query.Where(e => e.UserName == CurrentUserContext.CurrentUserName);
+                query = query.Where(e => e.UserId == CurrentUserContext.CurrentUserId);
             }
 
             return await query

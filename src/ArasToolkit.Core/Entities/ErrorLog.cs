@@ -43,10 +43,10 @@ public class ErrorLog
     [Column("stack_trace")]
     public string? StackTrace { get; set; }
  
-     /// <summary>操作人用户名</summary>
-     [Column("user_name")]
+     /// <summary>操作人用户ID</summary>
+     [Column("user_id")]
      [MaxLength(100)]
-     public string? UserName { get; set; }
+     public string? UserId { get; set; }
 
     /// <summary>记录创建时间（系统级）</summary>
     [Column("creator_on")]
