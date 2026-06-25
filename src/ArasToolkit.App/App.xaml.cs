@@ -51,7 +51,8 @@ public partial class App : Application
         services.AddTransient<SettingsWindow>();
         services.AddTransient<ArasLoginWindow>();
         services.AddTransient<DataImportView>();
-        services.AddTransient<ConfigSelectWindow>();
+       services.AddTransient<ConfigSelectWindow>();
+        services.AddTransient<TextPromptWindow>();
 
         // 注册Views
         services.AddTransient<MainWindow>();

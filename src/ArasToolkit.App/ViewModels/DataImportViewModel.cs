@@ -46,7 +46,7 @@ public class DataImportViewModel : ObservableObject
         BrowseFileCommand = new RelayCommand(async _ => await BrowseFileAsync());
         LoadPreviewCommand = new RelayCommand(async _ => await LoadPreviewAsync(), _ => CanLoadPreview());
         SaveConfigCommand = new RelayCommand(async _ => await SaveConfigAsync(), _ => CanSaveConfig());
-        DeleteConfigCommand = new RelayCommand(async _ => await DeleteConfigAsync(), _ => SelectedConfig != null);
+        DeleteConfigCommand = new RelayCommand(async param => await DeleteConfigAsync(param as string), _ => SelectedConfig != null);
         OpenConfigSelectorCommand = new RelayCommand(async _ => await OpenConfigSelectorAsync());
         PreviewAmlCommand = new RelayCommand(async _ => await PreviewAmlAsync(), _ => CanPreviewAml());
         ExecuteImportCommand = new RelayCommand(async _ => await ExecuteImportAsync(), _ => CanExecuteImport());
@@ -89,7 +89,12 @@ public class DataImportViewModel : ObservableObject
     public double ImportProgress { get => _importProgress; set => SetProperty(ref _importProgress, value); }
     public string ProgressText { get => _progressText; set => SetProperty(ref _progressText, value); }
 
-    public ObservableCollection<DataImportConfig> SavedConfigs { get; set; } = [];
+    private ObservableCollection<DataImportConfig> _savedConfigs = [];
+    public ObservableCollection<DataImportConfig> SavedConfigs
+    {
+        get => _savedConfigs;
+        set => SetProperty(ref _savedConfigs, value);
+    }
     private DataImportConfig? _selectedConfig;
     public DataImportConfig? SelectedConfig
     {
@@ -179,41 +184,48 @@ public class DataImportViewModel : ObservableObject
             var configs = await _dataImportService.GetConfigsAsync();
             SavedConfigs = new ObservableCollection<DataImportConfig>(configs);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            ErrorMessage = "加载配置列表失败: " + ex.Message;
+            await _errorLogService.LogErrorAsync("数据导入-加载配置列表", ex.Message, ErrorLog.LevelP1, ex.StackTrace);
+        }
     }
 
     private bool CanSaveConfig() => !string.IsNullOrEmpty(AmlContent);
 
     private async Task SaveConfigAsync()
     {
+        var prompt = new TextPromptWindow("保存AML模板", "请输入模板名称:");
+        prompt.Owner = System.Windows.Application.Current.MainWindow;
+        if (prompt.ShowDialog() != true || string.IsNullOrEmpty(prompt.InputText))
+            return;
+
         IsLoading = true;
         try
         {
             var config = new DataImportConfig
             {
-                ConfigName = "Config_" + DateTime.Now.ToString("yyyyMMdd_HHmmss"),
+                ConfigName = prompt.InputText,
                 AmlContent = AmlContent,
-                SheetName = SelectedSheetName,
-                StartRow = StartRow, EndRow = EndRow,
-                StartCol = StartCol, EndCol = EndCol
             };
             await _dataImportService.SaveConfigAsync(config);
-            StatusMessage = "配置已保存";
+            StatusMessage = "配置已保存: " + prompt.InputText;
             await LoadConfigsAsync();
         }
         catch (Exception ex)
         {
             ErrorMessage = "保存失败: " + ex.Message;
+            await _errorLogService.LogErrorAsync("数据导入-保存配置", ex.Message, ErrorLog.LevelP1, ex.StackTrace);
         }
         finally { IsLoading = false; }
     }
 
-    private async Task DeleteConfigAsync()
+    private async Task DeleteConfigAsync(string? configId)
     {
-        if (SelectedConfig == null) return;
+        if (string.IsNullOrEmpty(configId)) return;
         try
         {
-            await _dataImportService.DeleteConfigAsync(SelectedConfig.Id);
+            await _dataImportService.DeleteConfigAsync(configId);
             StatusMessage = "配置已删除";
             await LoadConfigsAsync();
         }
@@ -222,8 +234,11 @@ public class DataImportViewModel : ObservableObject
 
     private async Task OpenConfigSelectorAsync()
     {
-        var configs = await _dataImportService.GetConfigsAsync();
-        if (configs.Count == 0)
+        try
+        {
+            var configs = await _dataImportService.GetConfigsAsync();
+            SavedConfigs = new ObservableCollection<DataImportConfig>(configs);
+            if (configs.Count == 0)
         {
             ErrorMessage = "暂无已保存的配置";
             return;
@@ -237,6 +252,12 @@ public class DataImportViewModel : ObservableObject
         if (window.DialogResult == true)
         {
             StatusMessage = "已加载配置";
+        }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "获取配置列表失败: " + ex.Message;
+            await _errorLogService.LogErrorAsync("数据导入-打开配置选择器", ex.Message, ErrorLog.LevelP1, ex.StackTrace);
         }
     }
 
@@ -264,28 +285,21 @@ public class DataImportViewModel : ObservableObject
 
         try
         {
-            var config = new DataImportConfig
-            {
-                ConfigName = "临时导入",
-                AmlContent = AmlContent,
-                SheetName = SelectedSheetName,
-                StartRow = StartRow, EndRow = EndRow,
-                StartCol = StartCol, EndCol = EndCol,
-                UserName = CurrentUserContext.CurrentUserName
-            };
-
             ImportProgress = 0;
             ProgressText = "导入中...";
 
-            int totalRows = config.EndRow == -1 ? 0 : config.EndRow - config.StartRow + 1;
+            int totalRows = EndRow == -1 ? 0 : EndRow - StartRow + 1;
 
-            LastResult = await _dataImportService.ExecuteImportAsync(SelectedFilePath, config,
+            LastResult = await _dataImportService.ExecuteImportAsync(
+                SelectedFilePath, SelectedSheetName,
+                StartRow, EndRow, StartCol, EndCol,
+                AmlContent,
                 async (rowNum, aml) =>
                 {
                     if (totalRows > 0)
                     {
-                        ImportProgress = (double)(rowNum - config.StartRow + 1) / totalRows * 100;
-                        ProgressText = (rowNum - config.StartRow + 1) + "/" + totalRows;
+                        ImportProgress = (double)(rowNum - StartRow + 1) / totalRows * 100;
+                        ProgressText = (rowNum - StartRow + 1) + "/" + totalRows;
                     }
                     await Task.Delay(1);
                     return true;

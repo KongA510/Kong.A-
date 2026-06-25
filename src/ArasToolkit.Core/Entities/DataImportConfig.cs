@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace ArasToolkit.Core.Entities;
 
 /// <summary>
-/// 数据导入配置 — AML模板配置存储
+/// AML模板配置存储 — 数据库映射实体
 /// </summary>
 [Table("data_import_config")]
 public class DataImportConfig
@@ -23,26 +23,10 @@ public class DataImportConfig
     [Required]
     public string AmlContent { get; set; } = string.Empty;
 
-    [Column("sheet_name")]
-    [MaxLength(200)]
-    public string? SheetName { get; set; }
-
-    [Column("start_row")]
-    public int StartRow { get; set; } = 2;
-
-    [Column("end_row")]
-    public int EndRow { get; set; } = -1;
-
-    [Column("start_col")]
-    public int StartCol { get; set; } = 1;
-
-    [Column("end_col")]
-    public int EndCol { get; set; } = -1;
-
-    [Column("user_name")]
+    [Column("user_id")]
     [MaxLength(100)]
     [Required]
-    public string UserName { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
 
     [Column("creator_on")]
     public DateTime CreatorOn { get; set; } = DateTime.Now;

@@ -142,6 +142,17 @@ public class ArasToolkitDbContext : DbContext
              entity.Property(e => e.Avatar).HasColumnName("avatar").HasMaxLength(500);
              entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
          });
+        // DataImportConfig -> data_import_config table
+        modelBuilder.Entity<DataImportConfig>(entity =>
+        {
+            entity.ToTable("data_import_config");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.ConfigName).HasColumnName("config_name").IsRequired().HasMaxLength(200);
+            entity.Property(e => e.AmlContent).HasColumnName("aml_content").IsRequired();
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+        });
    }
 
    /// <summary>
@@ -313,16 +324,11 @@ public class ArasToolkitDbContext : DbContext
                 -- ===== data_import_config 表 =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='data_import_config')
                 BEGIN
-                    CREATE TABLE data_import_config (
-                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
-                        config_name NVARCHAR(200) NOT NULL,
-                        aml_content NVARCHAR(MAX) NOT NULL,
-                        sheet_name NVARCHAR(200) NULL,
-                        start_row INT NOT NULL DEFAULT 2,
-                        end_row INT NOT NULL DEFAULT -1,
-                        start_col INT NOT NULL DEFAULT 1,
-                        end_col INT NOT NULL DEFAULT -1,
-                        user_name NVARCHAR(100) NOT NULL,
+                   CREATE TABLE data_import_config (
+                       id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                       config_name NVARCHAR(200) NOT NULL,
+                       aml_content NVARCHAR(MAX) NOT NULL,
+                        user_id NVARCHAR(100) NOT NULL,
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
                 END
@@ -330,6 +336,18 @@ public class ArasToolkitDbContext : DbContext
                 BEGIN
                     ALTER TABLE data_import_config ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                 END
+
+                -- 清理旧列
+                IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='data_import_config' AND COLUMN_NAME='sheet_name')
+                    ALTER TABLE data_import_config DROP COLUMN sheet_name;
+                IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='data_import_config' AND COLUMN_NAME='start_row')
+                    ALTER TABLE data_import_config DROP COLUMN start_row;
+                IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='data_import_config' AND COLUMN_NAME='end_row')
+                    ALTER TABLE data_import_config DROP COLUMN end_row;
+                IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='data_import_config' AND COLUMN_NAME='start_col')
+                    ALTER TABLE data_import_config DROP COLUMN start_col;
+                IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='data_import_config' AND COLUMN_NAME='end_col')
+                    ALTER TABLE data_import_config DROP COLUMN end_col;
             ";
             await Database.ExecuteSqlRawAsync(sql);
         }

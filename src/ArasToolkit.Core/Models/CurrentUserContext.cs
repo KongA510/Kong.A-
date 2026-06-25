@@ -21,6 +21,7 @@ public static class CurrentUserContext
 
     /// <summary>当前用户名（用于日志写入）</summary>
     public static string CurrentUserName => Current?.Username ?? "未知用户";
+    public static string CurrentUserId => Current?.Id ?? "unknown";
 
     /// <summary>是否为管理员</summary>
     public static bool IsAdmin => Current?.IsAdmin ?? false;

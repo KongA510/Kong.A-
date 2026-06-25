@@ -26,15 +26,10 @@ public partial class ConfigSelectWindow : Window
     {
         if (sender is Button btn && btn.Tag is DataImportConfig config)
         {
-            if (DataContext is DataImportViewModel vm)
-            {
+           if (DataContext is DataImportViewModel vm)
+           {
                 vm.AmlContent = config.AmlContent;
-                vm.StartRow = config.StartRow;
-                vm.EndRow = config.EndRow;
-                vm.StartCol = config.StartCol;
-                vm.EndCol = config.EndCol;
-                if (!string.IsNullOrEmpty(config.SheetName))
-                    vm.SelectedSheetName = config.SheetName;
+                vm.SelectedConfig = config;
             }
             DialogResult = true;
             Close();

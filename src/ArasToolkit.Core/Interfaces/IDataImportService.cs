@@ -24,8 +24,10 @@ public interface IDataImportService
     string ReplaceAmlPlaceholders(string amlTemplate, Dictionary<string, string> rowData);
     string PreviewAml(string amlTemplate, Dictionary<string, string> firstRowData);
 
-    // ---- 导入执行 ----
-    Task<ImportResult> ExecuteImportAsync(
-        string filePath, DataImportConfig config,
+   // ---- 导入执行 ----
+   Task<ImportResult> ExecuteImportAsync(
+        string filePath, string? sheetName,
+        int startRow, int endRow, int startCol, int endCol,
+        string amlContent,
         Func<int, string, Task<bool>>? arasImporter = null);
 }
