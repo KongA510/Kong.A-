@@ -215,11 +215,13 @@ public class DataImportService : IDataImportService
         });
     }
 
-    public string ReplaceAmlPlaceholders(string amlTemplate, Dictionary<string, string> rowData)
-    {
-        var result = amlTemplate;
-        foreach (var kv in rowData)
-            result = result.Replace("@" + kv.Key, kv.Value);
+   public string ReplaceAmlPlaceholders(string amlTemplate, Dictionary<string, string> rowData)
+   {
+       // 反转义AML模板中的 \n \t \r（文字反斜杠序列 → 实际控制字符）
+       amlTemplate = amlTemplate.Replace(@"\n", "\n").Replace(@"\t", "\t").Replace(@"\r", "\r");
+       var result = amlTemplate;
+       foreach (var kv in rowData)
+           result = result.Replace("@" + kv.Key, kv.Value);
         return result;
     }
 

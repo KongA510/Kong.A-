@@ -289,7 +289,7 @@ public class DataImportViewModel : ObservableObject
             ProgressText = "导入中...";
 
             int totalRows = EndRow == -1 ? 0 : EndRow - StartRow + 1;
-
+            //等待方法执行
            LastResult = await _dataImportService.ExecuteImportAsync(
                SelectedFilePath, SelectedSheetName,
                StartRow, EndRow, StartCol, EndCol,
