@@ -7,7 +7,7 @@ using ArasToolkit.Core.Models;
 namespace ArasToolkit.Services.Services;
 
 /// <summary>
-/// 閿欒鏃ュ織鏈嶅姟瀹炵幇 鈥?EF Core 鏁版嵁搴撴寔涔呭寲
+/// 错误日志鏈嶅姟瀹炵幇 —EF Core 鏁版嵁搴撴寔涔呭寲
 /// </summary>
 public class ErrorLogService : IErrorLogService
 {
@@ -43,7 +43,7 @@ public class ErrorLogService : IErrorLogService
         }
         catch
         {
-            // 閿欒鏃ュ織鍐欏叆澶辫触涓嶈兘闃绘涓绘祦绋嬶紝闈欓粯澶勭悊
+            // 错误日志鍐欏叆澶辫触不能闃绘涓绘祦绋嬶紝正常处理
             System.Diagnostics.Debug.WriteLine($"[ErrorLog] 鍐欏叆澶辫触: {functionName} - {errorMessage}");
         }
     }
@@ -56,10 +56,17 @@ public class ErrorLogService : IErrorLogService
             await using var context = await _contextFactory.CreateDbContextAsync();
             var query = context.ErrorLogs.AsQueryable();
 
-            if (!string.IsNullOrEmpty(levelFilter) && levelFilter != "鍏ㄩ儴")
-                query = query.Where(e => e.Level == levelFilter);
+            if (!string.IsNullOrEmpty(levelFilter) &&
+                levelFilter != "全部" && levelFilter != "All")
+            {
+                // 仅在筛选值为已知级别时才应用过滤，避免文本编码或翻译导致的匹配错误
+                if (levelFilter == ErrorLog.LevelP0 || levelFilter == ErrorLog.LevelP1)
+                {
+                    query = query.Where(e => e.Level == levelFilter);
+                }
+            }
 
-            if (fromDate.HasValue)
+            if (fromDate.HasValue)    
                 query = query.Where(e => e.RecordDate >= fromDate.Value);
 
             if (toDate.HasValue)
@@ -67,7 +74,7 @@ public class ErrorLogService : IErrorLogService
 
        var total = await query.CountAsync();
  
-             // 闈炵鐞嗗憳浠呮煡鐪嬭嚜宸辩殑鏃ュ織
+             // 非管理员浠呮煡鐪嬭嚜宸辩殑日志
              if (!CurrentUserContext.IsAdmin)
              {
                  query = query.Where(e => e.UserId == CurrentUserContext.CurrentUserId);
@@ -125,7 +132,8 @@ public class ErrorLogService : IErrorLogService
         }
         catch
         {
-            // 闈欓粯澶勭悊
+            // 正常处理
         }
     }
 }
+

@@ -7,9 +7,9 @@ source: Claude Code锛堝垎鏋愬畾浣嶏級
 status: done_review
 ---
 
-# TASK-019: App.xaml 缁撴瀯閿欒 + 閿欒鏃ュ織鏌ヨ淇 + 瀵嗙爜 MD5
+# TASK-019: App.xaml 缁撴瀯错误 + 错误日志鏌ヨ淇 + 密码 MD5
 
-## 闂涓€锛歺inke.wang 榛樿瀵嗙爜浠嶆槸鏄庢枃
+## 闂涓€锛歺inke.wang 榛樿密码浠嶆槸文本
 
 ### 浣嶇疆
 
@@ -25,7 +25,7 @@ Password = "xwxy51020",
 Password = "915d92dbc92c8b655764d3df7e22161b",
 ```
 
-涓嶄慨鏀瑰垯鏂扮敤鎴?xinke.wang 瀵嗙爜瀛樻槑鏂囷紝LoginAsync 鐢?MD5 姣斿姘歌繙澶辫触銆?
+涓嶄慨鏀瑰垯鏂扮敤鎴?xinke.wang 密码瀛樻槑鏂囷紝LoginAsync 鐢?MD5 姣斿姘歌繙澶辫触
 ---
 
 ## 闂浜岋細GetPagedEntriesAsync 涓?total 鍦ㄧ敤鎴疯繃婊ゅ墠璁＄畻
@@ -36,13 +36,13 @@ Password = "915d92dbc92c8b655764d3df7e22161b",
 ### 褰撳墠浠ｇ爜
 
 ```csharp
-var total = await query.CountAsync();        // line 68 鈥?鐢ㄦ埛杩囨护涔嬪墠灏?count 浜?
+var total = await query.CountAsync();        // line 68 —用户杩囨护涔嬪墠灏?count 浜?
 if (!CurrentUserContext.IsAdmin)              // line 71
 {
     query = query.Where(e => e.UserName == CurrentUserContext.CurrentUserName);
 }
 
-var items = await query...ToListAsync();     // line 76 鈥?items 鏄繃婊ゅ悗鐨?return (items, total);                        // line 82 鈥?total 鏄繃婊ゅ墠鐨勶紝涓嶅尮閰?```
+var items = await query...ToListAsync();     // line 76 —items 鏄繃婊ゅ悗鐨?return (items, total);                        // line 82 —total 鏄繃婊ゅ墠鐨勶紝涓嶅尮閰?```
 
 ### 搴旀敼涓?
 灏?`var total = await query.CountAsync();` 绉诲埌 `if (!CurrentUserContext.IsAdmin)` 鍧椾箣鍚庯細
@@ -79,7 +79,7 @@ entity.Property(e => e.UserName).HasColumnName("user_name").HasMaxLength(100);
 ### 璇存槑
 
 error_log 琛ㄧ殑鍒涘缓閫昏緫鍦?`ArasToolkitDbContext.EnsureSchemaAsync()` 涓紝浣嗗惎鍔ㄦ祦绋嬩粠鏈皟鐢ㄥ畠銆傞渶鍦ㄥ簲鐢ㄧ櫥褰曟垚鍔熷悗鑷姩瑙﹀彂鎵€鏈変笟鍔¤〃鐨勫悓姝ャ€?
-### 淇敼
+### 修改
 
 `src/ArasToolkit.App/ViewModels/AppLoginViewModel.cs`锛?
 1. 娣诲姞 using锛?```csharp
@@ -141,7 +141,7 @@ window.ShowDialog();
 UPDATE error_log SET user_name = N'xinke.wang' WHERE user_name IS NULL;
 ```
 
-### app_user 瀵嗙爜鏀?MD5
+### app_user 密码鏀?MD5
 ```sql
 UPDATE app_user SET password = N'915d92dbc92c8b655764d3df7e22161b' WHERE username = N'xinke.wang';
 UPDATE app_user SET password = N'21232f297a57a5a743894a0e4a801fc3' WHERE username = N'admin';
@@ -160,17 +160,18 @@ MD5 瀵圭収锛?- `xwxy51020` 鈫?`915d92dbc92c8b655764d3df7e22161b`
 5. ErrorLogView 鑳界湅鍒板巻鍙查敊璇褰?6. ArasLoginWindow 鐐瑰嚮鍚庢甯稿脊鍑?
 ---
 
-## Claude Code 瀹℃煡缁撹 (绗簩杞?鈥?2026-06-25)
+## Claude Code 瀹℃煡缁撹 (绗簩杞?—2026-06-25)
 
-**缁撹: 闇€淇敼**
+**缁撹: 闇€修改**
 
-缂栬瘧: 0 閿欒銆?
-| # | 淇敼鐐?| 鐘舵€?|
+缂栬瘧: 0 错误
+| # | 修改鐐?| 鐘舵€?|
 |---|--------|------|
-| 1 | xinke.wang 瀵嗙爜鏀逛负 MD5 | 宸蹭慨澶?|
+| 1 | xinke.wang 密码鏀逛负 MD5 | 宸蹭慨澶?|
 | 3 | ErrorLog UserName Fluent API 鏄犲皠 | 宸蹭慨澶?|
-| 2 | total 绉诲埌鐢ㄦ埛杩囨护涔嬪悗 | 寰呬慨鏀?|
+| 2 | total 绉诲埌用户杩囨护涔嬪悗 | 寰呬慨鏀?|
 | 4 | AppLoginViewModel 璋冪敤 EnsureSchemaAsync | 寰呬慨鏀?|
 | 5 | ConfigSelectWindow 寮圭獥璋冪敤 | 寰呬慨鏀?|
 
 3椤逛粛鏈慨鏀癸紝涓庣涓€杞竴鑷淬€?
+

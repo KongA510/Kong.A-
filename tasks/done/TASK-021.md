@@ -8,31 +8,31 @@ status: done
 reviewed: 2026-06-25
 reviewer: Claude Code
 review_conclusion: |
-  鍏ㄩ儴妫€鏌ラ€氳繃锛?  1. DataImportView.xaml:133 InputBrush 鈫?SurfaceBrush 宸蹭慨澶?  2. 鍏ㄥ眬鏃犲叾浠?InputBrush 寮曠敤
+  全部妫€鏌ラ€氳繃锛?  1. DataImportView.xaml:133 InputBrush 鈫?SurfaceBrush 宸蹭慨澶?  2. 鍏ㄥ眬鏃犲叾浠?InputBrush 寮曠敤
   3. SurfaceBrush 棰滆壊 #F9FAFB 涓庡師鎰忓浘涓€鑷达紙杈撳叆妗嗘祬鐏拌儗鏅級
 ---
 
-# TASK-021: DataImportView 璧勬簮寮曠敤閿欒 鈥?InputBrush 涓嶅瓨鍦?
+# TASK-021: DataImportView 璧勬簮寮曠敤错误 —InputBrush 涓嶅瓨鍦?
 ## 鐜拌薄
 
-鐐瑰嚮鑿滃崟"鏁版嵁姹囧叆"鍚庨棯閫€锛屾姤閿欎綅缃湪 `DataImportView.xaml` 鐨?`InitializeComponent()`銆?
+鐐瑰嚮鑿滃崟"鏁版嵁姹囧叆"鍚庨棯閫€锛屾姤閿欎綅缃湪 `DataImportView.xaml` 鐨?`InitializeComponent()`
 ## 鏍瑰洜
 
-`DataImportView.xaml` 绗?133 琛屽紩鐢ㄤ簡 `{StaticResource InputBrush}`锛屼絾 Theme.xaml 涓湭瀹氫箟璇ヨ祫婧愰敭锛孹AML 瑙ｆ瀽鏃舵姏鍑?`XamlParseException`銆?
+`DataImportView.xaml` 绗?133 琛屽紩鐢ㄤ簡 `{StaticResource InputBrush}`锛屼絾 Theme.xaml 涓湭瀹氫箟璇ヨ祫婧愰敭锛孹AML 瑙ｆ瀽鏃舵姏鍑?`XamlParseException`
 ```xml
-<!-- DataImportView.xaml:133 鈥?閿欒寮曠敤 -->
+<!-- DataImportView.xaml:133 —错误寮曠敤 -->
 Background="{StaticResource InputBrush}"
 ```
 
 Theme.xaml 涓疄闄呭瓨鍦ㄧ殑鍒峰瓙閿悕锛?`PrimaryBrush`, `SecondaryBrush`, `AccentBrush`, `AccentHoverBrush`, `SurfaceBrush`, `CardBrush`, `TextPrimaryBrush`, `TextSecondaryBrush`, `BorderBrush`, `SuccessBrush`, `ErrorBrush`, `WarningBrush`, `SidebarBgBrush`
 
-**娌℃湁 `InputBrush`銆?*
+**娌℃湁 `InputBrush`*
 
-## 淇敼浠诲姟
+## 修改浠诲姟
 
 ### 1. 淇璧勬簮寮曠敤
 
-淇敼浣嶇疆: `src/ArasToolkit.App/Views/DataImportView.xaml` 绗?133 琛?
+修改浣嶇疆: `src/ArasToolkit.App/Views/DataImportView.xaml` 绗?133 琛?
 ```diff
 - Background="{StaticResource InputBrush}"
 + Background="{StaticResource SurfaceBrush}"
@@ -49,17 +49,17 @@ Theme.xaml 涓疄闄呭瓨鍦ㄧ殑鍒峰瓙閿悕锛?`PrimaryBrush`, `Sec
 ---
 
 ## Git 瑙勮寖锛堢紪鐮佸墠蹇呴』鎵ц锛?
-### 缂栫爜鍓嶅浠?
+### 编码鍓嶅浠?
 ```bash
 git add -A
 git stash push -m "backup-before-TASK-021"
 git stash pop
 ```
 
-### 缂栫爜瀹屾垚鍚庢彁浜?
+### 编码瀹屾垚鍚庢彁浜?
 ```bash
 git add -A
-git commit -m "淇: TASK-021 DataImportView涓璉nputBrush璧勬簮寮曠敤閿欒锛屾敼涓篠urfaceBrush"
+git commit -m "淇: TASK-021 DataImportView涓璉nputBrush璧勬簮寮曠敤错误锛屾敼涓篠urfaceBrush"
 ```
 
 ### 瀹℃煡閫氳繃鍚庢帹閫侊紙master force push 鍓嶅厛澶囦唤鍒?develop锛?
@@ -72,3 +72,4 @@ git push origin master --force
 ```
 
 > 鍙傜収 AGENTS.md 绗?11 绔?Git 鍒嗘敮涓庢帹閫佺瓥鐣ャ€?
+

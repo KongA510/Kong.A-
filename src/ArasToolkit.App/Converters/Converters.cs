@@ -36,7 +36,15 @@ public class StringToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        return string.IsNullOrEmpty(value?.ToString()) ? Visibility.Collapsed : Visibility.Visible;
+        bool isEmpty;
+
+        if (value is string s)
+            isEmpty = string.IsNullOrEmpty(s);
+        else
+            isEmpty = value == null;
+
+        bool invert = parameter?.ToString() == "Invert";
+        return (isEmpty ^ invert) ? Visibility.Collapsed : Visibility.Visible;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

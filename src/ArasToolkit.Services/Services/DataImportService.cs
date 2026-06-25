@@ -41,7 +41,11 @@ public class DataImportService : IDataImportService
             throw;
         }
     }
-
+    /// <summary>
+    /// 保存AML模板到数据库并记录保存日志
+    /// </summary>
+    /// <param name="config">传入的实体对象</param>
+    /// <returns></returns>
     public async Task<DataImportConfig> SaveConfigAsync(DataImportConfig config)
     {
         try
@@ -112,7 +116,16 @@ public class DataImportService : IDataImportService
             return package.Workbook.Worksheets.Select(s => s.Name).ToList();
         });
     }
-
+   /// <summary>
+   /// 
+   /// </summary>
+   /// <param name="filePath"></param>
+   /// <param name="sheetName"></param>
+   /// <param name="startRow"></param>
+   /// <param name="endRow"></param>
+   /// <param name="startCol"></param>
+   /// <param name="endCol"></param>
+   /// <returns></returns>
     public Task<ExcelSheetData> ReadSheetRangeAsync(string filePath, string sheetName,
         int startRow, int endRow, int startCol, int endCol)
     {
