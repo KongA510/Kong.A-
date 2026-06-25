@@ -22,7 +22,17 @@ public partial class App : Application
     public App()
     {
         ConfigureServices();
-    }
+
+        // 添加 R37lib 子目录到程序集探测路径
+        AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+        {
+            var asmName = new System.Reflection.AssemblyName(args.Name).Name;
+            var probePath = System.IO.Path.Combine(
+                System.AppDomain.CurrentDomain.BaseDirectory, "R37lib", asmName + ".dll");
+            if (System.IO.File.Exists(probePath))
+                return System.Reflection.Assembly.LoadFrom(probePath);
+            return null;
+        };    }
 
     /// <summary>
     /// 配置依赖注入容器

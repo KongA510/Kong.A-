@@ -18,7 +18,7 @@
     <ItemGroup>
       <R37Dlls Include="..\R37lib\*.dll" />
     </ItemGroup>
-    <Copy SourceFiles="@(R37Dlls)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(R37Dlls)" DestinationFolder="$(OutputPath)R37lib" SkipUnchangedFiles="true" />
   </Target>
 
   <!-- 构建时将 DBSeeting.json 复制到输出目录（EF Core 连接字符串） -->
