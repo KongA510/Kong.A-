@@ -16,7 +16,9 @@ public class ArasConnectionService : IArasConnectionService
     public bool IsConnected => _currentConnection != null && _httpConnection != null;
     public ArasConnectionInfo? CurrentConnection => _currentConnection;
    public object? InnovatorInstance => _innovator;
-   public object? HttpConnection => _httpConnection;
+   object? IArasConnectionService.HttpConnection => _httpConnection;
+   /// <summary>获取强类型 HttpServerConnection（供 Services 层内部使用）</summary>
+   public HttpServerConnection? HttpConnection => _httpConnection;
    /// <summary>
    /// 获取强类型 Innovator 引用（供 Services 层内部调用 Aras API）
    /// </summary>

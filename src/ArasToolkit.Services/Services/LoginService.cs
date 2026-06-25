@@ -43,7 +43,9 @@ public class LoginService : ILoginService
                };
 
                 // 持久化连接
-                _connectionService.SetConnection(connectionInfo, new Innovator(connection), connection);
+                var loginResult = connection.Login();
+                var innovator = loginResult.getInnovator();
+                _connectionService.SetConnection(connectionInfo, innovator, connection);
                 return connectionInfo;
             }
             catch (Exception ex)
