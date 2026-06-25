@@ -56,11 +56,18 @@
                         <TextBox Text="{Binding StartCol}" Width="50" Margin="4,0" />
                         <TextBlock Text="结束列:" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
                         <TextBox Text="{Binding EndCol}" Width="50" Margin="4,0" />
-                        <Button Content="加载预览" Command="{Binding LoadPreviewCommand}"
-                                Style="{StaticResource PrimaryButton}" Height="28" FontSize="12"
-                                Padding="12,0" Margin="8,0,0,0" />
-                    </StackPanel>
-                </StackPanel>
+                       <Button Content="加载预览" Command="{Binding LoadPreviewCommand}"
+                               Style="{StaticResource PrimaryButton}" Height="28" FontSize="12"
+                               Padding="12,0" Margin="8,0,0,0" />
+                       <!-- 线程数输入 -->
+                       <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                           <TextBlock Text="线程" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                           <TextBox Text="{Binding MaxConcurrency, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="36" Height="24" FontSize="12" TextAlignment="Center"
+                                    Margin="4,0,0,0" VerticalContentAlignment="Center" />
+                       </StackPanel>
+                   </StackPanel>
+               </StackPanel>
             </Grid>
         </Border>
 
