@@ -326,7 +326,17 @@ public class DataImportService : IDataImportService
                 }
                 else
                 {
-                    innovator = _connectionService.TypedInnovator;
+                    // 单线程时：从全局连接获取，使用标准登录链
+                    var httpConn = _connectionService.HttpConnection as HttpServerConnection;
+                    if (httpConn != null)
+                    {
+                        var loginResult = httpConn.Login();
+                        innovator = loginResult.getInnovator();
+                    }
+                    else
+                    {
+                        innovator = null;
+                    }
                 }
 
                 try
