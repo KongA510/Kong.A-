@@ -4,7 +4,7 @@ priority: P0
 type: fix
 created: 2026-06-25
 source: Claude Code
-status: pending_review
+status: done
 ---
 
 # 数据汇入 — 配置模板保存失败 & 无法打开（5个关联Bug修复）

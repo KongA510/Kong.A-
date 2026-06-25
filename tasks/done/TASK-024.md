@@ -4,7 +4,7 @@ priority: P0
 type: fix
 created: 2026-06-25
 source: Claude Code
-status: pending_review
+status: done
 ---
 
 # 数据汇入 — Excel 列头含括号时预览崩溃（PropertyPath 语法错误）
