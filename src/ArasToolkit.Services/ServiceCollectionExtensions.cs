@@ -31,10 +31,12 @@ public static class ServiceCollectionExtensions
         // 注册配置服务（单例）
         services.AddSingleton<IConfigService, ConfigService>();
 
-        // 注册Aras连接服务（单例，全局共享）
-        services.AddSingleton<IArasConnectionService, ArasConnectionService>();
+       // 注册Aras连接服务（单例，全局共享）
+       services.AddSingleton<IArasConnectionService, ArasConnectionService>();
+       // 同时注册具体类型，供 DataImportService 注入获取 TypedInnovator
+       services.AddSingleton<ArasConnectionService>(sp => (ArasConnectionService)sp.GetRequiredService<IArasConnectionService>());
 
-        // 注册登录服务
+       // 注册登录服务
         services.AddTransient<ILoginService, LoginService>();
 
         // 注册Excel服务

@@ -15,11 +15,15 @@ public class ArasConnectionService : IArasConnectionService
 
     public bool IsConnected => _currentConnection != null && _httpConnection != null;
     public ArasConnectionInfo? CurrentConnection => _currentConnection;
-    public object? InnovatorInstance => _innovator;
-    public object? HttpConnection => _httpConnection;
+   public object? InnovatorInstance => _innovator;
+   public object? HttpConnection => _httpConnection;
+   /// <summary>
+   /// 获取强类型 Innovator 引用（供 Services 层内部调用 Aras API）
+   /// </summary>
+   public Innovator? TypedInnovator => _innovator;
 
-    /// <summary>
-    /// 登录成功后保存连接
+   /// <summary>
+   /// 登录成功后保存连接
     /// </summary>
     public void SetConnection(ArasConnectionInfo connectionInfo, object innovator, object httpConnection)
     {

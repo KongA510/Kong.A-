@@ -5,6 +5,7 @@ using ArasToolkit.Core.Models;
 using ArasToolkit.Services.Data;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
+using Aras.IOM;
 
 namespace ArasToolkit.Services.Services;
 
@@ -13,15 +14,18 @@ public class DataImportService : IDataImportService
     private readonly IDbContextFactory<ArasToolkitDbContext> _contextFactory;
     private readonly IErrorLogService _errorLogService;
     private readonly IOperationLogService _operationLogService;
+    private readonly ArasConnectionService _connectionService;
 
     public DataImportService(
         IDbContextFactory<ArasToolkitDbContext> contextFactory,
         IErrorLogService errorLogService,
-        IOperationLogService operationLogService)
+        IOperationLogService operationLogService,
+        ArasConnectionService connectionService)
     {
         _contextFactory = contextFactory;
         _errorLogService = errorLogService;
         _operationLogService = operationLogService;
+        _connectionService = connectionService;
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
     }
 
@@ -228,7 +232,7 @@ public class DataImportService : IDataImportService
         string filePath, string? sheetName,
         int startRow, int endRow, int startCol, int endCol,
         string amlContent,
-        Func<int, string, Task<bool>>? arasImporter = null)
+        Func<int, int, Task>? progressCallback = null)
     {
         var result = new ImportResult
         {
@@ -271,21 +275,35 @@ public class DataImportService : IDataImportService
                     foreach (var kv in colMap)
                         rowData[kv.Key] = worksheet.Cells[r, kv.Value].Text?.Trim() ?? "";
 
-                    if (arasImporter == null)
+                    // 通过进度回调通知当前进度
+                    if (progressCallback != null)
+                        await progressCallback(r, result.TotalRows);
+
+                    // 获取 Aras 连接并在 Service 内部执行 AML
+                    var innovator = _connectionService.TypedInnovator;
+                    if (innovator == null)
                     {
-                        result.SkippedCount++;
-                        continue;
+                        // 未连接 Aras，跳过所有剩余行
+                        result.SkippedCount += (maxRow - r + 1);
+                        await writer.WriteLineAsync("[错误] 未连接Aras，跳过行" + r + " 及之后所有行");
+                        break;
                     }
 
                     try
                     {
+                        // 替换Excel占位符(如@A→A列值)后执行AML
                         var replacedAml = ReplaceAmlPlaceholders(amlContent, rowData);
-                        if (await arasImporter(r, replacedAml))
+                        var resultItem = innovator.applyAML(replacedAml);
+                        if (!resultItem.isError())
+                        {
                             result.SuccessCount++;
+                            await writer.WriteLineAsync("[成功] 行" + r + ": AML执行成功");
+                        }
                         else
                         {
                             result.FailureCount++;
-                            await writer.WriteLineAsync("[失败] 行" + r + ": AML执行返回失败");
+                            var errMsg = resultItem.getErrorString();
+                            await writer.WriteLineAsync("[失败] 行" + r + ": " + errMsg);
                         }
                     }
                     catch (Exception ex)

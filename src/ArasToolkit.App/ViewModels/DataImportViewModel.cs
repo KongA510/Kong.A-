@@ -290,30 +290,25 @@ public class DataImportViewModel : ObservableObject
 
             int totalRows = EndRow == -1 ? 0 : EndRow - StartRow + 1;
 
-            LastResult = await _dataImportService.ExecuteImportAsync(
-                SelectedFilePath, SelectedSheetName,
-                StartRow, EndRow, StartCol, EndCol,
-                AmlContent,
-                async (rowNum, aml) =>
-                {
-                    if (totalRows > 0)
-                    {
-                        ImportProgress = (double)(rowNum - StartRow + 1) / totalRows * 100;
-                        ProgressText = (rowNum - StartRow + 1) + "/" + totalRows;
-                    }
-                    await Task.Delay(1);
-                    return true;
-                });
-            if (LastResult != null && LastResult.TotalRows > 0)
-            {
-                ImportProgress = 100;
-                ProgressText = "完成: " + LastResult.SuccessCount + "/" + LastResult.TotalRows;
-            }
-            ImportProgress = 100;
-            ProgressText = "完成: " + (LastResult?.TotalRows ?? 0) + " 行";
-            StatusMessage = "导入完成: 总计" + LastResult.TotalRows + " 成功" + LastResult.SuccessCount + " 失败" + LastResult.FailureCount;
-        }
-        catch (Exception ex)
+           LastResult = await _dataImportService.ExecuteImportAsync(
+               SelectedFilePath, SelectedSheetName,
+               StartRow, EndRow, StartCol, EndCol,
+               AmlContent,
+               async (rowNum, total) =>
+               {
+                   // 计算百分比并更新进度条和文本
+                   ImportProgress = total > 0 ? (double)rowNum / total * 100 : 0;
+                   ProgressText = rowNum + "/" + total;
+                   await Task.Delay(1);
+               });
+           // 导入完成后的状态更新
+           ImportProgress = 100;
+           ProgressText = "完成: " + (LastResult?.TotalRows ?? 0) + " 行";
+           StatusMessage = "导入完成: 总计" + (LastResult?.TotalRows ?? 0)
+               + " 成功" + (LastResult?.SuccessCount ?? 0)
+               + " 失败" + (LastResult?.FailureCount ?? 0);
+       }
+       catch (Exception ex)
         {
             ErrorMessage = "导入失败: " + ex.Message;
         }
