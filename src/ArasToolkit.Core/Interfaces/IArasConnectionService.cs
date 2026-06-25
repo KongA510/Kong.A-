@@ -1,4 +1,3 @@
-using Aras.IOM;
 using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.Core.Interfaces;
@@ -21,7 +20,7 @@ public interface IArasConnectionService
     object? HttpConnection { get; }
 
     /// <summary>登录成功后保存连接</summary>
-    void SetConnection(ArasConnectionInfo connectionInfo, object innovator, HttpServerConnection httpConnection);
+    void SetConnection(ArasConnectionInfo connectionInfo, object innovator, object httpConnection);
 
     /// <summary>断开连接</summary>
     void Disconnect();

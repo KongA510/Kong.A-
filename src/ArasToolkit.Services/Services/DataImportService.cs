@@ -15,17 +15,20 @@ public class DataImportService : IDataImportService
     private readonly IErrorLogService _errorLogService;
     private readonly IOperationLogService _operationLogService;
     private readonly ArasConnectionService _connectionService;
+    private readonly ArasConnectionPool _connectionPool;
 
     public DataImportService(
         IDbContextFactory<ArasToolkitDbContext> contextFactory,
         IErrorLogService errorLogService,
         IOperationLogService operationLogService,
-        ArasConnectionService connectionService)
+        ArasConnectionService connectionService,
+        ArasConnectionPool connectionPool)
     {
         _contextFactory = contextFactory;
         _errorLogService = errorLogService;
         _operationLogService = operationLogService;
         _connectionService = connectionService;
+        _connectionPool = connectionPool;
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
     }
 
@@ -230,10 +233,15 @@ public class DataImportService : IDataImportService
         return ReplaceAmlPlaceholders(amlTemplate, firstRowData);
     }
 
+    /// <summary>
+    /// 执行导入 — 支持多线程并发 + 暂停/继续（通过 CancellationToken）
+    /// </summary>
     public async Task<ImportResult> ExecuteImportAsync(
         string filePath, string? sheetName,
         int startRow, int endRow, int startCol, int endCol,
         string amlContent,
+        int maxConcurrency = 1,
+        CancellationToken cancellationToken = default,
         Func<int, int, Task>? progressCallback = null)
     {
         var result = new ImportResult
@@ -256,71 +264,124 @@ public class DataImportService : IDataImportService
         await writer.WriteLineAsync("Sheet: " + (sheetName ?? "N/A"));
         await writer.WriteLineAsync("开始时间: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         await writer.WriteLineAsync("范围: 行" + startRow + "~" + endRow + ", 列" + startCol + "~" + endCol);
+        await writer.WriteLineAsync("并发线程数: " + maxConcurrency);
 
         try
         {
-            var conn= _connectionService.HttpConnection;
-            if(conn == null)
+            // 连接池大小验证
+            if (maxConcurrency > 1 && _connectionPool.PoolSize < maxConcurrency)
             {
-                await writer.WriteLineAsync("[错误] 未连接Aras");
-                return result;
+                await writer.WriteLineAsync("[警告] 连接池大小(" + _connectionPool.PoolSize + ")不足，回退为单线程");
+                maxConcurrency = 1;
             }
-            var inn = conn.Login().getInnovator();
+
             using var package = new ExcelPackage(new FileInfo(filePath), true);
             var worksheet = sheetName != null ? package.Workbook.Worksheets[sheetName] : package.Workbook.Worksheets[0];
-            if (worksheet?.Dimension != null)
+            if (worksheet?.Dimension == null)
             {
-                int maxCol = endCol == -1 ? worksheet.Dimension.Columns : Math.Min(endCol, worksheet.Dimension.Columns);
-                int maxRow = endRow == -1 ? worksheet.Dimension.Rows : Math.Min(endRow, worksheet.Dimension.Rows);
-                result.TotalRows = maxRow - startRow + 1;
+                await writer.WriteLineAsync("[错误] 工作表无数据");
+                return result;
+            }
 
-                var colMap = new Dictionary<string, int>();
-                for (int c = startCol; c <= maxCol; c++)
-                    colMap[ColumnIndexToLetter(c - 1)] = c;
+            int maxCol = endCol == -1 ? worksheet.Dimension.Columns : Math.Min(endCol, worksheet.Dimension.Columns);
+            int maxRow = endRow == -1 ? worksheet.Dimension.Rows : Math.Min(endRow, worksheet.Dimension.Rows);
+            result.TotalRows = maxRow - startRow + 1;
 
-                for (int r = startRow; r <= maxRow; r++)
+            // 先串行收集所有行数据到 List（Excel 读取串行更安全）
+            var colMap = new Dictionary<string, int>();
+            for (int c = startCol; c <= maxCol; c++)
+                colMap[ColumnIndexToLetter(c - 1)] = c;
+
+            var rows = new List<(int rowNum, Dictionary<string, string> rowData)>();
+            for (int r = startRow; r <= maxRow; r++)
+            {
+                var rowData = new Dictionary<string, string>();
+                foreach (var kv in colMap)
+                    rowData[kv.Key] = worksheet.Cells[r, kv.Value].Text?.Trim() ?? "";
+                rows.Add((r, rowData));
+            }
+
+            // 并行选项
+            var parallelOptions = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = maxConcurrency,
+                CancellationToken = cancellationToken
+            };
+
+            // 使用 Interlocked 保证多线程计数安全
+            int processed = 0, success = 0, failure = 0;
+
+            await Parallel.ForEachAsync(rows, parallelOptions, async (item, ct) =>
+            {
+                // 检查取消令牌（暂停时快速退出）
+                ct.ThrowIfCancellationRequested();
+
+                // 从连接池租用一个独立连接（多线程时），单线程用全局连接
+                PooledConnection? pooledConn = null;
+                Innovator? innovator;
+                if (maxConcurrency > 1)
                 {
-                    var rowData = new Dictionary<string, string>();
-                    foreach (var kv in colMap)
-                        rowData[kv.Key] = worksheet.Cells[r, kv.Value].Text?.Trim() ?? "";
+                    pooledConn = _connectionPool.Rent();
+                    innovator = pooledConn.Innovator;
+                }
+                else
+                {
+                    innovator = _connectionService.TypedInnovator;
+                }
 
-                    // 通过进度回调通知当前进度
-                    if (progressCallback != null)
-                        await progressCallback(r, result.TotalRows);
-
-                    // 获取 Aras 连接并在 Service 内部执行 AML
-                    var innovator = _connectionService.TypedInnovator;
+                try
+                {
                     if (innovator == null)
                     {
-                        // 未连接 Aras，跳过所有剩余行
-                        result.SkippedCount += (maxRow - r + 1);
-                        await writer.WriteLineAsync("[错误] 未连接Aras，跳过行" + r + " 及之后所有行");
-                        break;
+                        Interlocked.Increment(ref failure);
+                        return;
                     }
 
-                    try
+                    // 替换占位符并执行 AML（同步 HTTP 调用）
+                    var replacedAml = ReplaceAmlPlaceholders(amlContent, item.rowData);
+                    var resultItem = innovator.applyAML(replacedAml);
+
+                    if (!resultItem.isError())
                     {
-                        // 替换Excel占位符(如@A→A列值)后执行AML
-                        var replacedAml = ReplaceAmlPlaceholders(amlContent, rowData);
-                        var resultItem = inn.applyAML(replacedAml);
-                        if (!resultItem.isError())
-                        {
-                            result.SuccessCount++;
-                        }
-                        else
-                        {
-                            result.FailureCount++;
-                            var errMsg = resultItem.getErrorString();
-                            await writer.WriteLineAsync("[失败] 行" + r + ": " + errMsg);
-                        }
+                        Interlocked.Increment(ref success);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        result.FailureCount++;
-                        await writer.WriteLineAsync("[失败] 行" + r + ": " + ex.Message);
+                        Interlocked.Increment(ref failure);
+                        var errMsg = resultItem.getErrorString();
+                        await writer.WriteLineAsync("[失败] 行" + item.rowNum + ": " + errMsg);
                     }
                 }
-            }
+                catch (OperationCanceledException)
+                {
+                    throw; // 重新抛出，让 Parallel.ForEachAsync 处理暂停
+                }
+                catch (Exception ex)
+                {
+                    Interlocked.Increment(ref failure);
+                    await writer.WriteLineAsync("[失败] 行" + item.rowNum + ": " + ex.Message);
+                }
+                finally
+                {
+                    // 归还连接池
+                    if (pooledConn != null)
+                        _connectionPool.Return(pooledConn);
+
+                    // 更新进度（线程安全）
+                    var current = Interlocked.Increment(ref processed);
+                    if (progressCallback != null)
+                        await progressCallback(current, result.TotalRows);
+                }
+            });
+
+            result.SuccessCount = success;
+            result.FailureCount = failure;
+            result.ProcessedRows = processed;
+        }
+        catch (OperationCanceledException)
+        {
+            // 暂停/取消：保留已处理数据
+            await writer.WriteLineAsync("[暂停] 用户取消，已处理: " + result.ProcessedRows + "/" + result.TotalRows);
         }
         catch (Exception ex)
         {
@@ -334,12 +395,7 @@ public class DataImportService : IDataImportService
         await writer.WriteLineAsync("===== 日志结束 =====");
 
         return result;
-    }
-
-    /// <summary>
-    /// 清洗列头文本，将 WPF PropertyPath 不能解析的特殊字符转为全角
-    /// </summary>
-    private static string SanitizeHeader(string rawHeader)
+    }    private static string SanitizeHeader(string rawHeader)
     {
         if (string.IsNullOrEmpty(rawHeader)) return rawHeader;
         return rawHeader

@@ -7,9 +7,11 @@ public class ImportResult
 {
     public int TotalRows { get; set; }
     public int SuccessCount { get; set; }
-    public int FailureCount { get; set; }
-    public int SkippedCount { get; set; }
-    public DateTime ImportTime { get; set; }
+   public int FailureCount { get; set; }
+   public int SkippedCount { get; set; }
+   /// <summary>实际已处理行数 — 暂停/取消时小于 TotalRows</summary>
+   public int ProcessedRows { get; set; }
+   public DateTime ImportTime { get; set; }
     public string LogFilePath { get; set; } = string.Empty;
 }
 

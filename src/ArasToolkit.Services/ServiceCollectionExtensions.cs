@@ -36,10 +36,13 @@ public static class ServiceCollectionExtensions
        // 同时注册具体类型，供 DataImportService 注入获取 TypedInnovator
        services.AddSingleton<ArasConnectionService>(sp => (ArasConnectionService)sp.GetRequiredService<IArasConnectionService>());
 
-       // 注册登录服务
-        services.AddTransient<ILoginService, LoginService>();
+      // 注册登录服务
+       services.AddTransient<ILoginService, LoginService>();
 
-        // 注册Excel服务
+       // 注册 Aras 连接池（全局单例，供数据汇入多线程并发使用）
+       services.AddSingleton<ArasConnectionPool>();
+
+       // 注册Excel服务
         services.AddTransient<IExcelService, ExcelService>();
 
         // 注册更新日志服务（单例）

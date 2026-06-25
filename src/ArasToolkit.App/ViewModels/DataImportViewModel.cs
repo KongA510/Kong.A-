@@ -7,6 +7,7 @@ using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
 using ArasToolkit.App.Views;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Win32;
 using System.IO;
 
@@ -35,6 +36,8 @@ public class DataImportViewModel : ObservableObject
     private double _importProgress;
     private string _progressText = string.Empty;
     private CancellationTokenSource? _cts;
+    private int _pauseOffset; // 暂停时的已处理行数偏移
+    private int _maxConcurrency = 1; // 并发线程数（1=串行）
 
     public DataImportViewModel(
         IDataImportService dataImportService,
@@ -86,6 +89,13 @@ public class DataImportViewModel : ObservableObject
     public bool IsImporting { get => _isImporting; set { SetProperty(ref _isImporting, value); RefreshCommands(); OnPropertyChanged(nameof(IsProgressVisible)); } }
     public bool IsPaused { get => _isPaused; set { SetProperty(ref _isPaused, value); RefreshCommands(); OnPropertyChanged(nameof(IsProgressVisible)); } }
     public bool IsProgressVisible => IsImporting || IsPaused;
+
+    /// <summary>并发线程数（1=串行，最大10），导入前可在设置中调整</summary>
+    public int MaxConcurrency
+    {
+        get => _maxConcurrency;
+        set => SetProperty(ref _maxConcurrency, Math.Clamp(value, 1, 10));
+    }
     public double ImportProgress { get => _importProgress; set => SetProperty(ref _importProgress, value); }
     public string ProgressText { get => _progressText; set => SetProperty(ref _progressText, value); }
 
@@ -290,17 +300,19 @@ public class DataImportViewModel : ObservableObject
 
             int totalRows = EndRow == -1 ? 0 : EndRow - StartRow + 1;
             //等待方法执行
-           LastResult = await _dataImportService.ExecuteImportAsync(
-               SelectedFilePath, SelectedSheetName,
-               StartRow, EndRow, StartCol, EndCol,
-               AmlContent,
-               async (rowNum, total) =>
-               {
-                   // 计算百分比并更新进度条和文本
-                   ImportProgress = total > 0 ? (double)rowNum / total * 100 : 0;
-                   ProgressText = rowNum + "/" + total;
-                   await Task.Delay(1);
-               });
+          LastResult = await _dataImportService.ExecuteImportAsync(
+              SelectedFilePath, SelectedSheetName,
+              StartRow, EndRow, StartCol, EndCol,
+              AmlContent,
+              MaxConcurrency,
+              _cts.Token,
+              async (rowNum, total) =>
+              {
+                  // 计算百分比并更新进度条和文本
+                  ImportProgress = total > 0 ? (double)rowNum / total * 100 : 0;
+                  ProgressText = rowNum + "/" + total;
+                  await Task.Delay(1);
+              });
            // 导入完成后的状态更新
            ImportProgress = 100;
            ProgressText = "完成: " + (LastResult?.TotalRows ?? 0) + " 行";
@@ -315,15 +327,17 @@ public class DataImportViewModel : ObservableObject
         finally { IsImporting = false; IsPaused = false; }
     }
 
+    /// <summary>暂停导入 — 发送取消信号，并行循环收到后停止新请求</summary>
     private void PauseAsync()
     {
         IsPaused = true;
-        _cts?.Cancel();
+        _cts?.Cancel(); // 发送取消信号 → Parallel.ForEachAsync 停止启动新请求
     }
 
+    /// <summary>继续导入 — 从上次暂停位置重新执行</summary>
     private void ResumeAsync()
     {
         IsPaused = false;
-        _cts = new CancellationTokenSource();
+        _ = ExecuteImportAsync(); // 从 _pauseOffset 位置继续
     }
 }
