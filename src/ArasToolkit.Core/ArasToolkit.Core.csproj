@@ -10,10 +10,4 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="IOM">
-      <HintPath>..\R37lib\IOM.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>

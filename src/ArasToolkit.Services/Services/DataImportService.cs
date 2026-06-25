@@ -25,7 +25,7 @@ public class DataImportService : IDataImportService
         _contextFactory = contextFactory;
         _errorLogService = errorLogService;
         _operationLogService = operationLogService;
-        _connectionService = connectionService;//注入服务
+        _connectionService = connectionService;
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
     }
 
@@ -215,20 +215,13 @@ public class DataImportService : IDataImportService
         });
     }
 
-   public string ReplaceAmlPlaceholders(string amlTemplate, Dictionary<string, string> rowData)
-   {
-       var result = amlTemplate;
-       foreach (var kv in rowData)
-       {
-           // 清洗单元格值：移除换行、制表等会破坏AML解析的转义符
-           var cleanValue = (kv.Value ?? "")
-               .Replace("\r", "")
-               .Replace("\n", " ")
-               .Replace("\t", " ");
-           result = result.Replace("@" + kv.Key, cleanValue);
-       }
-       return result;
-   }
+    public string ReplaceAmlPlaceholders(string amlTemplate, Dictionary<string, string> rowData)
+    {
+        var result = amlTemplate;
+        foreach (var kv in rowData)
+            result = result.Replace("@" + kv.Key, kv.Value);
+        return result;
+    }
 
     public string PreviewAml(string amlTemplate, Dictionary<string, string> firstRowData)
     {
@@ -261,11 +254,9 @@ public class DataImportService : IDataImportService
         await writer.WriteLineAsync("Sheet: " + (sheetName ?? "N/A"));
         await writer.WriteLineAsync("开始时间: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         await writer.WriteLineAsync("范围: 行" + startRow + "~" + endRow + ", 列" + startCol + "~" + endCol);
-  
+
         try
         {
-            var conn = _connectionService.HttpConnection.Login();
-            var inn = conn.getInnovator();
             using var package = new ExcelPackage(new FileInfo(filePath), true);
             var worksheet = sheetName != null ? package.Workbook.Worksheets[sheetName] : package.Workbook.Worksheets[0];
             if (worksheet?.Dimension != null)
@@ -289,7 +280,8 @@ public class DataImportService : IDataImportService
                         await progressCallback(r, result.TotalRows);
 
                     // 获取 Aras 连接并在 Service 内部执行 AML
-                    if (inn == null)
+                    var innovator = _connectionService.TypedInnovator;
+                    if (innovator == null)
                     {
                         // 未连接 Aras，跳过所有剩余行
                         result.SkippedCount += (maxRow - r + 1);
@@ -301,11 +293,11 @@ public class DataImportService : IDataImportService
                     {
                         // 替换Excel占位符(如@A→A列值)后执行AML
                         var replacedAml = ReplaceAmlPlaceholders(amlContent, rowData);
-                        var resultItem = inn.applyAML(replacedAml);
+                        var resultItem = innovator.applyAML(replacedAml);
                         if (!resultItem.isError())
                         {
                             result.SuccessCount++;
-                          //  await writer.WriteLineAsync("[成功] 行" + r + ": AML执行成功");
+                            await writer.WriteLineAsync("[成功] 行" + r + ": AML执行成功");
                         }
                         else
                         {
