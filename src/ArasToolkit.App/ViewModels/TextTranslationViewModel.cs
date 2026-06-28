@@ -37,8 +37,8 @@ public class TextTranslationViewModel : ObservableObject
         SelectedTemplateType = TemplateTypes[0];
         SourceLanguages = new ObservableCollection<string>
         {
-            "中文", "English", "Tiếng Việt", "日本語", "한국어",
-            "ไทย", "Bahasa Indonesia", "Français", "Deutsch", "Español"
+            "中文", "繁體中文", "English", "Tiếng Việt", "ភាសាខ្មែរ",
+            "日本語", "한국어", "ไทย", "Bahasa Indonesia", "Français", "Deutsch", "Español"
         };
         SelectedSourceLanguage = SourceLanguages[0];
         HistoryRecords = new ObservableCollection<TextTranslationRecord>();
