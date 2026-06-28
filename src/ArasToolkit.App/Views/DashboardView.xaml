@@ -8,16 +8,21 @@
              Background="Transparent">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="32,28">
+        <StackPanel Margin="32,24">
 
-            <TextBlock Text="仪表盘" FontSize="26" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4" />
-            <TextBlock Text="Aras 开发工具箱" FontSize="14"
-                       Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,28" />
+            <!-- 页面标题 -->
+            <TextBlock Text="仪表盘" FontSize="24" FontWeight="Bold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4" />
+            <TextBlock Text="Aras 开发工具箱" FontSize="13"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,24" />
 
-            <!-- 连接状态 -->
+            <!-- 连接状态卡片组 -->
+            <TextBlock Text="连接状态" FontSize="15" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12" />
+
             <WrapPanel Margin="0,0,0,32">
-                <Border Style="{StaticResource CardStyle}" Width="210" Margin="0,0,12,12" Padding="20,16">
+                <!-- 连接状态 -->
+                <Border Style="{DynamicResource ElevatedCard}" Width="210" Margin="0,0,12,12" Padding="20,16">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <Ellipse Width="10" Height="10" Margin="0,0,8,0">
@@ -25,55 +30,62 @@
                                     <Style TargetType="Ellipse">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding ConnectionStatus}" Value="已连接">
-                                                <Setter Property="Fill" Value="{StaticResource SuccessBrush}" />
+                                                <Setter Property="Fill" Value="{DynamicResource SystemFillColorSuccessBrush}" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding ConnectionStatus}" Value="未连接">
-                                                <Setter Property="Fill" Value="{StaticResource ErrorBrush}" />
+                                                <Setter Property="Fill" Value="{DynamicResource SystemFillColorCriticalBrush}" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
-                            <TextBlock Text="{Binding ConnectionStatus}" FontSize="18" FontWeight="Bold"
-                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="{Binding ConnectionStatus}" FontSize="16" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                         </StackPanel>
-                        <TextBlock Text="连接状态" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                        <TextBlock Text="连接状态" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
                 </Border>
 
-                <Border Style="{StaticResource CardStyle}" Width="210" Margin="0,0,12,12" Padding="20,16">
+                <!-- 服务器 -->
+                <Border Style="{DynamicResource SimpleCard}" Width="210" Margin="0,0,12,12" Padding="20,16">
                     <StackPanel>
                         <TextBlock Text="{Binding ConnectedServer}" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="服务器" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="服务器" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
                     </StackPanel>
                 </Border>
-                <Border Style="{StaticResource CardStyle}" Width="210" Margin="0,0,12,12" Padding="20,16">
+
+                <!-- 数据库 -->
+                <Border Style="{DynamicResource SimpleCard}" Width="210" Margin="0,0,12,12" Padding="20,16">
                     <StackPanel>
                         <TextBlock Text="{Binding ConnectedDatabase}" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="数据库" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="数据库" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
                     </StackPanel>
                 </Border>
-                <Border Style="{StaticResource CardStyle}" Width="210" Margin="0,0,12,12" Padding="20,16">
+
+                <!-- 用户 -->
+                <Border Style="{DynamicResource SimpleCard}" Width="210" Margin="0,0,12,12" Padding="20,16">
                     <StackPanel>
                         <TextBlock Text="{Binding ConnectedUser}" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="当前用户" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="当前用户" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
                     </StackPanel>
                 </Border>
-                <Border Style="{StaticResource CardStyle}" Width="210" Margin="0,0,12,12" Padding="20,16">
+
+                <!-- 登录时间 -->
+                <Border Style="{DynamicResource SimpleCard}" Width="210" Margin="0,0,12,12" Padding="20,16">
                     <StackPanel>
                         <TextBlock Text="{Binding LoginTime}" FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="登录时间" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="登录时间" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
                     </StackPanel>
                 </Border>
             </WrapPanel>
 
             <!-- 全部功能入口 -->
-            <TextBlock Text="全部功能" FontSize="18" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16" />
+            <TextBlock Text="全部功能" FontSize="16" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,16" />
 
             <ItemsControl ItemsSource="{Binding AllFeatures}">
                 <ItemsControl.ItemsPanel>
@@ -81,15 +93,28 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource CardStyle}" Width="260" Margin="0,0,14,14"
+                        <Border Width="260" Margin="0,0,14,14"
                                 Padding="20,18" Cursor="Hand"
                                 MouseLeftButtonDown="FeatureCard_Click">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+                                    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+                                    <Setter Property="BorderThickness" Value="1" />
+                                    <Setter Property="CornerRadius" Value="{DynamicResource CardCornerRadius}" />
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentBrush}" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <TextBlock Text="{Binding Icon}" FontSize="28" Margin="0,0,0,10" />
                                 <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4" />
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4" />
                                 <TextBlock Text="{Binding Description}" FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
                     </DataTemplate>

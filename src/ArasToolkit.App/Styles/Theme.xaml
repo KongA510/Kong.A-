@@ -1,171 +1,46 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-<!-- ===== 娴?鑹?绠€绾?涓?棰?閰?鑹? ===== -->
-    <Color x:Key="PrimaryColor">#FFFFFF</Color>
-    <Color x:Key="SecondaryColor">#F3F4F6</Color>
-    <Color x:Key="AccentColor">#6366F1</Color>
-    <Color x:Key="AccentHoverColor">#4F46E5</Color>
-    <Color x:Key="SurfaceColor">#F9FAFB</Color>
-    <Color x:Key="CardColor">#FFFFFF</Color>
-    <Color x:Key="TextPrimaryColor">#111827</Color>
-    <Color x:Key="TextSecondaryColor">#6B7280</Color>
-    <Color x:Key="BorderColor">#E5E7EB</Color>
-    <Color x:Key="SuccessColor">#10B981</Color>
-    <Color x:Key="ErrorColor">#EF4444</Color>
-    <Color x:Key="WarningColor">#F59E0B</Color>
-    <Color x:Key="SidebarBgColor">#F8F9FB</Color>
+    <!-- ===== Fluent Design UI 主题入口 ===== -->
+    <!-- 按顺序合并：色彩 → 控件 → 卡片 -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Colors.Light.xaml" />
+        <ResourceDictionary Source="Controls.xaml" />
+        <ResourceDictionary Source="Cards.xaml" />
+    </ResourceDictionary.MergedDictionaries>
 
-    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
-    <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource SecondaryColor}" />
-    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
-    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
-    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
-    <SolidColorBrush x:Key="CardBrush" Color="{StaticResource CardColor}" />
-    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
-    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
-    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
-    <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}" />
-    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
-    <SolidColorBrush x:Key="SidebarBgBrush" Color="{StaticResource SidebarBgColor}" />
-
-    <!-- 鍏?灞€Window -->
+    <!-- ===== 全局 Window 样式 ===== -->
     <Style TargetType="Window">
-        <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SystemBaseBrush}" />
         <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
         <Setter Property="WindowStyle" Value="None" />
         <Setter Property="AllowsTransparency" Value="True" />
     </Style>
 
-    <!-- TextBox -->
-    <Style x:Key="DarkTextBox" TargetType="TextBox">
-        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="12,10" />
-        <Setter Property="FontSize" Value="14" />
-        <Setter Property="CaretBrush" Value="{StaticResource TextPrimaryBrush}" />
-        </Style>
+    <!-- ===== 兼容旧 Key 别名（向后兼容） ===== -->
+    <!-- 注意：不能用 Color="{DynamicResource}"，必须用 StaticResource 引用 SolidColorBrush -->
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource SystemBaseColor}" />
+    <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource SystemFillColorNeutral}" />
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource SystemAccentColor}" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource SystemAccentColorDark1}" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource ControlFillColorTertiary}" />
+    <SolidColorBrush x:Key="CardBrush" Color="{StaticResource CardBackgroundFillColorDefault}" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextFillColorPrimary}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextFillColorSecondary}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource ControlStrokeColorDefault}" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SystemFillColorSuccess}" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource SystemFillColorCritical}" />
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource SystemFillColorCaution}" />
+    <SolidColorBrush x:Key="SidebarBgBrush" Color="{StaticResource SystemListLowColor}" />
 
-    <!-- PasswordBox -->
-    <Style x:Key="DarkPasswordBox" TargetType="PasswordBox">
-        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="12,10" />
-        <Setter Property="FontSize" Value="14" />
-        </Style>
-
-    <!-- Primary Button -->
-    <Style x:Key="PrimaryButton" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-        <Setter Property="Foreground" Value="White" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Padding" Value="24,10" />
-        <Setter Property="FontSize" Value="14" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Cursor" Value="Hand" />
-        </Style>
-
-    <!-- DataGrid -->
-    <Style x:Key="DarkDataGrid" TargetType="DataGrid">
-        <Setter Property="Background" Value="{StaticResource CardBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="RowBackground" Value="White" />
-        <Setter Property="AlternatingRowBackground" Value="{StaticResource SurfaceBrush}" />
-        <Setter Property="GridLinesVisibility" Value="Horizontal" />
-        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BorderBrush}" />
-        <Setter Property="HeadersVisibility" Value="Column" />
-        <Setter Property="CanUserAddRows" Value="False" />
-        <Setter Property="AutoGenerateColumns" Value="True" />
-        <!-- 鐞?灞?鐗?瀵?蹇?绱?濞?鍛?浼?閼?鏌?鈧?澶?鑵?/閹?顒€浠?閿?鍫?娴?娴?锝?绮?鐠?銈?鎽?閼?璇?绱? -->
-        <Setter Property="RowStyle">
-            <Setter.Value>
-                <Style TargetType="DataGridRow">
-                    <Setter Property="Background" Value="White" />
-                    <Style.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#E5E7EB" />
-                        </Trigger>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="#D1D5DB" />
-                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </Setter.Value>
-        </Setter>
-        <Setter Property="ColumnHeaderStyle">
-            <Setter.Value>
-                <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-                    <Setter Property="FontWeight" Value="SemiBold" />
-                    <Setter Property="Padding" Value="14,10" />
-                    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-                    <Setter Property="BorderThickness" Value="0,0,0,1" />
-                </Style>
-            </Setter.Value>
-        </Setter>
-        <Setter Property="CellStyle">
-            <Setter.Value>
-                <Style TargetType="DataGridCell">
-                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-                    <Setter Property="Padding" Value="14,8" />
-                    <Setter Property="BorderThickness" Value="0" />
-                    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-                    <Style.Triggers>
-                        <!-- 閸?鏇?鍘?閺?濂?鈧?澶?鑵?閿?姘?绁?閻?鎷?鍎?閺?顖?绱?閺?澶?鍞?姒?妯?顓?閽?婵?澹?閿??-->
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="#D1D5DB" />
-                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-                        </Trigger>
-                        <!-- 鍗?鍏?鏍?闈?閫?涓?鐘?鎬?淇?鎸?閫?鏄?锛?璁?琛?鏍?寮?閫?鍑?锛?-->
-                        <Trigger Property="IsSelected" Value="False">
-                            <Setter Property="Background" Value="Transparent" />
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!-- ComboBox -->
-    <Style x:Key="DarkComboBox" TargetType="ComboBox">
-        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="12,8" />
-        <Setter Property="FontSize" Value="13" />
-        </Style>
-
-    <!-- CheckBox -->
-    <Style x:Key="DarkCheckBox" TargetType="CheckBox">
-        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
-        <Setter Property="FontSize" Value="13" />
-    </Style>
-
-    <!-- ProgressBar -->
-    <Style x:Key="DarkProgressBar" TargetType="ProgressBar">
-        <Setter Property="Background" Value="{StaticResource BorderBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
-        <Setter Property="Height" Value="4" />
-        <Setter Property="BorderThickness" Value="0" />
-        </Style>
-
-    <!-- Card -->
-    <Style x:Key="CardStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource CardBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="12" />
-        <Setter Property="Padding" Value="20" />
-    </Style>
+    <!-- 向后兼容：旧样式名映射到新 Fluent 样式 -->
+    <Style x:Key="DarkTextBox" TargetType="TextBox" BasedOn="{StaticResource FluentTextBox}" />
+    <Style x:Key="DarkPasswordBox" TargetType="PasswordBox" BasedOn="{StaticResource FluentPasswordBox}" />
+    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource AccentButton}" />
+    <Style x:Key="DarkDataGrid" TargetType="DataGrid" BasedOn="{StaticResource FluentDataGrid}" />
+    <Style x:Key="DarkComboBox" TargetType="ComboBox" BasedOn="{StaticResource FluentComboBox}" />
+    <Style x:Key="DarkCheckBox" TargetType="CheckBox" BasedOn="{StaticResource FluentCheckBox}" />
+    <Style x:Key="DarkProgressBar" TargetType="ProgressBar" BasedOn="{StaticResource FluentProgressBar}" />
+    <Style x:Key="CardStyle" TargetType="Border" BasedOn="{StaticResource SimpleCard}" />
 
 </ResourceDictionary>

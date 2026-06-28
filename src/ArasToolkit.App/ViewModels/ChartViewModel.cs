@@ -131,10 +131,10 @@ public class ChartViewModel : ObservableObject
             PlotAreaBorderThickness = new OxyThickness(1),
         };
 
-        // X 轴（分类轴）
+        // X 轴（分类轴）— 底部
         var categoryAxis = new CategoryAxis
         {
-            Position = AxisPosition.Left,
+            Position = AxisPosition.Bottom,
             Title = data.XAxisTitle,
             TitleFontSize = 13,
             FontSize = 11,
@@ -147,10 +147,10 @@ public class ChartViewModel : ObservableObject
             categoryAxis.Labels.Add(dp.Label);
         model.Axes.Add(categoryAxis);
 
-        // Y 轴（数值轴）
+        // Y 轴（数值轴）— 左侧
         var valueAxis = new LinearAxis
         {
-            Position = AxisPosition.Bottom,
+            Position = AxisPosition.Left,
             Title = data.YAxisTitle,
             TitleFontSize = 13,
             FontSize = 11,

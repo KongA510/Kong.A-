@@ -15,23 +15,22 @@
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
-        Background="{StaticResource PrimaryBrush}"
+        Background="{DynamicResource SystemBaseBrush}"
         ResizeMode="CanResizeWithGrip">
 
     <Window.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
         <converters:InverseBoolConverter x:Key="InverseBool" />
 
-        <!-- ===== 导航菜单 HierarchicalDataTemplate（仅用于子节点数据源绑定） ===== -->
+        <!-- ===== 导航菜单 HierarchicalDataTemplate ===== -->
         <HierarchicalDataTemplate DataType="{x:Type models:MenuItemInfo}"
                                   ItemsSource="{Binding Children}">
-            <!-- Header 由 NavTreeItemStyle 的 ControlTemplate 完整定义，此处为空占位 -->
             <ContentPresenter Content="{Binding Name}" Visibility="Collapsed" />
         </HierarchicalDataTemplate>
 
-        <!-- TreeViewItem 样式 — 仿原侧边栏导航 -->
-        <Style x:Key="NavTreeItemStyle" TargetType="TreeViewItem">
-            <Setter Property="Padding" Value="8,0" />
+        <!-- ===== Fluent 风格导航项样式 ===== -->
+        <Style x:Key="FluentNavItemStyle" TargetType="TreeViewItem">
+            <Setter Property="Padding" Value="6,2" />
             <Setter Property="Margin" Value="4,1" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
@@ -42,22 +41,28 @@
                             <!-- 当前节点 -->
                             <Border x:Name="NavBorder"
                                     Background="Transparent"
-                                    CornerRadius="8"
-                                    Padding="8,10">
+                                    CornerRadius="6"
+                                    Padding="10,10">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="3" />
                                         <ColumnDefinition Width="20" />
                                         <ColumnDefinition Width="24" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- 展开/折叠箭头（仅父节点显示） -->
+                                    <!-- 左侧选中指示条 -->
+                                    <Border x:Name="IndicatorBar"
+                                            Grid.Column="0"
+                                            Background="Transparent"
+                                            CornerRadius="2" />
+
+                                    <!-- 展开/折叠箭头 -->
                                     <ToggleButton x:Name="ExpandToggle"
-                                                  Grid.Column="0"
+                                                  Grid.Column="1"
                                                   IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                                   Visibility="{Binding HasChildren, Converter={StaticResource BoolToVisibility}}"
                                                   Width="16" Height="16"
-                                                  Margin="0,0,4,0"
                                                   Background="Transparent"
                                                   BorderThickness="0"
                                                   Cursor="Hand"
@@ -68,7 +73,7 @@
                                                 <TextBlock x:Name="Arrow"
                                                            Text="▶"
                                                            FontSize="8"
-                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                            VerticalAlignment="Center"
                                                            HorizontalAlignment="Center"
                                                            RenderTransformOrigin="0.5,0.5">
@@ -87,43 +92,43 @@
 
                                     <!-- 图标 -->
                                     <TextBlock x:Name="IconText"
-                                               Grid.Column="1"
+                                               Grid.Column="2"
                                                Text="●"
                                                FontSize="10"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                VerticalAlignment="Center"
                                                HorizontalAlignment="Center" />
 
                                     <!-- 菜单名 -->
                                     <TextBlock x:Name="NavLabel"
-                                               Grid.Column="2"
+                                               Grid.Column="3"
                                                Text="{Binding Name}"
-                                               FontSize="14"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                VerticalAlignment="Center"
                                                Margin="12,0,0,0" />
                                 </Grid>
                             </Border>
 
                             <!-- 子节点容器 -->
-                            <ItemsPresenter x:Name="ChildrenHost" Margin="16,0,0,0" Visibility="Collapsed" />
+                            <ItemsPresenter x:Name="ChildrenHost" Margin="28,0,0,0" Visibility="Collapsed" />
                         </StackPanel>
                         <ControlTemplate.Triggers>
-                            <!-- 展开时显示子节点 -->
                             <Trigger Property="IsExpanded" Value="True">
                                 <Setter TargetName="ChildrenHost" Property="Visibility" Value="Visible" />
                             </Trigger>
-                            <!-- 鼠标悬停 -->
+                            <!-- Hover -->
                             <Trigger SourceName="NavBorder" Property="IsMouseOver" Value="True">
-                                <Setter TargetName="NavBorder" Property="Background" Value="{StaticResource SurfaceBrush}" />
-                                <Setter TargetName="IconText" Property="Foreground" Value="{StaticResource AccentBrush}" />
-                                <Setter TargetName="NavLabel" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                <Setter TargetName="IconText" Property="Foreground" Value="{DynamicResource SystemAccentBrush}" />
+                                <Setter TargetName="NavLabel" Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
                             </Trigger>
-                            <!-- 选中状态 -->
+                            <!-- Selected: 左侧指示条 + 半透明背景 + 强调色文字 -->
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="NavBorder" Property="Background" Value="{StaticResource AccentBrush}" />
-                                <Setter TargetName="IconText" Property="Foreground" Value="White" />
-                                <Setter TargetName="NavLabel" Property="Foreground" Value="White" />
+                                <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                <Setter TargetName="IndicatorBar" Property="Background" Value="{DynamicResource SystemAccentBrush}" />
+                                <Setter TargetName="IconText" Property="Foreground" Value="{DynamicResource SystemAccentBrush}" />
+                                <Setter TargetName="NavLabel" Property="Foreground" Value="{DynamicResource SystemAccentBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -133,42 +138,56 @@
     </Window.Resources>
 
     <!-- 主布局 -->
-    <Border Background="{StaticResource PrimaryBrush}" CornerRadius="0">
+    <Border Background="{DynamicResource SystemBaseBrush}">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="32" />
+                <RowDefinition Height="40" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- 标题栏 -->
-            <Grid Grid.Row="0" Background="{StaticResource SecondaryBrush}" 
+            <!-- ===== Fluent 风格标题栏 ===== -->
+            <Grid Grid.Row="0" Background="{DynamicResource SystemFillColorNeutralBrush}"
                   MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                
-                <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="12,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="🛠" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0" />
-                    <TextBlock Text="Aras 开发工具箱" FontSize="12" 
-                               Foreground="{StaticResource TextSecondaryBrush}" 
-                               VerticalAlignment="Center" />
+
+                <!-- Logo + 标题 -->
+                <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <Image Source="/app.ico" Width="16" Height="16" Margin="0,0,8,0" Stretch="UniformToFill" />
+                    <TextBlock Text="个人工具箱" FontSize="13"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               VerticalAlignment="Center" FontWeight="SemiBold" />
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" Grid.Column="1">
-                    <Button Content="─" Click="MinimizeButton_Click" 
-                            Width="36" Height="28"
-                            Background="Transparent" Foreground="{StaticResource TextSecondaryBrush}"
-                            BorderThickness="0" Cursor="Hand" FontSize="14" />
-                    <Button Content="□" Click="MaximizeButton_Click" 
-                            Width="36" Height="28"
-                            Background="Transparent" Foreground="{StaticResource TextSecondaryBrush}"
-                            BorderThickness="0" Cursor="Hand" FontSize="14" />
-                    <Button x:Name="CloseButton" Content="✕" Click="CloseButton_Click" 
-                            Width="36" Height="28"
-                            Background="Transparent" Foreground="{StaticResource TextSecondaryBrush}"
-                            BorderThickness="0" Cursor="Hand" FontSize="14" />
+                <!-- 窗口控制按钮 -->
+                <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">
+                    <Button Content="─" Click="MinimizeButton_Click"
+                            Width="46" Height="32"
+                            Background="Transparent" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            BorderThickness="0" Cursor="Hand" FontSize="10" />
+                    <Button Content="□" Click="MaximizeButton_Click"
+                            Width="46" Height="32"
+                            Background="Transparent" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            BorderThickness="0" Cursor="Hand" FontSize="10" />
+                    <Button x:Name="CloseButton" Content="✕" Click="CloseButton_Click"
+                            Width="46" Height="32"
+                            Background="Transparent" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            BorderThickness="0" Cursor="Hand" FontSize="12">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#C42B1C" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </StackPanel>
             </Grid>
 
@@ -181,7 +200,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- 左侧导航栏（登录前隐藏） -->
-                <Border Grid.Column="0" Background="{StaticResource SecondaryBrush}" Width="240"
+                <Border Grid.Column="0" Background="{DynamicResource SystemListLowBrush}" Width="240"
                         Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}}">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -191,72 +210,56 @@
                         </Grid.RowDefinitions>
 
                         <!-- Logo区域 -->
-                        <StackPanel Grid.Row="0" Margin="20,24,20,20">
-                            <TextBlock Text="个人工具箱" FontSize="20" FontWeight="Bold"
-                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                        <StackPanel Grid.Row="0" Margin="20,20,20,16">
+                            <TextBlock Text="个人工具箱" FontSize="18" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                             <TextBlock Text="开发工具集" FontSize="12"
-                                       Foreground="{StaticResource TextSecondaryBrush}" 
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                        Margin="0,4,0,0" />
                         </StackPanel>
 
-                        <!-- 导航菜单（TreeView 支持二级菜单） -->
+                        <!-- 导航菜单 -->
                         <TreeView Grid.Row="1"
                                   ItemsSource="{Binding MenuItems}"
                                   PreviewMouseLeftButtonDown="NavTree_PreviewMouseLeftButtonDown"
                                   Background="Transparent"
                                   BorderThickness="0"
-                                  ItemContainerStyle="{StaticResource NavTreeItemStyle}"
-                                  Margin="8,0" />
+                                  ItemContainerStyle="{StaticResource FluentNavItemStyle}"
+                                  Margin="4,0" />
 
                         <!-- 底部设置按钮 -->
-                       <Border Grid.Row="2"
-                               BorderBrush="{StaticResource BorderBrush}"
-                               BorderThickness="0,1,0,0"
+                        <Border Grid.Row="2"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="0,1,0,0"
                                 Padding="12,12">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                <Button Content="⚙️ 设置"
+                                <Button Content="⚙ 设置"
                                         Click="SettingsButton_Click"
-                                        Background="Transparent"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                        BorderBrush="{StaticResource BorderBrush}"
-                                        BorderThickness="1"
-                                        Padding="12,8"
-                                        Cursor="Hand" FontSize="13">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="4" />
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
-                                <Button Content="🔆 Aras登录信息"
+                                        Style="{DynamicResource FluentButton}"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        Padding="12,6"
+                                        Cursor="Hand" FontSize="12" />
+                                <Button Content="🔆 Aras信息"
                                         Click="ArasLoginButton_Click"
-                                        Background="Transparent"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                        BorderBrush="{StaticResource BorderBrush}"
-                                        BorderThickness="1"
-                                        Padding="8,8"
-                                        Cursor="Hand" FontSize="13"
-                                        Margin="6,0,0,0">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="4" />
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
+                                        Style="{DynamicResource FluentButton}"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        Padding="8,6"
+                                        Cursor="Hand" FontSize="12"
+                                        Margin="6,0,0,0" />
                             </StackPanel>
                         </Border>
                     </Grid>
                 </Border>
 
-                <!-- 分隔线（登录前隐藏） -->
-                <Border Grid.Column="1" Background="{StaticResource BorderBrush}" Width="1"
+                <!-- 分隔线 -->
+                <Border Grid.Column="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Width="1"
                         Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}}" />
 
                 <!-- 右侧内容区域 -->
-                <Border Grid.Column="2" Background="{StaticResource PrimaryBrush}">
+                <Border Grid.Column="2" Background="{DynamicResource SystemBaseBrush}">
                     <Grid>
                         <!-- 登录界面（覆盖层） -->
-                        <ContentControl x:Name="LoginContentControl" 
+                        <ContentControl x:Name="LoginContentControl"
                                         Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
 
                         <!-- 主内容区域 -->
@@ -267,14 +270,14 @@
             </Grid>
 
             <!-- 状态栏 -->
-            <Border Grid.Row="2" Background="{StaticResource SecondaryBrush}" 
-                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+            <Border Grid.Row="2" Background="{DynamicResource SystemFillColorNeutralBrush}"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,1,0,0"
                     Padding="16,4">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="个人工具箱 v1.0" FontSize="11" 
-                               Foreground="{StaticResource TextSecondaryBrush}" />
-                    <TextBlock Text=" | .NET 8.0" FontSize="11" 
-                               Foreground="{StaticResource TextSecondaryBrush}" Margin="12,0,0,0" />
+                    <TextBlock Text="个人工具箱 v1.0" FontSize="11"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text=" | .NET 8.0" FontSize="11"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="12,0,0,0" />
                 </StackPanel>
             </Border>
         </Grid>
