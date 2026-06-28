@@ -104,6 +104,8 @@ public partial class MainWindow : Window
             {
                 "仪表盘" => new DashboardView { DataContext = App.Services.GetRequiredService<DashboardViewModel>() },
                 "导入表格" => new ExcelImportView { DataContext = App.Services.GetRequiredService<ExcelImportViewModel>() },
+                "文本翻译" => new TextTranslationView { DataContext = App.Services.GetRequiredService<TextTranslationViewModel>() },
+                "翻译历史" => new TranslationHistoryView { DataContext = App.Services.GetRequiredService<TextTranslationViewModel>() },
                 "字段翻译" => CreatePlaceholder("字段翻译", "Aras字段翻译工具 - 功能开发中，敬请期待..."),
                 "表单翻译" => CreatePlaceholder("表单翻译", "Aras表单翻译工具 - 功能开发中，敬请期待..."),
                 "窗体翻译" => CreatePlaceholder("窗体翻译", "Aras窗体翻译工具 - 功能开发中，敬请期待..."),

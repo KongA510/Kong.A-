@@ -63,6 +63,8 @@ public class MainViewModel : ObservableObject
             Description = "Aras翻译工具集",
             IsExpanded = true
         };
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "文本翻译", Icon = "Translate", CardIcon = "📝", Description = "AI 驱动的 Excel 批量翻译工具" });
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "翻译历史", Icon = "History", CardIcon = "📜", Description = "历史翻译记录查询" });
         sysTranslation.Children.Add(new MenuItemInfo { Name = "字段翻译", Icon = "FormTextbox", CardIcon = "🔤", Description = "Aras字段翻译工具", IsPlaceholder = true });
         sysTranslation.Children.Add(new MenuItemInfo { Name = "表单翻译", Icon = "FormTextbox", CardIcon = "📝", Description = "Aras表单翻译工具", IsPlaceholder = true });
         sysTranslation.Children.Add(new MenuItemInfo { Name = "窗体翻译", Icon = "WindowMaximize", CardIcon = "🪟", Description = "Aras窗体翻译工具", IsPlaceholder = true });

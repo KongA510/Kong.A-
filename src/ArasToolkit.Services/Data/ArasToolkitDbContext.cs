@@ -28,6 +28,12 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>数据导入配置表</summary>
     public DbSet<DataImportConfig> DataImportConfigs => Set<DataImportConfig>();
 
+    /// <summary>文本翻译记录表</summary>
+    public DbSet<TextTranslationRecord> TextTranslationRecords => Set<TextTranslationRecord>();
+
+    /// <summary>AI 模型配置表</summary>
+    public DbSet<AiModelConfig> AiModelConfigs => Set<AiModelConfig>();
+
     /// <summary>缓存的连接字符串（避免重复读取文件）</summary>
     private static string? _cachedConnectionString;
 
@@ -152,6 +158,43 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.AmlContent).HasColumnName("aml_content").IsRequired();
             entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+        });
+
+        // TextTranslationRecord → text_translation_record 表
+        modelBuilder.Entity<TextTranslationRecord>(entity =>
+        {
+            entity.ToTable("text_translation_record");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.SourceFileName).HasColumnName("source_file_name").IsRequired().HasMaxLength(500);
+            entity.Property(e => e.OutputFileName).HasColumnName("output_file_name").HasMaxLength(500);
+            entity.Property(e => e.OutputFilePath).HasColumnName("output_file_path").HasMaxLength(1000);
+            entity.Property(e => e.TemplateType).HasColumnName("template_type").HasMaxLength(50);
+            entity.Property(e => e.SourceLanguage).HasColumnName("source_language").HasMaxLength(50);
+            entity.Property(e => e.SourceRowCount).HasColumnName("source_row_count");
+            entity.Property(e => e.BatchCount).HasColumnName("batch_count");
+            entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(100);
+            entity.Property(e => e.AiModelId).HasColumnName("ai_model_id").HasMaxLength(12);
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+
+            entity.Ignore(e => e.DisplayCreatedAt);
+        });
+
+        // AiModelConfig → ai_model_config 表
+        modelBuilder.Entity<AiModelConfig>(entity =>
+        {
+            entity.ToTable("ai_model_config");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.ModelName).HasColumnName("model_name").IsRequired().HasMaxLength(200);
+            entity.Property(e => e.ApiKey).HasColumnName("api_key").HasMaxLength(500);
+            entity.Property(e => e.ApiBaseUrl).HasColumnName("api_base_url").HasMaxLength(500);
+            entity.Property(e => e.ModelIdentifier).HasColumnName("model_identifier").HasMaxLength(100);
+            entity.Property(e => e.IsEnabled).HasColumnName("is_enabled");
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+
+            entity.Ignore(e => e.StatusText);
         });
    }
 
@@ -357,6 +400,55 @@ public class ArasToolkitDbContext : DbContext
                     ALTER TABLE data_import_config DROP COLUMN start_col;
                 IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='data_import_config' AND COLUMN_NAME='end_col')
                     ALTER TABLE data_import_config DROP COLUMN end_col;
+
+                -- ===== text_translation_record 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='text_translation_record')
+                BEGIN
+                    CREATE TABLE text_translation_record (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        source_file_name NVARCHAR(500) NOT NULL,
+                        output_file_name NVARCHAR(500) NULL,
+                        output_file_path NVARCHAR(1000) NULL,
+                        template_type NVARCHAR(50) NULL,
+                        source_language NVARCHAR(50) NULL,
+                        source_row_count INT NOT NULL DEFAULT 0,
+                        batch_count INT NOT NULL DEFAULT 0,
+                        user_id NVARCHAR(100) NULL,
+                        ai_model_id NVARCHAR(12) NULL,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+                ELSE
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='text_translation_record' AND COLUMN_NAME='source_language')
+                        ALTER TABLE text_translation_record ADD source_language NVARCHAR(50) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='text_translation_record' AND COLUMN_NAME='ai_model_id')
+                        ALTER TABLE text_translation_record ADD ai_model_id NVARCHAR(12) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='text_translation_record' AND COLUMN_NAME='user_id')
+                        ALTER TABLE text_translation_record ADD user_id NVARCHAR(100) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='text_translation_record' AND COLUMN_NAME='creator_on')
+                        ALTER TABLE text_translation_record ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
+                END
+
+                -- ===== ai_model_config 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='ai_model_config')
+                BEGIN
+                    CREATE TABLE ai_model_config (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        user_id NVARCHAR(100) NOT NULL,
+                        model_name NVARCHAR(200) NOT NULL,
+                        api_key NVARCHAR(500) NULL,
+                        api_base_url NVARCHAR(500) NULL DEFAULT 'https://apihub.agnes-ai.com/v1/chat/completions',
+                        model_identifier NVARCHAR(100) NULL DEFAULT 'agnes-2.0-flash',
+                        is_enabled BIT NOT NULL DEFAULT 0,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+                ELSE
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ai_model_config' AND COLUMN_NAME='creator_on')
+                        ALTER TABLE ai_model_config ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
+                END
             ";
             await Database.ExecuteSqlRawAsync(sql);
         }

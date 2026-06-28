@@ -55,13 +55,14 @@ public partial class App : Application
         services.AddTransient<OperationLogViewModel>();
         services.AddTransient<TodoViewModel>();
         services.AddTransient<ChartViewModel>();
+        services.AddTransient<TextTranslationViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<ArasLoginViewModel>();
         services.AddTransient<DataImportViewModel>();
         services.AddTransient<SettingsWindow>();
         services.AddTransient<ArasLoginWindow>();
         services.AddTransient<DataImportView>();
-       services.AddTransient<ConfigSelectWindow>();
+        services.AddTransient<ConfigSelectWindow>();
         services.AddTransient<TextPromptWindow>();
 
         // 注册Views
@@ -75,6 +76,8 @@ public partial class App : Application
         services.AddTransient<OperationLogView>();
         services.AddTransient<TodoView>();
         services.AddTransient<ChartView>();
+        services.AddTransient<TextTranslationView>();
+        services.AddTransient<TranslationHistoryView>();
 
         _serviceProvider = services.BuildServiceProvider();
     }

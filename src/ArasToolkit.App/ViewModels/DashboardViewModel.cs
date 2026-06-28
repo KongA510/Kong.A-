@@ -60,6 +60,7 @@ public class DashboardViewModel : ObservableObject
     public ObservableCollection<QuickAction> AllFeatures { get; } = new()
     {
         new() { Name = "导入表格", Description = "读取Excel文件并按Sheet显示数据", Icon = "📊" },
+        new() { Name = "文本翻译", Description = "AI 驱动的 Excel 批量翻译工具", Icon = "📝" },
         new() { Name = "字段翻译", Description = "Aras字段翻译工具", Icon = "🔤" },
         new() { Name = "表单翻译", Description = "Aras表单翻译工具", Icon = "📝" },
         new() { Name = "窗体翻译", Description = "Aras窗体翻译工具", Icon = "🪟" },
