@@ -16,33 +16,24 @@ public class SettingsViewModel : ObservableObject
 {
     private readonly IErrorLogService _errorLogService;
     private readonly IDbContextFactory<ArasToolkitDbContext> _contextFactory;
-    private readonly IConfigService _configService;
 
     private string _connectionString = "";
-    private string _apiKey = "";
     private string _statusMessage = "";
     private bool _isCheckingDb;
     private bool _isSaving;
-    private bool _isSavingApiKey;
 
     public SettingsViewModel(
         IErrorLogService errorLogService,
-        IDbContextFactory<ArasToolkitDbContext> contextFactory,
-        IConfigService configService)
+        IDbContextFactory<ArasToolkitDbContext> contextFactory)
     {
         _errorLogService = errorLogService;
         _contextFactory = contextFactory;
-        _configService = configService;
 
         ConnectionString = ReadConnectionString();
 
         CheckDatabaseCommand = new RelayCommand(async _ => await CheckDatabaseAsync(), _ => !IsCheckingDb);
         LogoutCommand = new RelayCommand(_ => OnLogoutRequested());
         SaveConnectionStringCommand = new RelayCommand(async _ => await SaveConnectionStringAsync(), _ => !IsSaving);
-        SaveApiKeyCommand = new RelayCommand(async _ => await SaveApiKeyAsync(), _ => !IsSavingApiKey);
-
-        // 加载已保存的 API Key
-        _ = LoadApiKeyAsync();
     }
 
     public string ConnectionString
@@ -77,62 +68,12 @@ public class SettingsViewModel : ObservableObject
         }
     }
 
-    public string ApiKey
-    {
-        get => _apiKey;
-        set => SetProperty(ref _apiKey, value);
-    }
-
-    public bool IsSavingApiKey
-    {
-        get => _isSavingApiKey;
-        set
-        {
-            if (SetProperty(ref _isSavingApiKey, value))
-                ((RelayCommand)SaveApiKeyCommand).RaiseCanExecuteChanged();
-        }
-    }
-
     /// <summary>退出请求事件（MainWindow 订阅后执行登出逻辑）</summary>
     public event Action? LogoutRequested;
 
     public ICommand CheckDatabaseCommand { get; }
     public ICommand LogoutCommand { get; }
     public ICommand SaveConnectionStringCommand { get; }
-    public ICommand SaveApiKeyCommand { get; }
-
-    private async Task LoadApiKeyAsync()
-    {
-        try
-        {
-            ApiKey = await _configService.LoadAppSettingAsync<string>("ApiKey") ?? "";
-        }
-        catch
-        {
-            ApiKey = "";
-        }
-    }
-
-    private async Task SaveApiKeyAsync()
-    {
-        IsSavingApiKey = true;
-        StatusMessage = "正在保存 API Key...";
-        try
-        {
-            await _configService.SaveAppSettingAsync("ApiKey", ApiKey);
-            StatusMessage = "API Key 已保存";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"保存 API Key 失败: {ex.Message}";
-            await _errorLogService.LogErrorAsync("设置-保存APIKey", ex.Message,
-                ErrorLog.LevelP1, ex.StackTrace);
-        }
-        finally
-        {
-            IsSavingApiKey = false;
-        }
-    }
 
     private async Task CheckDatabaseAsync()
     {

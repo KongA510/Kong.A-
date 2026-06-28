@@ -60,7 +60,7 @@
                             <DataGridTextColumn Header="模板" Binding="{Binding TemplateType}" Width="100" />
                             <DataGridTextColumn Header="行数" Binding="{Binding SourceRowCount}" Width="60" />
                             <DataGridTextColumn Header="批次" Binding="{Binding BatchCount}" Width="60" />
-                            <DataGridTextColumn Header="时间" Binding="{Binding CreatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="140" />
+                            <DataGridTextColumn Header="时间" Binding="{Binding CreatorOn, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="140" />
                             <DataGridTemplateColumn Header="操作" Width="80">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>

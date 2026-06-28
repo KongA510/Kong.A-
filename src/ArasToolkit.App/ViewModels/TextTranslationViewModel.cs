@@ -8,6 +8,7 @@ using System.Windows.Input;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
+using ArasToolkit.Core.Models;
 using Microsoft.Win32;
 using OfficeOpenXml;
 
@@ -151,7 +152,7 @@ public class TextTranslationViewModel : ObservableObject
     {
         try
         {
-            var list = await _translationService.GetHistoryAsync();
+            var list = await _translationService.GetHistoryAsync(CurrentUserContext.CurrentUserId);
             HistoryRecords.Clear();
             foreach (var item in list) HistoryRecords.Add(item);
         }

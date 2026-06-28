@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Interfaces;
+using ArasToolkit.Core.Models;
 using ArasToolkit.Services.Data;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
@@ -141,6 +142,7 @@ public class TextTranslationService : ITextTranslationService
             SourceLanguage = sourceLanguage,
             SourceRowCount = allRows.Count,
             BatchCount = batches.Count,
+            UserId = CurrentUserContext.CurrentUserId,
             AiModelId = aiModel?.Id,
             CreatorOn = DateTime.Now
         };

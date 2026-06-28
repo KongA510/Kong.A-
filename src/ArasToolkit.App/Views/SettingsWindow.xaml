@@ -48,47 +48,22 @@
 
             <!-- Settings Content -->
             <StackPanel Grid.Row="1" Margin="0,0,0,16">
-                <!-- AI API Key -->
+                <!-- AI 模型配置 -->
                 <Border Style="{StaticResource CardStyle}" Padding="16,12" Margin="0,0,0,12">
                     <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <Grid Grid.Row="0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="&#x1F511; AI API Key" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}"/>
-                                <TextBlock Text="Anges AI 调度密钥（用于文本翻译功能）" FontSize="11"
-                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
-                            </StackPanel>
-                            <Button Grid.Column="1" Content="保存"
-                                    Command="{Binding SaveApiKeyCommand}">
-                                <Button.Style>
-                                    <Style BasedOn="{StaticResource SettingsButtonStyle}" TargetType="Button">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsSavingApiKey}" Value="True">
-                                                <Setter Property="Content" Value="保存中..."/>
-                                                <Setter Property="IsEnabled" Value="False"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                        </Grid>
-                        <TextBox Grid.Row="1" Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}"
-                                 FontSize="12"
-                                 Background="{StaticResource SurfaceBrush}"
-                                 Foreground="{StaticResource TextPrimaryBrush}"
-                                 BorderBrush="{StaticResource BorderBrush}"
-                                 BorderThickness="1"
-                                 Padding="8,6"
-                                 Margin="0,8,0,0"/>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="&#x1F916; AI 模型配置" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="管理多个AI模型API Key，支持启用/切换" FontSize="11"
+                                       Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="管理"
+                                Click="OpenAiModelWindow_Click"
+                                Style="{StaticResource SettingsButtonStyle}"/>
                     </Grid>
                 </Border>
 

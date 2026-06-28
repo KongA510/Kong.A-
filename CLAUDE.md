@@ -471,5 +471,201 @@ git push origin master --force
 
 ---
 
+## 十二、Avalonia-Fluent-UI 主题格式规范 ⚠️ 必须遵守
+
+### 12.1 参考来源
+
+本项目 WPF 主题系统参考 **Avalonia-Fluent-UI** 设计格式：
+- 官方仓库: [IzumiPL/Avalonia-Fluent-UI](https://github.com/IzumiPL/Avalonia-Fluent-UI)
+- 官方 Fluent 主题: [Avalonia.Themes.Fluent](https://docs.avaloniaui.net/api/avalonia/themes/fluent)
+- Token 命名参考: [Fluent UI Token Pipeline](https://microsoft.github.io/fluentui-token-pipeline/naming.html)
+
+### 12.2 三层资源架构（铁律）
+
+```
+┌─────────────────────────────────────────────────────┐
+│ Layer 1: 原始色彩 (Color)                            │
+│   文件: Colors.Light.xaml / Colors.Dark.xaml          │
+│   命名: {类别}{属性}{变体}Color                        │
+│   示例: SystemAccentColor, TextFillColorPrimary       │
+│   规则: 仅定义 <Color>，不定义 Brush                   │
+├─────────────────────────────────────────────────────┤
+│ Layer 2: 语义画笔 (SolidColorBrush)                   │
+│   文件: 同一 Colors.*.xaml 文件底部                    │
+│   命名: Layer1名称 + Brush 后缀                       │
+│   示例: SystemAccentColor → SystemAccentBrush         │
+│   规则: 每个 Color 对应一个 Brush，一对一映射           │
+├─────────────────────────────────────────────────────┤
+│ Layer 3: 控件样式 (ControlTemplate/Style)             │
+│   文件: Controls.xaml / Cards.xaml                    │
+│   命名: Fluent{ControlType} / {Variant}Card           │
+│   规则: 控件只引用 Brush（DynamicResource），不直接引用 Color │
+└─────────────────────────────────────────────────────┘
+```
+
+**核心原则：控件永远不直接引用 Color，必须通过 Brush 层间接引用。**
+
+```xml
+<!-- ✅ 正确：控件引用 Brush -->
+<Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+
+<!-- ❌ 错误：控件直接引用 Color -->
+<Setter Property="Background" Value="{DynamicResource ControlFillColorDefault}" />
+```
+
+### 12.3 色彩 Token 命名规范
+
+采用 Fluent UI 语义化命名模式：`{类别}{子类别}{属性}{状态}Color`
+
+| 类别 | 前缀 | 示例 | 说明 |
+|------|------|------|------|
+| **系统基础** | `System` | `SystemBaseColor` | 窗口/页面背景 |
+| | | `SystemFillColorNeutral` | 中性填充色 |
+| | | `SystemListLowColor` | 列表/侧边栏低层色 |
+| **强调色** | `SystemAccent` | `SystemAccentColor` | 主强调色（按钮/链接） |
+| | | `SystemAccentColorDark1` | 悬停加深 |
+| | | `SystemAccentColorLight1` | 浅色变体 |
+| **控件填充** | `ControlFill` | `ControlFillColorDefault` | 输入框/控件默认背景 |
+| | | `ControlFillColorSecondary` | 次要填充（悬停态） |
+| | | `ControlFillColorTertiary` | 三级填充（表头/按下态） |
+| | | `ControlFillColorDisabled` | 禁用态填充 |
+| **卡片背景** | `CardBackground` | `CardBackgroundFillColorDefault` | 卡片默认背景 |
+| **文本色** | `TextFill` | `TextFillColorPrimary` | 主文本 |
+| | | `TextFillColorSecondary` | 辅助/描述文本 |
+| | | `TextFillColorTertiary` | 三级/占位文本 |
+| | | `TextFillColorDisabled` | 禁用文本 |
+| **描边色** | `ControlStroke` | `ControlStrokeColorDefault` | 控件默认边框 |
+| | | `ControlStrokeColorSecondary` | 次要边框 |
+| | | `CardStrokeColorDefault` | 卡片边框 |
+| | | `DividerStrokeColorDefault` | 分割线 |
+| **状态色** | `SystemFill` | `SystemFillColorSuccess` | 成功（绿） |
+| | | `SystemFillColorCaution` | 警告（黄） |
+| | | `SystemFillColorCritical` | 危险/错误（红） |
+| **遮罩** | `SmokeFill` | `SmokeFillColorDefault` | 模态遮罩 |
+
+### 12.4 Brush 命名规则
+
+```
+规则: {Color名称}Brush  （将 Color 替换为 Brush）
+示例: SystemAccentColor → SystemAccentBrush
+      TextFillColorPrimary → TextFillColorPrimaryBrush
+
+特殊情况: 部分 Brush 使用简写别名（向后兼容）
+示例: PrimaryBrush → 映射到 SystemBaseColor
+      AccentBrush → 映射到 SystemAccentColor
+```
+
+### 12.5 状态交互规范
+
+控件必须覆盖以下 4 种交互状态：
+
+| 状态 | WPF Trigger | 示例行为 |
+|------|-------------|---------|
+| **Rest** | 默认（无 Trigger） | 默认背景/边框 |
+| **Hover** | `IsMouseOver=True` | 背景加深/边框高亮 |
+| **Pressed** | `IsPressed=True` | 背景更深/轻微缩放 |
+| **Disabled** | `IsEnabled=False` | 灰色/半透明/降低不透明度 |
+
+```xml
+<!-- 标准按钮交互状态模板 -->
+<ControlTemplate.Triggers>
+    <Trigger Property="IsMouseOver" Value="True">
+        <Setter TargetName="Border" Property="Background" 
+                Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+    </Trigger>
+    <Trigger Property="IsPressed" Value="True">
+        <Setter TargetName="Border" Property="Background" 
+                Value="{DynamicResource ControlFillColorTertiaryBrush}" />
+    </Trigger>
+    <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Foreground" 
+                Value="{DynamicResource TextFillColorDisabledBrush}" />
+    </Trigger>
+</ControlTemplate.Triggers>
+```
+
+### 12.6 形状常量
+
+```xml
+<!-- 全局圆角常量（在 Colors.*.xaml 中定义） -->
+<CornerRadius x:Key="ControlCornerRadius">4</CornerRadius>   <!-- 按钮/输入框 -->
+<CornerRadius x:Key="CardCornerRadius">8</CornerRadius>       <!-- 卡片 -->
+<CornerRadius x:Key="OverlayCornerRadius">8</CornerRadius>    <!-- 弹出层/对话框 -->
+```
+
+### 12.7 控件样式命名规范
+
+| 样式 Key | 目标类型 | 说明 |
+|----------|---------|------|
+| `FluentButton` | Button | 标准按钮（边框+半透明） |
+| `AccentButton` | Button | 强调按钮（实心强调色） |
+| `IconBtn` | Button | 图标按钮（透明背景） |
+| `PageBtn` | Button | 分页按钮（小尺寸） |
+| `FluentTextBox` | TextBox | 输入框（聚焦高亮边框） |
+| `FluentPasswordBox` | PasswordBox | 密码框 |
+| `FluentComboBox` | ComboBox | 下拉框 |
+| `FluentDataGrid` | DataGrid | 数据表格 |
+| `FluentCheckBox` | CheckBox | 复选框 |
+| `FluentProgressBar` | ProgressBar | 进度条 |
+| `SimpleCard` | Border | 普通卡片 |
+| `ElevatedCard` | Border | 提升卡片（带阴影） |
+
+### 12.8 主题文件结构
+
+```
+Styles/
+├── Colors.Light.xaml    ← Layer 1+2: 浅色色彩定义 + Brush 映射
+├── Colors.Dark.xaml     ← (预留) 深色色彩定义 + Brush 映射
+├── Controls.xaml        ← Layer 3: 所有控件样式（Button/TextBox/DataGrid...）
+├── Cards.xaml           ← Layer 3: 卡片样式（SimpleCard/ElevatedCard）
+└── Theme.xaml           ← 入口文件（MergedDictionaries 合并顺序）
+```
+
+**合并顺序（必须）：** `Colors → Controls → Cards`
+
+```xml
+<!-- Theme.xaml 标准结构 -->
+<ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="Colors.Light.xaml" />   <!-- 先加载色彩 -->
+    <ResourceDictionary Source="Controls.xaml" />       <!-- 再加载控件 -->
+    <ResourceDictionary Source="Cards.xaml" />          <!-- 最后加载卡片 -->
+</ResourceDictionary.MergedDictionaries>
+```
+
+### 12.9 向后兼容别名
+
+Theme.xaml 中定义旧样式名到新 Fluent 样式的映射（`BasedOn`）：
+
+```xml
+<!-- 旧样式名 → 新 Fluent 样式（不删除旧 Key，确保现有 View 不报错） -->
+<Style x:Key="DarkTextBox" TargetType="TextBox" BasedOn="{StaticResource FluentTextBox}" />
+<Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource AccentButton}" />
+<Style x:Key="CardStyle" TargetType="Border" BasedOn="{StaticResource SimpleCard}" />
+```
+
+### 12.10 添加/修改主题检查清单
+
+```
+□ Colors.*.xaml  — Color 定义 + Brush 映射一对一
+□ Controls.xaml  — 控件样式只引用 Brush（DynamicResource）
+□ Cards.xaml     — 卡片样式只引用 Brush（DynamicResource）
+□ Theme.xaml     — 合并顺序正确 + 向后兼容别名
+□ 4 种交互状态  — Rest / Hover / Pressed / Disabled
+□ 形状常量       — 使用 {DynamicResource ControlCornerRadius} 等
+□ App.xaml       — 全局 Window 样式 + SystemColors 覆盖
+```
+
+### 12.11 与 Avalonia-Fluent-UI 的对照
+
+| Avalonia-Fluent-UI | 本项目 WPF 等效 | 说明 |
+|-------------------|----------------|------|
+| `ColorPaletteResources` | `Colors.*.xaml` 中的 `<Color>` | 原始色板 |
+| `StaticResource` 引用 Color | `StaticResource` 引用 Color | Brush 创建方式 |
+| `{DynamicResource}` 主题切换 | `{DynamicResource}` 运行时切换 | 动态资源标记扩展 |
+| `ControlTheme` | `Style` + `ControlTemplate` | 控件样式定义方式 |
+| `FluentTheme` | `Theme.xaml` MergedDictionaries | 主题入口 |
+
+---
+
 > 此技能在打开 ArasToolkit 项目时自动加载。可根据实际开发经验持续更新。
 
