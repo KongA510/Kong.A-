@@ -23,6 +23,9 @@ public class ObjectClassConfigViewModel : ObservableObject
     private bool _isLoading;
     private ObjectClassImportResult? _lastResult;
 
+    // 导入模式
+    private string _importMode = "覆盖";
+
     // 分页
     private int _currentPage = 1;
     private int _pageSize = 20;
@@ -41,15 +44,31 @@ public class ObjectClassConfigViewModel : ObservableObject
         _ = LoadHistoryAsync();
     }
 
-    public string SelectedFilePath { get => _selectedFilePath; set { if (SetProperty(ref _selectedFilePath, value)) StatusMessage = string.IsNullOrEmpty(value) ? "" : $"已选择: {Path.GetFileName(value)}"; } }
+    public string SelectedFilePath
+    {
+        get => _selectedFilePath;
+        set
+        {
+            if (SetProperty(ref _selectedFilePath, value))
+            {
+                OnPropertyChanged(nameof(FileName));
+                StatusMessage = string.IsNullOrEmpty(value) ? "" : $"已选择: {Path.GetFileName(value)}";
+            }
+        }
+    }
     public string FileName => string.IsNullOrEmpty(SelectedFilePath) ? "(未选择文件)" : Path.GetFileName(SelectedFilePath);
     public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
     public string ErrorMessage { get => _errorMessage; set => SetProperty(ref _errorMessage, value); }
     public bool IsImporting { get => _isImporting; set { if (SetProperty(ref _isImporting, value)) (ExecuteImportCommand as RelayCommand)?.RaiseCanExecuteChanged(); } }
     public bool IsLoading { get => _isLoading; set => SetProperty(ref _isLoading, value); }
-    public ObjectClassImportResult? LastResult { get => _lastResult; set { if (SetProperty(ref _lastResult, value)) OnPropertyChanged(nameof(HasResult)); } }
+    public ObjectClassImportResult? LastResult { get => _lastResult; set { if (SetProperty(ref _lastResult, value)) { OnPropertyChanged(nameof(HasResult)); OnPropertyChanged(nameof(HasFailures)); } } }
     public bool HasResult => LastResult != null;
+    public bool HasFailures => LastResult?.HasFailures ?? false;
     public ObservableCollection<ObjectClassImportLog> HistoryRecords { get; }
+
+    // 导入模式
+    public string ImportMode { get => _importMode; set => SetProperty(ref _importMode, value); }
+    public List<string> ImportModeOptions { get; } = ["新增", "覆盖"];
 
     // 分页
     public int CurrentPage { get => _currentPage; set { if (SetProperty(ref _currentPage, value)) RefreshPagingCommands(); } }
@@ -94,7 +113,7 @@ public class ObjectClassConfigViewModel : ObservableObject
         try
         {
             var prog = new Progress<string>(m => StatusMessage = m);
-            LastResult = await _importService.ImportAsync(SelectedFilePath, prog);
+            LastResult = await _importService.ImportAsync(SelectedFilePath, ImportMode, prog);
             StatusMessage = LastResult.IsSuccess ? $"完成: 对象类{LastResult.Sheet1Count}/关系类{LastResult.Sheet2Count}" : $"失败: {LastResult.ErrorMessage}";
             CurrentPage = 1; await LoadHistoryAsync();
         }

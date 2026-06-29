@@ -19,16 +19,17 @@ namespace ArasToolkit.Services.Services;
 public class ObjectClassImportService : IObjectClassImportService
 {
     private readonly IDbContextFactory<ArasToolkitDbContext> _dbFactory;
-    private readonly IArasConnectionService _connectionService;
+    private readonly ArasConnectionService _connectionService;
     private readonly IOperationLogService _operationLogService;
     private readonly IErrorLogService _errorLogService;
 
-    private const string ImportDir = "Config/ObjectClassImports";
+
+    private const string ImportBaseDir = "Config/ObjectClassImports";
     private const string TemplateDir = "Config/ObjectClassTemplates";
 
     public ObjectClassImportService(
         IDbContextFactory<ArasToolkitDbContext> dbFactory,
-        IArasConnectionService connectionService,
+        ArasConnectionService connectionService,
         IOperationLogService operationLogService,
         IErrorLogService errorLogService)
     {
@@ -80,25 +81,37 @@ public class ObjectClassImportService : IObjectClassImportService
     }
 
     // ==================== 导入执行 ====================
-
-    public async Task<ObjectClassImportResult> ImportAsync(string filePath, IProgress<string>? progress = null)
+    /// <summary>
+    /// 执行导入汇入到 Aras 系统
+    /// </summary>
+    /// <param name="filePath">要导入的 Excel 文件路径</param>
+    /// <param name="progress">进度报告回调</param>
+    /// <returns>导入结果</returns>
+    public async Task<ObjectClassImportResult> ImportAsync(string filePath, string importMode = "覆盖", IProgress<string>? progress = null)
     {
         var result = new ObjectClassImportResult();
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
 
-        // 准备日志目录
-        var importDir = Path.Combine(baseDir, ImportDir);
-        Directory.CreateDirectory(importDir);
+        // 按日期分目录: Config/ObjectClassImports/2026_6_30/
+        var dateFolder = DateTime.Now.ToString("yyyy_M_d");
+        var dateDir = Path.Combine(baseDir, ImportBaseDir, dateFolder);
 
-        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        var logFile = Path.Combine(importDir, $"import_{timestamp}.log");
+        // 子目录: logs / uploads 分离
+        var logsDir = Path.Combine(dateDir, "logs");
+        var uploadsDir = Path.Combine(dateDir, "uploads");
+        Directory.CreateDirectory(logsDir);
+        Directory.CreateDirectory(uploadsDir);
+
+        var timestamp = DateTime.Now.ToString("HHmmss");
+        var logFileName = $"import_{timestamp}.log";
+        var logFile = Path.Combine(logsDir, logFileName);
         result.LogFilePath = logFile;
 
-        // 复制文件到导入目录（相对路径存储）
-        var savedFileName = $"import_{timestamp}.xlsx";
-        var savedFilePath = Path.Combine(importDir, savedFileName);
+        // 复制文件到 uploads 目录（相对路径存储）
+        var savedFileName = $"{timestamp}_{Path.GetFileName(filePath)}";
+        var savedFilePath = Path.Combine(uploadsDir, savedFileName);
         File.Copy(filePath, savedFilePath, overwrite: true);
-        var relativePath = $"{ImportDir}/{savedFileName}";
+        var relativePath = $"{ImportBaseDir}/{dateFolder}/uploads/{savedFileName}";
 
         using var writer = new StreamWriter(logFile, false);
         try
@@ -112,43 +125,71 @@ public class ObjectClassImportService : IObjectClassImportService
             using var package = new ExcelPackage(new FileInfo(filePath));
 
             // ===== Step 1: 读取 Sheet1「对象类新增」=====
+            //读取时先通过注入获取aras链接对象
+            var connection = _connectionService.HttpConnection;
+            if (connection == null)
+            {
+                throw new Exception("未连接到 Aras 系统，请先登录。");
+            }
+            var login = connection.Login();
+            var inn=login.getInnovator();
+
             progress?.Report("正在处理 Sheet1「对象类新增」...");
             var sheet1Rows = ReadSheetRows(package, "对象类新增", 10);
             await writer.WriteLineAsync($"Sheet1 对象类新增: {sheet1Rows.Count} 行");
 
             int sheet1Success = 0;
+            result.Sheet1Total = sheet1Rows.Count;
             for (int i = 0; i < sheet1Rows.Count; i++)
             {
                 var row = sheet1Rows[i];
-                progress?.Report($"对象类新增: {i + 1}/{sheet1Rows.Count} — {row.GetValueOrDefault(0, "")}");
+                progress?.Report($"对象类{importMode}: {i + 1}/{sheet1Rows.Count} — {row.GetValueOrDefault(0, "")}");
 
                 try
                 {
-                    // ===== TODO: 用户自行维护 Aras 汇入逻辑 =====
-                    // 此处构建 Aras Item 并通过 Innovator.applyItem() 创建对象类
-                    // 示例代码（需根据实际 Aras API 调整）:
-                    //
-                    // var innovator = _connectionService.InnovatorInstance;
-                    // var item = innovator.newItem("ItemType", "add");
-                    // item.setProperty("name", row.GetValueOrDefault(0, ""));
-                    // item.setProperty("label", row.GetValueOrDefault(1, ""));
-                    // item.setProperty("label_zh_tw", row.GetValueOrDefault(2, ""));
-                    // item.setProperty("label_en", row.GetValueOrDefault(3, ""));
-                    // item.setProperty("toc_accession", row.GetValueOrDefault(4, ""));
-                    // item.setProperty("toc_accession_zh_tw", row.GetValueOrDefault(5, ""));
-                    // item.setProperty("toc_accession_en", row.GetValueOrDefault(6, ""));
-                    // item.setProperty("is_versionable", row.GetValueOrDefault(7, "1"));
-                    // item.setProperty("auto_search", row.GetValueOrDefault(8, ""));
-                    // item.setProperty("instance_data", row.GetValueOrDefault(9, ""));
-                    // var resultItem = innovator.applyItem(item);
-                    // if (resultItem.isError())
-                    //     throw new Exception(resultItem.getErrorString());
-
+                    //Aras 新增这里建议使用AML进行提高效能并且能正确的关系类的创建
+                    var itemTypeName = row.GetValueOrDefault(1, ""); // 对象类名称
+                    var addAml = importMode == "新增"
+                        ? $"<AML>" +
+                          $"  <Item type='ItemType' action='add'>" +
+                          $"      <name>{row.GetValueOrDefault(1, "")}</name>" +
+                          $"      <i18n:label xml:lang='zc' xmlns:i18n='http://www.aras.com/I18N/'>{row.GetValueOrDefault(2, "")}</i18n:label>" +
+                          $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{row.GetValueOrDefault(3, "")}</i18n:label>" +
+                          $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{row.GetValueOrDefault(4, "")}</i18n:label>" +
+                          $"      <label_plural>{row.GetValueOrDefault(5, "")}</label_plural>" +
+                          $"      <structure_view>tabs on</structure_view>" +
+                          $"      <is_versionable>{row.GetValueOrDefault(8, "0")}</is_versionable>" +
+                          $"      <auto_search>1</auto_search>" +
+                          $"      <default_page_size>50</default_page_size>" +
+                          $"      <implementation_type>table</implementation_type>" +
+                          $"      <enforce_discovery>1</enforce_discovery>" +
+                          $"      <revisions>7FE395DD8B9F4E1090756A34B733D75E</revisions>" +
+                          $"  </Item>" +
+                          $"</AML>"
+                        : $"<AML>" +
+                          $"  <Item type='ItemType' action='merge' where=\"ItemType.name='{itemTypeName}'\">" +
+                          $"      <name>{row.GetValueOrDefault(1, "")}</name>" +
+                          $"      <i18n:label xml:lang='zh-CN' xmlns:i18n='http://www.aras.com/I18N/'>{row.GetValueOrDefault(2, "")}</i18n:label>" +
+                          $"      <i18n:label xml:lang='zh-TW' xmlns:i18n='http://www.aras.com/I18N/'>{row.GetValueOrDefault(3, "")}</i18n:label>" +
+                          $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{row.GetValueOrDefault(4, "")}</i18n:label>" +
+                          $"      <label_plural>{row.GetValueOrDefault(5, "")}</label_plural>" +
+                          $"      <structure_view>tabs on</structure_view>" +
+                          $"      <is_versionable>{row.GetValueOrDefault(8, "0")}</is_versionable>" +
+                          $"      <auto_search>1</auto_search>" +
+                          $"      <default_page_size>50</default_page_size>" +
+                          $"      <implementation_type>table</implementation_type>" +
+                          $"      <enforce_discovery>1</enforce_discovery>" +
+                          $"      <revisions>7FE395DD8B9F4E1090756A34B733D75E</revisions>" +
+                          $"  </Item>" +
+                          $"</AML>";
+                   var addItem=  inn.applyAML(addAml);
                     sheet1Success++;
                 }
                 catch (Exception ex)
                 {
-                    await writer.WriteLineAsync($"[Sheet1 失败] 行{i + 2}: {ex.Message}");
+                    var failMsg = $"[Sheet1 行{i + 2}] {row.GetValueOrDefault(0, "")}: {ex.Message}";
+                    await writer.WriteLineAsync(failMsg);
+                    result.FailedDetails.Add(failMsg);
                 }
             }
 
@@ -161,6 +202,7 @@ public class ObjectClassImportService : IObjectClassImportService
             await writer.WriteLineAsync($"Sheet2 关系类新增: {sheet2Rows.Count} 行");
 
             int sheet2Success = 0;
+            result.Sheet2Total = sheet2Rows.Count;
             for (int i = 0; i < sheet2Rows.Count; i++)
             {
                 var row = sheet2Rows[i];
@@ -170,31 +212,15 @@ public class ObjectClassImportService : IObjectClassImportService
                 {
                     // ===== TODO: 用户自行维护 Aras 汇入逻辑 =====
                     // 此处构建 Relationship Item 并通过 Innovator.applyItem() 创建关系类
-                    // 示例代码（需根据实际 Aras API 调整）:
-                    //
-                    // var innovator = _connectionService.InnovatorInstance;
-                    // var item = innovator.newItem("RelationshipType", "add");
-                    // item.setProperty("source_id", row.GetValueOrDefault(0, ""));
-                    // item.setProperty("name", row.GetValueOrDefault(1, ""));
-                    // item.setProperty("sort_order", row.GetValueOrDefault(2, ""));
-                    // item.setProperty("label", row.GetValueOrDefault(3, ""));
-                    // item.setProperty("label_zh_tw", row.GetValueOrDefault(4, ""));
-                    // item.setProperty("label_en", row.GetValueOrDefault(5, ""));
-                    // item.setProperty("new_relationship_option", row.GetValueOrDefault(6, "3"));
-                    // item.setProperty("is_required", row.GetValueOrDefault(7, ""));
-                    // item.setProperty("open_related_form", row.GetValueOrDefault(8, ""));
-                    // item.setProperty("auto_search", row.GetValueOrDefault(9, "1"));
-                    // item.setProperty("related_item_type", row.GetValueOrDefault(10, ""));
-                    // item.setProperty("related_rel_item_type", row.GetValueOrDefault(11, ""));
-                    // var resultItem = innovator.applyItem(item);
-                    // if (resultItem.isError())
-                    //     throw new Exception(resultItem.getErrorString());
+                    // ...
 
                     sheet2Success++;
                 }
                 catch (Exception ex)
                 {
-                    await writer.WriteLineAsync($"[Sheet2 失败] 行{i + 2}: {ex.Message}");
+                    var failMsg = $"[Sheet2 行{i + 2}] {row.GetValueOrDefault(1, "")}: {ex.Message}";
+                    await writer.WriteLineAsync(failMsg);
+                    result.FailedDetails.Add(failMsg);
                 }
             }
 

@@ -1,6 +1,8 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using ArasToolkit.Core.Extensions;
+using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.App.ViewModels;
@@ -10,10 +12,12 @@ namespace ArasToolkit.App.ViewModels;
 /// </summary>
 public class MainViewModel : ObservableObject
 {
+    private readonly IChangelogService? _changelogService;
     private object? _currentView;
     private MenuItemInfo? _selectedMenuItem;
     private bool _isLoggedIn;
     private bool _isLoading;
+    private string _versionText = "个人工具箱 v1.0";
 
     public object? CurrentView
     {
@@ -39,11 +43,39 @@ public class MainViewModel : ObservableObject
         set => SetProperty(ref _isLoading, value);
     }
 
+    /// <summary>左下角版本号文本，从数据库读取最新版本</summary>
+    public string VersionText
+    {
+        get => _versionText;
+        set => SetProperty(ref _versionText, value);
+    }
+
     public ObservableCollection<MenuItemInfo> MenuItems { get; } = new();
 
-    public MainViewModel()
+    public MainViewModel(IChangelogService? changelogService = null)
     {
+        _changelogService = changelogService;
         InitializeMenuItems();
+        RefreshVersion();
+    }
+
+    /// <summary>
+    /// 从数据库获取最新版本号并刷新左下角显示
+    /// </summary>
+    public void RefreshVersion()
+    {
+        try
+        {
+            if (_changelogService != null)
+            {
+                var ver = _changelogService.GetCurrentVersion();
+                VersionText = $"个人工具箱 v{ver}";
+            }
+        }
+        catch
+        {
+            VersionText = "个人工具箱 v1.0";
+        }
     }
 
     private void InitializeMenuItems()

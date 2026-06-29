@@ -13,6 +13,24 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:InverseBoolConverter x:Key="InverseBool" />
         <converters:StringToVisibilityConverter x:Key="StringToVis" />
+
+        <!-- 本地覆写 DataGrid 选中行背景为浅灰色 -->
+        <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E5E7EB" />
+                    <Setter Property="Foreground" Value="#111827" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E5E7EB" />
+                    <Setter Property="Foreground" Value="#111827" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <Grid Margin="24">
@@ -34,6 +52,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0" Command="{Binding DownloadTemplateCommand}" Content="📥 下载模板" Style="{StaticResource PrimaryButton}" Height="32" FontSize="13" Padding="16,0" />
                 <Border Grid.Column="1" Width="1" Background="#E5E7EB" Margin="16,0" />
@@ -41,30 +60,71 @@
                     <Button Content="📂 选择文件" Command="{Binding BrowseFileCommand}" Height="32" FontSize="13" Padding="12,0" Style="{StaticResource AccentButton}" />
                     <TextBlock Text="{Binding FileName}" FontSize="13" Foreground="#374151" VerticalAlignment="Center" Margin="12,0,0,0" />
                 </StackPanel>
-                <Button Grid.Column="3" Command="{Binding ExecuteImportCommand}" Content="▶ 执行导入" Style="{StaticResource PrimaryButton}" Height="32" FontSize="13" Padding="20,0" Visibility="{Binding IsImporting, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                    <TextBlock Text="模式:" FontSize="13" Foreground="#6B7280" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <ComboBox ItemsSource="{Binding ImportModeOptions}"
+                              SelectedItem="{Binding ImportMode}"
+                              Style="{StaticResource DarkComboBox}"
+                              Width="80" Height="34" FontSize="13" />
+                </StackPanel>
+                <Button Grid.Column="4" Command="{Binding ExecuteImportCommand}" Content="▶ 执行导入" Style="{StaticResource PrimaryButton}" Height="32" FontSize="13" Padding="20,0" Visibility="{Binding IsImporting, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
             </Grid>
         </Border>
 
-        <Grid Grid.Row="2" Visibility="{Binding StatusMessage, Converter={StaticResource StringToVis}}" Margin="0,0,0,8">
-            <Border Padding="12,8" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" CornerRadius="8" Background="#F0F9FF">
-                <StackPanel Orientation="Horizontal"><TextBlock Text="⏳" FontSize="14" Margin="0,0,8,0" /><TextBlock Text="{Binding StatusMessage}" FontSize="13" Foreground="#1E40AF" VerticalAlignment="Center" /></StackPanel>
+        <!-- Row 2: Status/Loading/Error 三个互斥区域 -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,8">
+            <!-- 1) Loading 态（模板保存时） -->
+            <Border Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                    Padding="12,8" CornerRadius="8" Background="#F0F9FF">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⏳" FontSize="14" Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding StatusMessage}" FontSize="13" Foreground="#1E40AF" VerticalAlignment="Center" />
+                </StackPanel>
             </Border>
-            <ProgressBar IsIndeterminate="True" Height="3" Style="{StaticResource FluentProgressBar}" Visibility="{Binding IsImporting, Converter={StaticResource BoolToVis}}" />
-        </Grid>
 
-        <Border Grid.Row="2" Background="#3FEF4444" CornerRadius="4" Padding="10,6" Margin="0,0,0,8" Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}">
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="#EF4444" FontSize="12" />
-        </Border>
+            <!-- 2) 导入中态（进度文字 + 滚动进度条） -->
+            <StackPanel Visibility="{Binding IsImporting, Converter={StaticResource BoolToVis}}">
+                <Border Padding="12,8" CornerRadius="8" Background="#F0FDF4"
+                        Visibility="{Binding StatusMessage, Converter={StaticResource StringToVis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⏳" FontSize="14" Margin="0,0,8,0" />
+                        <TextBlock Text="{Binding StatusMessage}" FontSize="13" Foreground="#166534" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+                <ProgressBar IsIndeterminate="True" Height="3"
+                             Style="{StaticResource FluentProgressBar}" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <!-- 3) 错误态 -->
+            <Border Background="#3FEF4444" CornerRadius="4" Padding="10,6"
+                    Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}">
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="#EF4444" FontSize="12" TextWrapping="Wrap" />
+            </Border>
+        </StackPanel>
 
         <Grid Grid.Row="3">
-            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
             <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="16,12" Margin="0,0,0,12" Visibility="{Binding HasResult, Converter={StaticResource BoolToVis}}">
                 <StackPanel>
                     <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#111827" Text="导入结果" />
                     <StackPanel Margin="0,8,0,0">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="对象类新增: " FontSize="13" Foreground="#6B7280" /><TextBlock Text="{Binding LastResult.Sheet1Count}" FontSize="13" FontWeight="Bold" Foreground="#6366F1" /><TextBlock Text=" 条" FontSize="13" Foreground="#6B7280" /></StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0"><TextBlock Text="关系类新增: " FontSize="13" Foreground="#6B7280" /><TextBlock Text="{Binding LastResult.Sheet2Count}" FontSize="13" FontWeight="Bold" Foreground="#6366F1" /><TextBlock Text=" 条" FontSize="13" Foreground="#6B7280" /></StackPanel>
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="对象类新增: " FontSize="13" Foreground="#6B7280" /><TextBlock Text="{Binding LastResult.Sheet1Count}" FontSize="13" FontWeight="Bold" Foreground="#16A34A" /><TextBlock Text=" 条" FontSize="13" Foreground="#6B7280" /><TextBlock Text=" (失败: " FontSize="13" Foreground="#EF4444" Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" /><TextBlock Text="{Binding LastResult.Sheet1Failed}" FontSize="13" FontWeight="Bold" Foreground="#EF4444" Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" /><TextBlock Text=" 条)" FontSize="13" Foreground="#EF4444" Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" /></StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0"><TextBlock Text="关系类新增: " FontSize="13" Foreground="#6B7280" /><TextBlock Text="{Binding LastResult.Sheet2Count}" FontSize="13" FontWeight="Bold" Foreground="#16A34A" /><TextBlock Text=" 条" FontSize="13" Foreground="#6B7280" /><TextBlock Text=" (失败: " FontSize="13" Foreground="#EF4444" Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" /><TextBlock Text="{Binding LastResult.Sheet2Failed}" FontSize="13" FontWeight="Bold" Foreground="#EF4444" Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" /><TextBlock Text=" 条)" FontSize="13" Foreground="#EF4444" Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" /></StackPanel>
+                        <!-- 查看日志按钮 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button Content="📄 查看导入日志" Click="OpenLogFile_Click"
+                                    Tag="{Binding LastResult.LogFilePath}"
+                                    Padding="10,6" FontSize="12"
+                                    Background="Transparent"
+                                    Foreground="#6366F1"
+                                    BorderBrush="#E5E7EB" BorderThickness="1"
+                                    Cursor="Hand" />
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -85,13 +145,25 @@
                             <DataGridTextColumn Header="对象类" Binding="{Binding Sheet1Count}" Width="65" />
                             <DataGridTextColumn Header="关系类" Binding="{Binding Sheet2Count}" Width="65" />
                             <DataGridTextColumn Header="备注" Binding="{Binding Summary}" Width="*" />
+                            <DataGridTemplateColumn Header="操作" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="打开" Click="OpenImportFile_Click"
+                                                Tag="{Binding}"
+                                                Padding="8,4" FontSize="11"
+                                                Background="Transparent"
+                                                Foreground="#6366F1"
+                                                BorderThickness="0" Cursor="Hand" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
             </Border>
 
             <!-- 分页 -->
-            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
                 <Button Content="◀ 上一页" Command="{Binding PrevPageCommand}" Style="{StaticResource PageBtn}" Width="80" Margin="0,0,8,0" />
                 <TextBlock Text="{Binding PageInfo}" FontSize="12" Foreground="#6B7280" VerticalAlignment="Center" Margin="8,0" />
                 <Button Content="下一页 ▶" Command="{Binding NextPageCommand}" Style="{StaticResource PageBtn}" Width="80" Margin="8,0,0,0" />

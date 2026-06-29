@@ -85,6 +85,7 @@ public partial class MainWindow : Window
     private void OnAppLoginSucceeded()
    {
        _mainVM.IsLoggedIn = true;
+       _mainVM.RefreshVersion();
 
        if (_mainVM.MenuItems.Count > 0)
        {

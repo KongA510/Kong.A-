@@ -22,7 +22,8 @@ public interface IObjectClassImportService
     /// <param name="filePath">上传的Excel文件完整路径</param>
     /// <param name="progress">进度回调</param>
     /// <returns>导入结果汇总</returns>
-    Task<ObjectClassImportResult> ImportAsync(string filePath, IProgress<string>? progress = null);
+    /// <param name="importMode">导入模式："新增" 使用 add，"覆盖" 使用 merge where</param>
+    Task<ObjectClassImportResult> ImportAsync(string filePath, string importMode = "覆盖", IProgress<string>? progress = null);
 
     /// <summary>获取导入历史（分页）</summary>
     Task<(List<ObjectClassImportLog> Items, int TotalCount)> GetHistoryAsync(string? userId = null, int page = 1, int pageSize = 20);
