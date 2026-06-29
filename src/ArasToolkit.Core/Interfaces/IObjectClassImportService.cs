@@ -24,10 +24,8 @@ public interface IObjectClassImportService
     /// <returns>导入结果汇总</returns>
     Task<ObjectClassImportResult> ImportAsync(string filePath, IProgress<string>? progress = null);
 
-    /// <summary>
-    /// 获取导入历史记录（按用户ID过滤，按时间倒序）
-    /// </summary>
-    Task<List<ObjectClassImportLog>> GetHistoryAsync(string? userId = null);
+    /// <summary>获取导入历史（分页）</summary>
+    Task<(List<ObjectClassImportLog> Items, int TotalCount)> GetHistoryAsync(string? userId = null, int page = 1, int pageSize = 20);
 
     /// <summary>
     /// 按 ID 获取单条导入记录

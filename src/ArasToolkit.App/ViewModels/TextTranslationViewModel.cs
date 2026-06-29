@@ -26,6 +26,12 @@ public class TextTranslationViewModel : ObservableObject
     private string _statusMessage = "";
     private bool _isTranslating;
 
+    // ===== 分页相关 =====
+    private int _currentPage = 1;
+    private int _pageSize = 20;
+    private int _totalCount;
+    private const int PageSizeOptions = 20;
+
     public TextTranslationViewModel(
         ITextTranslationService translationService,
         IErrorLogService errorLogService)
@@ -48,6 +54,8 @@ public class TextTranslationViewModel : ObservableObject
         OpenOutputFileCommand = new RelayCommand(_ => OpenOutputFile());
         RefreshHistoryCommand = new RelayCommand(async _ => await LoadHistoryAsync());
         DownloadTemplateCommand = new RelayCommand(_ => DownloadTemplate());
+        PrevPageCommand = new RelayCommand(async _ => await GoToPageAsync(CurrentPage - 1), _ => CurrentPage > 1);
+        NextPageCommand = new RelayCommand(async _ => await GoToPageAsync(CurrentPage + 1), _ => CurrentPage < TotalPages);
 
         _ = LoadHistoryAsync();
     }
@@ -72,11 +80,34 @@ public class TextTranslationViewModel : ObservableObject
     public bool IsArasMode => SelectedTemplateType == "Aras翻译";
     public bool IsCustomMode => SelectedTemplateType == "自定义翻译";
 
+    // ===== 分页属性 =====
+    public int CurrentPage { get => _currentPage; set { if (SetProperty(ref _currentPage, value)) RefreshPagingCommands(); } }
+    public int TotalPages => _totalCount == 0 ? 1 : (int)Math.Ceiling((double)_totalCount / _pageSize);
+    public int TotalCount { get => _totalCount; set { SetProperty(ref _totalCount, value); OnPropertyChanged(nameof(TotalPages)); } }
+    public string PageInfo => $"第 {CurrentPage}/{TotalPages} 页，共 {TotalCount} 条";
+
     public ICommand BrowseSourceCommand { get; }
     public ICommand TranslateCommand { get; }
     public ICommand OpenOutputFileCommand { get; }
     public ICommand RefreshHistoryCommand { get; }
     public ICommand DownloadTemplateCommand { get; }
+    public ICommand PrevPageCommand { get; }
+    public ICommand NextPageCommand { get; }
+
+    private void RefreshPagingCommands()
+    {
+        (PrevPageCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (NextPageCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        OnPropertyChanged(nameof(TotalPages));
+        OnPropertyChanged(nameof(PageInfo));
+    }
+
+    private async Task GoToPageAsync(int page)
+    {
+        if (page < 1 || page > TotalPages) return;
+        CurrentPage = page;
+        await LoadHistoryAsync();
+    }
 
     private void BrowseSourceFile()
     {
@@ -130,6 +161,7 @@ public class TextTranslationViewModel : ObservableObject
             var progress = new Progress<string>(msg => StatusMessage = msg);
             var record = await _translationService.TranslateAsync(SourceFilePath, SelectedTemplateType, SelectedSourceLanguage, CustomPrompt, progress);
             StatusMessage = $"翻译完成！共 {record.SourceRowCount} 条，分 {record.BatchCount} 批";
+            CurrentPage = 1;
             await LoadHistoryAsync();
         }
         catch (Exception ex)
@@ -152,9 +184,11 @@ public class TextTranslationViewModel : ObservableObject
     {
         try
         {
-            var list = await _translationService.GetHistoryAsync(CurrentUserContext.CurrentUserId);
+            var (items, totalCount) = await _translationService.GetHistoryAsync(CurrentUserContext.CurrentUserId, CurrentPage, _pageSize);
             HistoryRecords.Clear();
-            foreach (var item in list) HistoryRecords.Add(item);
+            foreach (var item in items) HistoryRecords.Add(item);
+            TotalCount = totalCount;
+            RefreshPagingCommands();
         }
         catch (Exception ex) { StatusMessage = $"加载历史失败: {ex.Message}"; }
     }

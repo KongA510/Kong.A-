@@ -154,14 +154,20 @@ public class TextTranslationService : ITextTranslationService
 
     // ========== 历史记录（EF Core + 分页） ==========
 
-    public async Task<List<TextTranslationRecord>> GetHistoryAsync(string? userId = null)
+    public async Task<(List<TextTranslationRecord> Items, int TotalCount)> GetHistoryAsync(string? userId = null, int page = 1, int pageSize = 20)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
         var query = db.TextTranslationRecords.AsQueryable();
         if (!string.IsNullOrWhiteSpace(userId))
             query = query.Where(r => r.UserId == userId);
-        // 返回最近 200 条
-        return await query.OrderByDescending(r => r.CreatorOn).Take(200).ToListAsync();
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(r => r.CreatorOn)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        return (items, totalCount);
     }
 
     public async Task<TextTranslationRecord?> GetHistoryByIdAsync(string id)

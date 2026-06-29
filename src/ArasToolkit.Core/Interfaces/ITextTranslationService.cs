@@ -30,7 +30,7 @@ public interface ITextTranslationService
         IProgress<string>? progress = null);
 
     /// <summary>获取历史翻译记录列表（分页）</summary>
-    Task<List<TextTranslationRecord>> GetHistoryAsync(string? userId = null);
+    Task<(List<TextTranslationRecord> Items, int TotalCount)> GetHistoryAsync(string? userId = null, int page = 1, int pageSize = 20);
 
     /// <summary>按 ID 获取单条历史记录</summary>
     Task<TextTranslationRecord?> GetHistoryByIdAsync(string id);

@@ -11,223 +11,105 @@ using Microsoft.Win32;
 
 namespace ArasToolkit.App.ViewModels;
 
-/// <summary>
-/// 对象类配置 ViewModel — Excel模板下载 + 批量导入Aras
-/// </summary>
 public class ObjectClassConfigViewModel : ObservableObject
 {
     private readonly IObjectClassImportService _importService;
     private readonly IErrorLogService _errorLogService;
 
-    private string _selectedFilePath = string.Empty;
-    private string _statusMessage = string.Empty;
-    private string _errorMessage = string.Empty;
+    private string _selectedFilePath = "";
+    private string _statusMessage = "";
+    private string _errorMessage = "";
     private bool _isImporting;
     private bool _isLoading;
     private ObjectClassImportResult? _lastResult;
 
-    public ObjectClassConfigViewModel(
-        IObjectClassImportService importService,
-        IErrorLogService errorLogService)
+    // 分页
+    private int _currentPage = 1;
+    private int _pageSize = 20;
+    private int _totalCount;
+
+    public ObjectClassConfigViewModel(IObjectClassImportService importService, IErrorLogService errorLogService)
     {
-        _importService = importService;
-        _errorLogService = errorLogService;
-
+        _importService = importService; _errorLogService = errorLogService;
         HistoryRecords = new ObservableCollection<ObjectClassImportLog>();
-
         DownloadTemplateCommand = new RelayCommand(_ => DownloadTemplate());
         BrowseFileCommand = new RelayCommand(_ => BrowseFile());
         ExecuteImportCommand = new RelayCommand(async _ => await ExecuteImportAsync(), _ => !IsImporting);
         RefreshHistoryCommand = new RelayCommand(async _ => await LoadHistoryAsync());
-
+        PrevPageCommand = new RelayCommand(async _ => await GoToPageAsync(CurrentPage - 1), _ => CurrentPage > 1);
+        NextPageCommand = new RelayCommand(async _ => await GoToPageAsync(CurrentPage + 1), _ => CurrentPage < TotalPages);
         _ = LoadHistoryAsync();
     }
 
-    // ===== 文件 =====
-    public string SelectedFilePath
-    {
-        get => _selectedFilePath;
-        set
-        {
-            if (SetProperty(ref _selectedFilePath, value))
-            {
-                StatusMessage = string.IsNullOrEmpty(value)
-                    ? ""
-                    : $"已选择: {Path.GetFileName(value)}";
-            }
-        }
-    }
-
-    public string FileName => string.IsNullOrEmpty(SelectedFilePath)
-        ? "(未选择文件)"
-        : Path.GetFileName(SelectedFilePath);
-
-    // ===== 状态 =====
-    public string StatusMessage
-    {
-        get => _statusMessage;
-        set => SetProperty(ref _statusMessage, value);
-    }
-
-    public string ErrorMessage
-    {
-        get => _errorMessage;
-        set => SetProperty(ref _errorMessage, value);
-    }
-
-    public bool IsImporting
-    {
-        get => _isImporting;
-        set
-        {
-            if (SetProperty(ref _isImporting, value))
-                (ExecuteImportCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        }
-    }
-
-    public bool IsLoading
-    {
-        get => _isLoading;
-        set => SetProperty(ref _isLoading, value);
-    }
-
-    // ===== 结果 =====
-    public ObjectClassImportResult? LastResult
-    {
-        get => _lastResult;
-        set
-        {
-            if (SetProperty(ref _lastResult, value))
-                OnPropertyChanged(nameof(HasResult));
-        }
-    }
-
+    public string SelectedFilePath { get => _selectedFilePath; set { if (SetProperty(ref _selectedFilePath, value)) StatusMessage = string.IsNullOrEmpty(value) ? "" : $"已选择: {Path.GetFileName(value)}"; } }
+    public string FileName => string.IsNullOrEmpty(SelectedFilePath) ? "(未选择文件)" : Path.GetFileName(SelectedFilePath);
+    public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
+    public string ErrorMessage { get => _errorMessage; set => SetProperty(ref _errorMessage, value); }
+    public bool IsImporting { get => _isImporting; set { if (SetProperty(ref _isImporting, value)) (ExecuteImportCommand as RelayCommand)?.RaiseCanExecuteChanged(); } }
+    public bool IsLoading { get => _isLoading; set => SetProperty(ref _isLoading, value); }
+    public ObjectClassImportResult? LastResult { get => _lastResult; set { if (SetProperty(ref _lastResult, value)) OnPropertyChanged(nameof(HasResult)); } }
     public bool HasResult => LastResult != null;
-
-    // ===== 历史 =====
     public ObservableCollection<ObjectClassImportLog> HistoryRecords { get; }
 
-    // ===== 命令 =====
+    // 分页
+    public int CurrentPage { get => _currentPage; set { if (SetProperty(ref _currentPage, value)) RefreshPagingCommands(); } }
+    public int TotalPages => _totalCount == 0 ? 1 : (int)Math.Ceiling((double)_totalCount / _pageSize);
+    public int TotalCount { get => _totalCount; set { SetProperty(ref _totalCount, value); OnPropertyChanged(nameof(TotalPages)); } }
+    public string PageInfo => $"第 {CurrentPage}/{TotalPages} 页，共 {TotalCount} 条";
+
     public ICommand DownloadTemplateCommand { get; }
     public ICommand BrowseFileCommand { get; }
     public ICommand ExecuteImportCommand { get; }
     public ICommand RefreshHistoryCommand { get; }
+    public ICommand PrevPageCommand { get; }
+    public ICommand NextPageCommand { get; }
 
-    // ===== 方法 =====
+    private void RefreshPagingCommands() { (PrevPageCommand as RelayCommand)?.RaiseCanExecuteChanged(); (NextPageCommand as RelayCommand)?.RaiseCanExecuteChanged(); OnPropertyChanged(nameof(TotalPages)); OnPropertyChanged(nameof(PageInfo)); }
+    private async Task GoToPageAsync(int page) { if (page < 1 || page > TotalPages) return; CurrentPage = page; await LoadHistoryAsync(); }
 
-    /// <summary>
-    /// 下载模板 — 保存到本地 Config/ObjectClassTemplates 文件夹
-    /// </summary>
     private void DownloadTemplate()
     {
         try
         {
-            var dialog = new SaveFileDialog
-            {
-                Title = "保存对象类配置模板",
-                Filter = "Excel 文件|*.xlsx",
-                DefaultExt = ".xlsx",
-                FileName = "对象类配置模板.xlsx"
-            };
-
-            if (dialog.ShowDialog() != true) return;
-
+            var dlg = new SaveFileDialog { Title = "保存模板", Filter = "Excel|*.xlsx", DefaultExt = ".xlsx", FileName = "对象类配置模板.xlsx" };
+            if (dlg.ShowDialog() != true) return;
             IsLoading = true;
-            StatusMessage = "正在生成模板...";
-
-            var templateBytes = _importService.GenerateTemplate();
-            File.WriteAllBytes(dialog.FileName, templateBytes);
-
-            StatusMessage = $"模板已保存: {dialog.FileName}";
+            File.WriteAllBytes(dlg.FileName, _importService.GenerateTemplate());
+            StatusMessage = $"模板已保存: {dlg.FileName}";
         }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"模板保存失败: {ex.Message}";
-            _ = _errorLogService.LogErrorAsync("对象类配置-下载模板", ex.Message,
-                ErrorLog.LevelP1, ex.StackTrace);
-        }
-        finally
-        {
-            IsLoading = false;
-        }
+        catch (Exception ex) { ErrorMessage = $"保存失败: {ex.Message}"; _ = _errorLogService.LogErrorAsync("对象类配置-模板", ex.Message, ErrorLog.LevelP1, ex.StackTrace); }
+        finally { IsLoading = false; }
     }
 
-    /// <summary>
-    /// 浏览并选择 Excel 文件
-    /// </summary>
     private void BrowseFile()
     {
-        var dialog = new OpenFileDialog
-        {
-            Title = "选择对象类配置汇入文件",
-            Filter = "Excel 文件|*.xlsx;*.xls",
-            CheckFileExists = true
-        };
-
-        if (dialog.ShowDialog() == true)
-        {
-            SelectedFilePath = dialog.FileName;
-        }
+        var dlg = new OpenFileDialog { Title = "选择文件", Filter = "Excel|*.xlsx;*.xls", CheckFileExists = true };
+        if (dlg.ShowDialog() == true) SelectedFilePath = dlg.FileName;
     }
 
-    /// <summary>
-    /// 执行导入 — 单线程串行，先建对象类再建关系类
-    /// </summary>
     private async Task ExecuteImportAsync()
     {
-        if (string.IsNullOrWhiteSpace(SelectedFilePath))
-        {
-            ErrorMessage = "请先选择导入文件";
-            return;
-        }
-
-        IsImporting = true;
-        ErrorMessage = string.Empty;
-        StatusMessage = "正在导入...";
-
+        if (string.IsNullOrWhiteSpace(SelectedFilePath)) { ErrorMessage = "请先选择文件"; return; }
+        IsImporting = true; ErrorMessage = "";
         try
         {
-            var progress = new Progress<string>(msg => StatusMessage = msg);
-            LastResult = await _importService.ImportAsync(SelectedFilePath, progress);
-
-            if (LastResult.IsSuccess)
-            {
-                StatusMessage = $"导入完成: 对象类 {LastResult.Sheet1Count} 条 / 关系类 {LastResult.Sheet2Count} 条";
-            }
-            else
-            {
-                ErrorMessage = $"导入失败: {LastResult.ErrorMessage}";
-            }
-
-            await LoadHistoryAsync();
+            var prog = new Progress<string>(m => StatusMessage = m);
+            LastResult = await _importService.ImportAsync(SelectedFilePath, prog);
+            StatusMessage = LastResult.IsSuccess ? $"完成: 对象类{LastResult.Sheet1Count}/关系类{LastResult.Sheet2Count}" : $"失败: {LastResult.ErrorMessage}";
+            CurrentPage = 1; await LoadHistoryAsync();
         }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"导入失败: {ex.Message}";
-            await _errorLogService.LogErrorAsync("对象类配置-导入", ex.Message,
-                ErrorLog.LevelP1, ex.StackTrace);
-        }
-        finally
-        {
-            IsImporting = false;
-        }
+        catch (Exception ex) { ErrorMessage = ex.Message; await _errorLogService.LogErrorAsync("对象类配置-导入", ex.Message, ErrorLog.LevelP1, ex.StackTrace); }
+        finally { IsImporting = false; }
     }
 
-    /// <summary>
-    /// 加载历史记录
-    /// </summary>
     private async Task LoadHistoryAsync()
     {
         try
         {
-            var list = await _importService.GetHistoryAsync(CurrentUserContext.CurrentUserId);
-            HistoryRecords.Clear();
-            foreach (var item in list)
-                HistoryRecords.Add(item);
+            var (items, total) = await _importService.GetHistoryAsync(CurrentUserContext.CurrentUserId, CurrentPage, _pageSize);
+            HistoryRecords.Clear(); foreach (var i in items) HistoryRecords.Add(i);
+            TotalCount = total; RefreshPagingCommands();
         }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"加载历史失败: {ex.Message}";
-        }
+        catch (Exception ex) { ErrorMessage = ex.Message; }
     }
 }

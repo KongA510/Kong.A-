@@ -260,13 +260,15 @@ public class ObjectClassImportService : IObjectClassImportService
 
     // ==================== 历史记录 ====================
 
-    public async Task<List<ObjectClassImportLog>> GetHistoryAsync(string? userId = null)
+    public async Task<(List<ObjectClassImportLog> Items, int TotalCount)> GetHistoryAsync(string? userId = null, int page = 1, int pageSize = 20)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
         var query = db.ObjectClassImportLogs.AsQueryable();
         if (!string.IsNullOrWhiteSpace(userId))
             query = query.Where(r => r.UserId == userId);
-        return await query.OrderByDescending(r => r.CreatorOn).Take(200).ToListAsync();
+        var total = await query.CountAsync();
+        var items = await query.OrderByDescending(r => r.CreatorOn).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+        return (items, total);
     }
 
     public async Task<ObjectClassImportLog?> GetLogByIdAsync(string id)
