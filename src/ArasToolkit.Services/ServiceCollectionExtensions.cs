@@ -64,6 +64,9 @@ public static class ServiceCollectionExtensions
         // 注册文本翻译服务（单例）
         services.AddSingleton<ITextTranslationService, TextTranslationService>();
 
+        // 注册对象类配置导入服务（单例）
+        services.AddSingleton<IObjectClassImportService, ObjectClassImportService>();
+
         return services;
     }
 }

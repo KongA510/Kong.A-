@@ -60,6 +60,7 @@ public partial class App : Application
         services.AddTransient<ArasLoginViewModel>();
         services.AddTransient<TranslationApiKeyViewModel>();
         services.AddTransient<DataImportViewModel>();
+        services.AddTransient<ObjectClassConfigViewModel>();
         services.AddTransient<SettingsWindow>();
         services.AddTransient<ArasLoginWindow>();
         services.AddTransient<TranslationApiKeyWindow>();
@@ -80,6 +81,7 @@ public partial class App : Application
         services.AddTransient<ChartView>();
         services.AddTransient<TextTranslationView>();
         services.AddTransient<TranslationHistoryView>();
+        services.AddTransient<ObjectClassConfigView>();
 
         _serviceProvider = services.BuildServiceProvider();
     }

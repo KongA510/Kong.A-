@@ -65,7 +65,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "表单翻译", Description = "Aras表单翻译工具", Icon = "📝" },
         new() { Name = "窗体翻译", Description = "Aras窗体翻译工具", Icon = "🪟" },
         new() { Name = "窗体配置", Description = "Aras窗体配置工具", Icon = "⚙️" },
-        new() { Name = "对象类配置", Description = "Aras对象类配置工具", Icon = "📦" },
+        new() { Name = "对象类配置", Description = "批量创建Aras对象类和关系类", Icon = "📦" },
         new() { Name = "属性配置", Description = "Aras属性配置工具", Icon = "🔧" },
         new() { Name = "数据汇入", Description = "Aras 数据汇入工具", Icon = "📀" },
         new() { Name = "权限配置", Description = "Aras权限配置工具", Icon = "🔒" },
