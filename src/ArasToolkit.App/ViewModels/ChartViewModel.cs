@@ -166,45 +166,24 @@ public class ChartViewModel : ObservableObject
         };
         model.Axes.Add(valueAxis);
 
-        // 柱状图系列
-        var barSeries = new BarSeries
+        // 柱状图系列 — LinearBarSeries（垂直柱状图：X=分类, Y=数值）
+        // LinearBarSeries 使用 DataPoint X/Y 坐标，通过 ItemsSource + Mapping 添加数据
+        var barSeries = new LinearBarSeries
         {
             Title = data.Title,
             FillColor = OxyColor.FromRgb(0x63, 0x66, 0xF1),
             StrokeColor = OxyColor.FromRgb(0x4F, 0x46, 0xE5),
             StrokeThickness = 1,
-            LabelPlacement = LabelPlacement.Outside,
-            LabelFormatString = "{0}",
-            FontSize = 12,
-            FontWeight = FontWeights.Bold,
+            BarWidth = 3,
         };
 
+        var items = new List<BarItem>();
         foreach (var dp in data.DataPoints)
         {
-            var item = new BarItem
-            {
-                Value = dp.Value,
-            };
-
-            // 自定义颜色
-            if (!string.IsNullOrWhiteSpace(dp.Color))
-            {
-                try
-                {
-                    var hex = dp.Color.TrimStart('#');
-                    byte r = Convert.ToByte(hex[..2], 16);
-                    byte g = Convert.ToByte(hex[2..4], 16);
-                    byte b = Convert.ToByte(hex[4..6], 16);
-                    item.Color = OxyColor.FromRgb(r, g, b);
-                }
-                catch
-                {
-                    // 颜色解析失败，使用默认色
-                }
-            }
-
-            barSeries.Items.Add(item);
+            items.Add(new BarItem { Value = dp.Value });
         }
+        barSeries.ItemsSource = items;
+        barSeries.Mapping = item => new DataPoint(items.IndexOf((BarItem)item), ((BarItem)item).Value);
 
         model.Series.Add(barSeries);
         return model;
