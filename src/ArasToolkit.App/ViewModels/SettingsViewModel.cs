@@ -10,30 +10,38 @@ using Microsoft.EntityFrameworkCore;
 namespace ArasToolkit.App.ViewModels;
 
 /// <summary>
-/// 设置窗口 ViewModel — 数据库检查 / 退出登录 / 连接字符串管理
+/// 设置窗口 ViewModel — 数据库检查 / 退出登录 / 连接字符串管理 / 资料文件夹地址
 /// </summary>
 public class SettingsViewModel : ObservableObject
 {
     private readonly IErrorLogService _errorLogService;
     private readonly IDbContextFactory<ArasToolkitDbContext> _contextFactory;
+    private readonly IConfigService _configService;
 
     private string _connectionString = "";
     private string _statusMessage = "";
+    private string _dataFolderPath = "";
     private bool _isCheckingDb;
     private bool _isSaving;
+    private bool _isBrowsingFolder;
 
     public SettingsViewModel(
         IErrorLogService errorLogService,
-        IDbContextFactory<ArasToolkitDbContext> contextFactory)
+        IDbContextFactory<ArasToolkitDbContext> contextFactory,
+        IConfigService configService)
     {
         _errorLogService = errorLogService;
         _contextFactory = contextFactory;
+        _configService = configService;
 
         ConnectionString = ReadConnectionString();
 
         CheckDatabaseCommand = new RelayCommand(async _ => await CheckDatabaseAsync(), _ => !IsCheckingDb);
         LogoutCommand = new RelayCommand(_ => OnLogoutRequested());
         SaveConnectionStringCommand = new RelayCommand(async _ => await SaveConnectionStringAsync(), _ => !IsSaving);
+        BrowseDataFolderCommand = new RelayCommand(_ => BrowseDataFolder(), _ => !IsBrowsingFolder);
+
+        _ = LoadDataFolderPathAsync();
     }
 
     public string ConnectionString
@@ -46,6 +54,12 @@ public class SettingsViewModel : ObservableObject
     {
         get => _statusMessage;
         set => SetProperty(ref _statusMessage, value);
+    }
+
+    public string DataFolderPath
+    {
+        get => _dataFolderPath;
+        set => SetProperty(ref _dataFolderPath, value);
     }
 
     public bool IsCheckingDb
@@ -68,12 +82,52 @@ public class SettingsViewModel : ObservableObject
         }
     }
 
+    public bool IsBrowsingFolder
+    {
+        get => _isBrowsingFolder;
+        set
+        {
+            if (SetProperty(ref _isBrowsingFolder, value))
+                ((RelayCommand)BrowseDataFolderCommand).RaiseCanExecuteChanged();
+        }
+    }
+
     /// <summary>退出请求事件（MainWindow 订阅后执行登出逻辑）</summary>
     public event Action? LogoutRequested;
 
     public ICommand CheckDatabaseCommand { get; }
     public ICommand LogoutCommand { get; }
     public ICommand SaveConnectionStringCommand { get; }
+    public ICommand BrowseDataFolderCommand { get; }
+
+    private async Task LoadDataFolderPathAsync()
+    {
+        try
+        {
+            var saved = await _configService.LoadAppSettingAsync<string>("DataFolderPath");
+            DataFolderPath = saved ?? "(未设置)";
+        }
+        catch
+        {
+            DataFolderPath = "(未设置)";
+        }
+    }
+
+    private void BrowseDataFolder()
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = "选择资料文件夹",
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            DataFolderPath = dialog.FolderName;
+            _ = _configService.SaveAppSettingAsync("DataFolderPath", DataFolderPath);
+            StatusMessage = $"资料文件夹已设置为: {DataFolderPath}";
+        }
+    }
 
     private async Task CheckDatabaseAsync()
     {

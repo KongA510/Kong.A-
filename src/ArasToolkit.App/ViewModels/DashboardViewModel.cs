@@ -74,6 +74,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "敏感操作日志", Description = "业务操作审计轨迹记录", Icon = "🔒" },
         new() { Name = "数据报表", Description = "数据统计与图表可视化", Icon = "📊" },
         new() { Name = "待办项目", Description = "个人待办任务管理与追踪", Icon = "📀" },
+        new() { Name = "我的资料", Description = "文件资源管理器", Icon = "📁" },
     };
 
     public ICommand RefreshCommand { get; }

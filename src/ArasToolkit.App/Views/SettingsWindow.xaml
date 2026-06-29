@@ -48,6 +48,26 @@
 
             <!-- Settings Content -->
             <StackPanel Grid.Row="1" Margin="0,0,0,16">
+                <!-- 资料文件夹地址 -->
+                <Border Style="{StaticResource CardStyle}" Padding="16,12" Margin="0,0,0,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="📁 资料文件夹地址" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="{Binding DataFolderPath}" FontSize="11"
+                                       Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="360"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="浏览"
+                                Command="{Binding BrowseDataFolderCommand}"
+                                Style="{StaticResource SettingsButtonStyle}"/>
+                    </Grid>
+                </Border>
+
                 <!-- AI 模型配置 -->
                 <Border Style="{StaticResource CardStyle}" Padding="16,12" Margin="0,0,0,12">
                     <Grid>

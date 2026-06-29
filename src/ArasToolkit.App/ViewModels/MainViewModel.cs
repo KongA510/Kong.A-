@@ -60,8 +60,7 @@ public class MainViewModel : ObservableObject
             Name = "系统翻译",
             Icon = "Translate",
             CardIcon = "🌐",
-            Description = "Aras翻译工具集",
-            IsExpanded = true
+            Description = "Aras翻译工具集"
         };
         sysTranslation.Children.Add(new MenuItemInfo { Name = "文本翻译", Icon = "Translate", CardIcon = "📝", Description = "AI 驱动的 Excel 批量翻译工具" });
         sysTranslation.Children.Add(new MenuItemInfo { Name = "翻译历史", Icon = "History", CardIcon = "📜", Description = "历史翻译记录查询" });
@@ -103,6 +102,9 @@ public class MainViewModel : ObservableObject
 
         // ===== 待办项目 =====
         MenuItems.Add(new MenuItemInfo { Name = "待办项目", Icon = "ClipboardCheck", CardIcon = "📋", Description = "个人待办任务管理" });
+
+        // ===== 我的资料 =====
+        MenuItems.Add(new MenuItemInfo { Name = "我的资料", Icon = "Folder", CardIcon = "📁", Description = "文件资源管理器" });
     }
 
     public void ShowLogin()

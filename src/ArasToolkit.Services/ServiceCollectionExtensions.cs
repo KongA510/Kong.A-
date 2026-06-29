@@ -67,6 +67,9 @@ public static class ServiceCollectionExtensions
         // 注册对象类配置导入服务（单例）
         services.AddSingleton<IObjectClassImportService, ObjectClassImportService>();
 
+        // 注册文件浏览器服务（单例，纯文件系统操作）
+        services.AddSingleton<IFileExplorerService, FileExplorerService>();
+
         return services;
     }
 }

@@ -74,6 +74,61 @@ public class InverseBoolConverter : IValueConverter
 }
 
 /// <summary>
+/// 十六进制颜色字符串 → WPF Color 转换器
+/// </summary>
+public class StringToColorConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is string hex && hex.StartsWith("#") && hex.Length == 7)
+        {
+            try
+            {
+                byte r = System.Convert.ToByte(hex.Substring(1, 2), 16);
+                byte g = System.Convert.ToByte(hex.Substring(3, 2), 16);
+                byte b = System.Convert.ToByte(hex.Substring(5, 2), 16);
+                return Color.FromRgb(r, g, b);
+            }
+            catch { }
+        }
+        return Color.FromRgb(156, 163, 175); // 默认浅灰
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// 十六进制颜色字符串 → SolidColorBrush（带 15% 不透明度）转换器
+/// </summary>
+public class StringToColorBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is string hex && hex.StartsWith("#") && hex.Length == 7)
+        {
+            try
+            {
+                byte r = System.Convert.ToByte(hex.Substring(1, 2), 16);
+                byte g = System.Convert.ToByte(hex.Substring(3, 2), 16);
+                byte b = System.Convert.ToByte(hex.Substring(5, 2), 16);
+                var color = Color.FromRgb(r, g, b);
+                return new SolidColorBrush(Color.FromArgb(38, r, g, b)); // 15% opacity
+            }
+            catch { }
+        }
+        return new SolidColorBrush(Color.FromArgb(38, 156, 163, 175));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
 /// Status to Color converter (for status label background)
 /// </summary>
 public class StatusToColorConverter : IValueConverter
@@ -114,6 +169,25 @@ public class ProgressToColorConverter : IValueConverter
         if (percent >= 61) return new SolidColorBrush(Color.FromRgb(249, 115, 22));
         if (percent >= 31) return new SolidColorBrush(Color.FromRgb(245, 158, 11));
         return new SolidColorBrush(Color.FromRgb(239, 68, 68));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// 根据 FileSystemItem 的 IsDirectory 返回对应 ToolTip 文本
+/// （文件夹 →「在资源管理器中打开」/ 文件 →「在资源管理器中定位」）
+/// </summary>
+public class EnterTooltipConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is not ArasToolkit.Core.Models.FileSystemItem item)
+            return "打开";
+        return item.IsDirectory ? "在资源管理器中打开文件夹" : "在资源管理器中定位文件";
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
