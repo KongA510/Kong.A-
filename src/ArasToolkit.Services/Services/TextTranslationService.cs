@@ -27,6 +27,18 @@ public class TextTranslationService : ITextTranslationService
     private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromMinutes(5) };
     private const string HistoryDir = "Config/TextTranslations";
 
+    /// <summary>
+    /// 获取按日期隔离的输出目录路径（格式: Config/TextTranslations/2026_7_1/）
+    /// </summary>
+    private static string GetOutputDir()
+    {
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        var dateFolder = DateTime.Now.ToString("yyyy_M_d");
+        var dir = Path.Combine(baseDir, HistoryDir, dateFolder);
+        Directory.CreateDirectory(dir);
+        return dir;
+    }
+
     public TextTranslationService(IConfigService configService,
         IDbContextFactory<ArasToolkitDbContext> dbFactory)
     {
@@ -93,9 +105,7 @@ public class TextTranslationService : ITextTranslationService
         var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
         var outputFileName = $"{sourceFileName}_{timestamp}_translated.xlsx";
 
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        var outputDir = Path.Combine(baseDir, HistoryDir);
-        Directory.CreateDirectory(outputDir);
+        var outputDir = GetOutputDir();
         var outputPath = Path.Combine(outputDir, outputFileName);
 
         // 1. 读取源数据
