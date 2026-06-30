@@ -25,11 +25,12 @@
             <!-- 翻译操作卡片 -->
             <Border Style="{StaticResource SimpleCard}" Padding="20,16" Margin="0,0,0,16">
                 <StackPanel>
-                    <!-- Row 0: 文件选择 -->
+                    <!-- Row 0: 文件选择 + 开始翻译 -->
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" MaxWidth="340" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="&#x1F4C1; 源文件" FontSize="13"
@@ -38,55 +39,20 @@
                         <TextBox Grid.Column="1" Text="{Binding SourceFilePath, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource DarkTextBox}"
                                  IsReadOnly="True"
+                                 TextWrapping="NoWrap"
+                                 VerticalAlignment="Center" Height="30"
                                  Background="{DynamicResource ControlFillColorTertiaryBrush}" />
                         <Button Grid.Column="2" Content="浏览..." Command="{Binding BrowseSourceCommand}"
-                                Padding="12,8" Margin="8,0,0,0"
+                                Padding="16,5" Margin="8,0,0,0"
                                 Background="{DynamicResource SystemAccentBrush}"
                                 Foreground="White"
                                 BorderThickness="0" Cursor="Hand" FontSize="13" />
-                    </Grid>
 
-                    <!-- Row 1: 翻译模式选择 -->
-                    <Grid Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="160" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="翻译模式:" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                   VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <ComboBox Grid.Column="1" ItemsSource="{Binding TemplateTypes}"
-                                  SelectedItem="{Binding SelectedTemplateType}"
-                                  Width="140" FontSize="13" />
-
-                        <!-- 源语言选择（自定义翻译时显示） -->
-                        <StackPanel Grid.Column="2" Orientation="Horizontal"
-                                    Visibility="{Binding IsCustomMode, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Text="源语言:" FontSize="13"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       VerticalAlignment="Center" Margin="8,0,6,0" />
-                            <ComboBox ItemsSource="{Binding SourceLanguages}"
-                                      SelectedItem="{Binding SelectedSourceLanguage}"
-                                      Width="120" FontSize="13" />
-                        </StackPanel>
-
-                        <!-- 下载模板 -->
-                        <Button Grid.Column="3" Content="&#x1F4E5; 下载模板" Command="{Binding DownloadTemplateCommand}"
-                                Padding="12,8" FontSize="12"
-                                Background="Transparent"
-                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                                BorderThickness="1" Cursor="Hand" />
-                    </Grid>
-
-                    <!-- Row 2: 翻译按钮 -->
-                    <Grid Margin="0,0,0,12">
-                        <Button Content="&#x1F680; 开始翻译"
+                        <!-- 开始翻译（靠右，同色系紧跟浏览按钮） -->
+                        <Button Grid.Column="3" Content="&#x1F680; 开始翻译"
                                 Command="{Binding TranslateCommand}"
-                                HorizontalAlignment="Left"
-                                Padding="20,10" FontSize="14" FontWeight="SemiBold"
+                                Padding="20,6" FontSize="14" FontWeight="SemiBold"
+                                Height="34" Margin="8,0,0,0"
                                 Background="{DynamicResource SystemAccentBrush}"
                                 Foreground="White"
                                 BorderThickness="0" Cursor="Hand"
@@ -107,7 +73,88 @@
                         </Button>
                     </Grid>
 
-                    <!-- Aras翻译说明 -->
+                    <!-- Row 1: 翻译模式（靠左） / 源语言(居中) / 下载模板（靠右） -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="翻译模式:" FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding TemplateTypes}"
+                                  SelectedItem="{Binding SelectedTemplateType}"
+                                  Width="140" FontSize="13" Height="30" />
+
+                        <!-- 源语言选择（自定义翻译时显示） -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                    Visibility="{Binding IsCustomMode, Converter={StaticResource BoolToVisibility}}"
+                                    HorizontalAlignment="Left" Margin="12,0,0,0">
+                            <TextBlock Text="源语言:" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <ComboBox ItemsSource="{Binding SourceLanguages}"
+                                      SelectedItem="{Binding SelectedSourceLanguage}"
+                                      Width="120" FontSize="13" Height="30" />
+                        </StackPanel>
+
+                        <!-- 下载模板（靠右） -->
+                        <Button Grid.Column="3" Content="&#x1F4E5; 下载模板" Command="{Binding DownloadTemplateCommand}"
+                                Padding="14,5" FontSize="12" Height="30"
+                                Background="Transparent"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1" Cursor="Hand" />
+                    </Grid>
+
+                    <!-- 翻译进度区域（翻译中显示） -->
+                    <StackPanel Visibility="{Binding IsTranslating, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,12">
+                        <!-- 进度状态卡片 -->
+                        <Border Padding="12,10" CornerRadius="8" Background="#F0FDF4" Margin="0,0,0,4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 左侧: 进度文字 + 百分比 -->
+                                <StackPanel Grid.Column="0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="⏳" FontSize="14" Margin="0,0,8,0" />
+                                        <TextBlock Text="{Binding ProgressText}"
+                                                   FontSize="13" Foreground="#166534"
+                                                   VerticalAlignment="Center" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="22,2,0,0">
+                                        <TextBlock Text="进度: " FontSize="12" Foreground="#6B7280" />
+                                        <TextBlock Text="{Binding ProgressPercentage, StringFormat={}{0:F1}}"
+                                                   FontSize="12" Foreground="#16A34A" FontWeight="Bold" />
+                                        <TextBlock Text="%" FontSize="12" Foreground="#6B7280" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- 右侧: 取消按钮 -->
+                                <Button Grid.Column="1" Content="✕ 取消"
+                                        Command="{Binding CancelCommand}"
+                                        Height="30" FontSize="12" Padding="12,0"
+                                        Background="#EF4444" Foreground="White"
+                                        BorderThickness="0" Cursor="Hand"
+                                        VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <!-- 确定型进度条 -->
+                        <ProgressBar IsIndeterminate="{Binding IsProgressIndeterminate, Mode=OneWay}"
+                                     Value="{Binding ProgressPercentage, Mode=OneWay}"
+                                     Minimum="0" Maximum="100"
+                                     Height="4"
+                                     Style="{StaticResource FluentProgressBar}" />
+                    </StackPanel>
+
+                    <!-- 状态信息 -->
                     <TextBlock Text="{Binding StatusMessage}" FontSize="12"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 </StackPanel>

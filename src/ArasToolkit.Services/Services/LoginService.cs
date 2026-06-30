@@ -24,7 +24,10 @@ public class LoginService : ILoginService
             try
             {
                 // MD5 哈希密码（模拟 Aras.IOM.Innovator.ScalcMD5）
-                var md5Password = loginInfo.Password.ToMd5();
+                // 若密码已是从DB加载的MD5哈希则直接使用，否则对明文进行MD5
+                var md5Password = loginInfo.IsPasswordHashed
+                    ? loginInfo.Password
+                    : loginInfo.Password.ToMd5();
 
                 // 使用 IomFactory 创建连接（IOM R37 API）
                 HttpServerConnection connection = IomFactory.CreateHttpServerConnection(

@@ -13,6 +13,7 @@ public class ArasLoginViewModel : ObservableObject
     private readonly ILoginService _loginService;
     private readonly IArasConnectionService _connectionService;
     private readonly IArasConnectionPool _connectionPool;
+    private readonly IArasLoginConfigService _loginConfigService;
     private readonly IErrorLogService _errorLogService;
 
     private ObservableCollection<LoginInfo> _loginInfos = [];
@@ -25,19 +26,24 @@ public class ArasLoginViewModel : ObservableObject
         ILoginService loginService,
         IArasConnectionService connectionService,
         IArasConnectionPool connectionPool,
+        IArasLoginConfigService loginConfigService,
         IErrorLogService errorLogService)
     {
         _configService = configService;
         _loginService = loginService;
         _connectionService = connectionService;
         _connectionPool = connectionPool;
+        _loginConfigService = loginConfigService;
         _errorLogService = errorLogService;
 
         ConnectCommand = new RelayCommand(async p => await ConnectAsync(p), _ => !IsProcessing);
         DeleteCommand = new RelayCommand(async p => await DeleteAsync(p), _ => !IsProcessing);
-        SaveCommand = new RelayCommand(async _ => await SaveAsync(), _ => !IsProcessing && !string.IsNullOrEmpty(NewUrl));
-        ToggleFormCommand = new RelayCommand(_ => IsFormVisible = !IsFormVisible);
+        EditCommand = new RelayCommand(async p => await EditAsync(p), _ => !IsProcessing);
+        SaveCommand = new RelayCommand(async _ => await SaveAsync(), _ => !IsProcessing && !string.IsNullOrEmpty(FormUrl));
+        ToggleFormCommand = new RelayCommand(_ => ToggleForm());
         RefreshCommand = new RelayCommand(async _ => await LoadAsync());
+        CancelEditCommand = new RelayCommand(_ => CloseForm());
+        CancelCommand = new RelayCommand(_ => CancelTranslate());
 
         _ = LoadAsync();
     }
@@ -68,35 +74,75 @@ public class ArasLoginViewModel : ObservableObject
 
     public ICommand ConnectCommand { get; }
     public ICommand DeleteCommand { get; }
+    public ICommand EditCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand SaveCommand { get; }
     public ICommand ToggleFormCommand { get; }
+    public ICommand CancelEditCommand { get; }
+    public ICommand CancelCommand { get; }
 
-    // ---- 新增表单属性 ----
-    private string _newUrl = string.Empty;
-    public string NewUrl { get => _newUrl; set { SetProperty(ref _newUrl, value); (SaveCommand as RelayCommand)?.RaiseCanExecuteChanged(); } }
+    // ---- 表单属性 ----
 
-    private string _newDatabase = string.Empty;
-    public string NewDatabase { get => _newDatabase; set => SetProperty(ref _newDatabase, value); }
+    private string _formUrl = string.Empty;
+    public string FormUrl { get => _formUrl; set { SetProperty(ref _formUrl, value); (SaveCommand as RelayCommand)?.RaiseCanExecuteChanged(); } }
 
-    private string _newUsername = string.Empty;
-    public string NewUsername { get => _newUsername; set => SetProperty(ref _newUsername, value); }
+    private string _formDatabase = string.Empty;
+    public string FormDatabase { get => _formDatabase; set => SetProperty(ref _formDatabase, value); }
+
+    private string _formUsername = string.Empty;
+    public string FormUsername { get => _formUsername; set => SetProperty(ref _formUsername, value); }
+
     private bool _isFormVisible;
-    public bool IsFormVisible { get => _isFormVisible; set { SetProperty(ref _isFormVisible, value); if (!value) { NewUrl = ""; NewDatabase = ""; NewUsername = ""; } } }
+    public bool IsFormVisible
+    {
+        get => _isFormVisible;
+        set => SetProperty(ref _isFormVisible, value);
+    }
+
+    private string? _editingId;
+    /// <summary>正在编辑的记录ID（null=新增模式）</summary>
+    public string? EditingId
+    {
+        get => _editingId;
+        set { SetProperty(ref _editingId, value); OnPropertyChanged(nameof(IsEditMode)); OnPropertyChanged(nameof(FormTitle)); }
+    }
+
+    /// <summary>是否为编辑模式</summary>
+    public bool IsEditMode => EditingId != null;
+
+    /// <summary>表单标题</summary>
+    public string FormTitle => IsEditMode ? "编辑连接" : "新增连接";
 
     private void RefreshCommands()
     {
         (ConnectCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (DeleteCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (EditCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (SaveCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
     private async Task LoadAsync()
     {
         try
         {
-            var logins = await _configService.LoadAllLoginInfosAsync();
-            LoginInfos = new ObservableCollection<LoginInfo>(logins);
-            StatusMessage = "已加载 " + logins.Count + " 条连接记录";
+            var userId = CurrentUserContext.CurrentUserId;
+            var configs = await _loginConfigService.GetAllAsync(userId);
+            // 映射 ArasLoginConfig → LoginInfo
+            var loginInfos = configs.Select(c => new LoginInfo
+            {
+                Id = c.Id,
+                Url = c.Url,
+                Database = c.DatabaseName,
+                Username = c.Username,
+                Password = c.Md5Password,         // DB中的MD5哈希
+                IsPasswordHashed = true,           // 标记为已哈希
+                RememberMe = false,
+                ConfigName = c.Id,
+                IsEnabled = c.IsEnabled
+            }).ToList();
+
+            LoginInfos = new ObservableCollection<LoginInfo>(loginInfos);
+            StatusMessage = $"已加载 {loginInfos.Count} 条连接记录";
         }
         catch (Exception ex)
         {
@@ -116,10 +162,18 @@ public class ArasLoginViewModel : ObservableObject
 
         try
         {
+            // LoginInfo.Password 已是从DB加载的MD5哈希, IsPasswordHashed=true
             await _loginService.LoginAsync(info);
-            // 连接成功后重建连接池（使用新连接信息）
+            // 连接成功后设为启用（禁用其他）
+            if (!string.IsNullOrEmpty(info.Id))
+            {
+                await _loginConfigService.EnableAsync(info.Id, CurrentUserContext.CurrentUserId);
+            }
+            // 重建连接池
             _connectionPool.Reinitialize(10);
             StatusMessage = "已切换到 " + info.Username + "@" + info.Database + "，连接池已更新";
+            // 刷新列表以更新启用状态
+            await LoadAsync();
         }
         catch (Exception ex)
         {
@@ -135,12 +189,14 @@ public class ArasLoginViewModel : ObservableObject
 
     private async Task DeleteAsync(object? parameter)
     {
-        if (parameter is not string configName || string.IsNullOrEmpty(configName)) return;
+        // 参数为 LoginInfo.Id (string)
+        var id = parameter as string;
+        if (string.IsNullOrEmpty(id)) return;
 
         IsProcessing = true;
         try
         {
-            await _configService.DeleteLoginInfoAsync(configName);
+            await _loginConfigService.DeleteAsync(id);
             StatusMessage = "已删除连接配置";
             await LoadAsync();
         }
@@ -156,12 +212,27 @@ public class ArasLoginViewModel : ObservableObject
         }
     }
 
+    /// <summary>编辑已有连接 — 填充表单</summary>
+    private async Task EditAsync(object? parameter)
+    {
+        if (parameter is not LoginInfo info || string.IsNullOrEmpty(info.Id)) return;
+
+        EditingId = info.Id;
+        FormUrl = info.Url;
+        FormDatabase = info.Database;
+        FormUsername = info.Username;
+        // 密码框显示占位符（由View层设置）
+        IsFormVisible = true;
+
+        await Task.CompletedTask;
+    }
+
     /// <summary>
-    /// 新增保存登录信息 — 验证连接可用后持久化
+    /// 新增/更新保存登录信息 — MD5加密密码后持久化到数据库
     /// </summary>
     private async Task SaveAsync()
     {
-        if (string.IsNullOrEmpty(NewUrl) || string.IsNullOrEmpty(NewUsername))
+        if (string.IsNullOrEmpty(FormUrl) || string.IsNullOrEmpty(FormUsername))
         {
             ErrorMessage = "URL 和用户名不能为空";
             return;
@@ -173,23 +244,44 @@ public class ArasLoginViewModel : ObservableObject
         {
             // 从 View 读取密码
             var pwd = OnRequestPassword?.Invoke() ?? "";
-            var info = new LoginInfo
+            var isPlaceholder = OnIsPasswordPlaceholder?.Invoke() ?? false;
+
+            string md5Password;
+            if (IsEditMode && isPlaceholder)
             {
-                Url = NewUrl,
-                Database = NewDatabase,
-                Username = NewUsername,
-                Password = pwd
+                // 编辑模式且密码未改动 — 保留原有MD5
+                var existing = await _loginConfigService.GetByIdAsync(EditingId!);
+                md5Password = existing?.Md5Password ?? "";
+            }
+            else
+            {
+                // 新密码 → MD5（32位小写十六进制）
+                md5Password = pwd.ToMd5();
+            }
+
+            var config = new ArasLoginConfig
+            {
+                Id = IsEditMode ? EditingId! : Guid.NewGuid().ToString("N")[..12],
+                Url = FormUrl,
+                DatabaseName = FormDatabase,
+                Username = FormUsername,
+                Md5Password = md5Password,
+                IsEnabled = false,  // 保存时不自动启用
+                CreatorOn = DateTime.Now,
+                UserId = CurrentUserContext.CurrentUserId
             };
-            await _loginService.LoginAsync(info);
-            await _configService.SaveLoginInfoAsync(info);
-            StatusMessage = "已保存: " + NewUsername + "@" + NewDatabase;
-            IsFormVisible = false;
+
+            await _loginConfigService.SaveAsync(config);
+            StatusMessage = IsEditMode
+                ? $"已更新: {FormUsername}@{FormDatabase}"
+                : $"已保存: {FormUsername}@{FormDatabase}";
+            CloseForm();
             await LoadAsync();
         }
         catch (Exception ex)
         {
             ErrorMessage = "保存失败: " + ex.Message;
-            await _errorLogService.LogErrorAsync("Aras登录-新增配置", ex.Message,
+            await _errorLogService.LogErrorAsync("Aras登录-保存配置", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
@@ -198,8 +290,70 @@ public class ArasLoginViewModel : ObservableObject
         }
     }
 
+    private void ToggleForm()
+    {
+        if (IsFormVisible)
+            CloseForm();
+        else
+        {
+            EditingId = null;
+            FormUrl = "";
+            FormDatabase = "";
+            FormUsername = "";
+            IsFormVisible = true;
+        }
+    }
+
+    private void CloseForm()
+    {
+        IsFormVisible = false;
+        EditingId = null;
+        FormUrl = "";
+        FormDatabase = "";
+        FormUsername = "";
+    }
+
+    private void CancelTranslate() { }
+
+    /// <summary>自动连接 — 应用启动后检查是否有启用的配置并自动连接</summary>
+    public async Task TryAutoConnectAsync()
+    {
+        try
+        {
+            var enabled = await _loginConfigService.GetEnabledAsync(CurrentUserContext.CurrentUserId);
+            if (enabled == null) return;
+
+            var info = new LoginInfo
+            {
+                Id = enabled.Id,
+                Url = enabled.Url,
+                Database = enabled.DatabaseName,
+                Username = enabled.Username,
+                Password = enabled.Md5Password,
+                IsPasswordHashed = true,
+                IsEnabled = true
+            };
+
+            await _loginService.LoginAsync(info);
+            _connectionPool.Reinitialize(10);
+            StatusMessage = $"自动连接: {enabled.Username}@{enabled.DatabaseName}";
+        }
+        catch (Exception ex)
+        {
+            // 自动连接失败不弹窗，仅记录日志
+            System.Diagnostics.Debug.WriteLine($"[ArasLogin] 自动连接失败: {ex.Message}");
+            await _errorLogService.LogErrorAsync("Aras登录-自动连接", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+        }
+    }
+
     /// <summary>
     /// 请求密码回调 — 由 View 层注册，从 PasswordBox 获取当前输入的密码
     /// </summary>
     public Func<string>? OnRequestPassword { get; set; }
+
+    /// <summary>
+    /// 密码是否为占位符回调 — View 层注册，判断编辑模式下密码是否被修改
+    /// </summary>
+    public Func<bool>? OnIsPasswordPlaceholder { get; set; }
 }

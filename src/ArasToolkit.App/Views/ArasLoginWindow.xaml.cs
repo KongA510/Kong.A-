@@ -8,28 +8,44 @@ namespace ArasToolkit.App.Views;
 /// </summary>
 public partial class ArasLoginWindow : Window
 {
+    private bool _isPasswordPlaceholder;
+
     public ArasLoginWindow(ArasLoginViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;
+
+        // 注册密码回调
+        viewModel.OnRequestPassword = () => NewPasswordBox.Password;
+        viewModel.OnIsPasswordPlaceholder = () => _isPasswordPlaceholder;
+
+        // 监听表单显示状态变化，编辑模式时设置密码占位符
+        viewModel.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(ArasLoginViewModel.IsFormVisible))
+            {
+                if (viewModel.IsFormVisible && viewModel.IsEditMode)
+                {
+                    // 编辑模式 — 密码框显示占位符
+                    NewPasswordBox.Password = "••••••••";
+                    _isPasswordPlaceholder = true;
+                }
+                else if (viewModel.IsFormVisible && !viewModel.IsEditMode)
+                {
+                    // 新增模式 — 清空密码框
+                    NewPasswordBox.Password = "";
+                    _isPasswordPlaceholder = false;
+                }
+            }
+        };
     }
 
     /// <summary>
-    /// ＋ 新增按钮 — 展开表单区域
-    /// </summary>
-    private void AddButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is ArasLoginViewModel vm)
-            vm.NewUrl = vm.NewUrl.Length > 0 ? "" : " "; // 切换表单显示
-    }
-
-    /// <summary>
-    /// 密码输入事件 — 将 PasswordBox 的密码写入 ViewModel 回调
+    /// 密码输入事件 — 用户输入时清除占位符标记
     /// </summary>
     private void NewPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
     {
-        if (DataContext is ArasLoginViewModel vm)
-            vm.OnRequestPassword = () => NewPasswordBox.Password;
+        _isPasswordPlaceholder = false;
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)

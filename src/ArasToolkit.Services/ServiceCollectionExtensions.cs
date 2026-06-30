@@ -64,6 +64,9 @@ public static class ServiceCollectionExtensions
         // 注册文本翻译服务（单例）
         services.AddSingleton<ITextTranslationService, TextTranslationService>();
 
+        // 注册 Aras 登录配置服务（单例，DB存储替代JSON）
+        services.AddSingleton<IArasLoginConfigService, ArasLoginConfigService>();
+
         // 注册对象类配置导入服务（单例）
         services.AddSingleton<IObjectClassImportService, ObjectClassImportService>();
 

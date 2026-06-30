@@ -40,6 +40,9 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>List配置导入日志表</summary>
     public DbSet<ListImportLog> ListImportLogs => Set<ListImportLog>();
 
+    /// <summary>Aras登录配置表</summary>
+    public DbSet<ArasLoginConfig> ArasLoginConfigs => Set<ArasLoginConfig>();
+
     /// <summary>缓存的连接字符串（避免重复读取文件）</summary>
     private static string? _cachedConnectionString;
 
@@ -244,6 +247,23 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.DisplayCreatedAt);
             entity.Ignore(e => e.StatusText);
             entity.Ignore(e => e.Summary);
+        });
+
+        // ===== ArasLoginConfig → aras_login_config 表 =====
+        modelBuilder.Entity<ArasLoginConfig>(entity =>
+        {
+            entity.ToTable("aras_login_config");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.Url).HasColumnName("url").IsRequired().HasMaxLength(500);
+            entity.Property(e => e.DatabaseName).HasColumnName("database_name").IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Username).HasColumnName("username").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Md5Password).HasColumnName("md5_password").HasMaxLength(32);
+            entity.Property(e => e.IsEnabled).HasColumnName("is_enabled");
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+
+            entity.Ignore(e => e.StatusText);
         });
    }
 
@@ -530,6 +550,28 @@ public class ArasToolkitDbContext : DbContext
                         sheet3_count INT NOT NULL DEFAULT 0,
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
+                END
+
+                -- ===== aras_login_config 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='aras_login_config')
+                BEGIN
+                    CREATE TABLE aras_login_config (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        url NVARCHAR(500) NOT NULL,
+                        database_name NVARCHAR(200) NOT NULL,
+                        username NVARCHAR(100) NOT NULL,
+                        md5_password NVARCHAR(32) NULL,
+                        is_enabled BIT NOT NULL DEFAULT 0,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE(),
+                        user_id NVARCHAR(100) NOT NULL
+                    );
+                END
+                ELSE
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='aras_login_config' AND COLUMN_NAME='creator_on')
+                        ALTER TABLE aras_login_config ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='aras_login_config' AND COLUMN_NAME='user_id')
+                        ALTER TABLE aras_login_config ADD user_id NVARCHAR(100) NULL;
                 END
             ";
             await Database.ExecuteSqlRawAsync(sql);

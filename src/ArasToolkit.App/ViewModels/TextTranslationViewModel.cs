@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using ArasToolkit.Core.Entities;
@@ -32,6 +33,10 @@ public class TextTranslationViewModel : ObservableObject
     private int _totalCount;
     private const int PageSizeOptions = 20;
 
+    // ===== 进度 + 取消 =====
+    private TranslationProgressInfo? _progress;
+    private CancellationTokenSource? _cts;
+
     public TextTranslationViewModel(
         ITextTranslationService translationService,
         IErrorLogService errorLogService)
@@ -51,6 +56,7 @@ public class TextTranslationViewModel : ObservableObject
 
         BrowseSourceCommand = new RelayCommand(_ => BrowseSourceFile());
         TranslateCommand = new RelayCommand(async _ => await TranslateAsync(), _ => !IsTranslating);
+        CancelCommand = new RelayCommand(_ => CancelTranslate(), _ => IsTranslating);
         OpenOutputFileCommand = new RelayCommand(_ => OpenOutputFile());
         RefreshHistoryCommand = new RelayCommand(async _ => await LoadHistoryAsync());
         DownloadTemplateCommand = new RelayCommand(_ => DownloadTemplate());
@@ -73,7 +79,19 @@ public class TextTranslationViewModel : ObservableObject
     public string? SelectedSourceLanguage { get => _selectedSourceLanguage; set => SetProperty(ref _selectedSourceLanguage, value); }
     public string CustomPrompt { get => _customPrompt; set => SetProperty(ref _customPrompt, value); }
     public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
-    public bool IsTranslating { get => _isTranslating; set { if (SetProperty(ref _isTranslating, value)) ((RelayCommand)TranslateCommand).RaiseCanExecuteChanged(); } }
+    public bool IsTranslating
+    {
+        get => _isTranslating;
+        set
+        {
+            if (SetProperty(ref _isTranslating, value))
+            {
+                ((RelayCommand)TranslateCommand).RaiseCanExecuteChanged();
+                ((RelayCommand)CancelCommand).RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(IsProgressIndeterminate));
+            }
+        }
+    }
     public ObservableCollection<string> TemplateTypes { get; }
     public ObservableCollection<string> SourceLanguages { get; }
     public ObservableCollection<TextTranslationRecord> HistoryRecords { get; }
@@ -86,8 +104,31 @@ public class TextTranslationViewModel : ObservableObject
     public int TotalCount { get => _totalCount; set { SetProperty(ref _totalCount, value); OnPropertyChanged(nameof(TotalPages)); } }
     public string PageInfo => $"第 {CurrentPage}/{TotalPages} 页，共 {TotalCount} 条";
 
+    // ===== 进度属性 =====
+    /// <summary>当前翻译进度（null=未开始/已完成）</summary>
+    public TranslationProgressInfo? Progress
+    {
+        get => _progress;
+        set
+        {
+            if (SetProperty(ref _progress, value))
+            {
+                OnPropertyChanged(nameof(ProgressPercentage));
+                OnPropertyChanged(nameof(ProgressText));
+                OnPropertyChanged(nameof(IsProgressIndeterminate));
+            }
+        }
+    }
+    /// <summary>进度百分比 0-100</summary>
+    public double ProgressPercentage => Progress?.Percentage ?? 0;
+    /// <summary>进度状态文本</summary>
+    public string ProgressText => Progress?.StatusText ?? "";
+    /// <summary>是否显示不确定进度条</summary>
+    public bool IsProgressIndeterminate => Progress == null && IsTranslating;
+
     public ICommand BrowseSourceCommand { get; }
     public ICommand TranslateCommand { get; }
+    public ICommand CancelCommand { get; }
     public ICommand OpenOutputFileCommand { get; }
     public ICommand RefreshHistoryCommand { get; }
     public ICommand DownloadTemplateCommand { get; }
@@ -155,21 +196,60 @@ public class TextTranslationViewModel : ObservableObject
         if (SelectedTemplateType == "自定义翻译" && string.IsNullOrWhiteSpace(SelectedSourceLanguage)) { StatusMessage = "请选择源语言"; return; }
 
         IsTranslating = true;
-        StatusMessage = "正在翻译...";
+        Progress = null;          // 先显示不确定进度条
+        StatusMessage = "正在准备翻译...";
+
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
         try
         {
-            var progress = new Progress<string>(msg => StatusMessage = msg);
-            var record = await _translationService.TranslateAsync(SourceFilePath, SelectedTemplateType, SelectedSourceLanguage, CustomPrompt, progress);
+            // Progress<T> 在 UI 线程构造 → 回调自动在 UI 线程执行
+            var progress = new Progress<TranslationProgressInfo>(p =>
+            {
+                Progress = p;
+                StatusMessage = p.StatusText;
+            });
+
+            var record = await _translationService.TranslateAsync(
+                SourceFilePath, SelectedTemplateType, SelectedSourceLanguage,
+                CustomPrompt, progress, token);
+
             StatusMessage = $"翻译完成！共 {record.SourceRowCount} 条，分 {record.BatchCount} 批";
             CurrentPage = 1;
             await LoadHistoryAsync();
         }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "翻译已取消";
+            await _errorLogService.LogErrorAsync("文本翻译-取消", "用户取消翻译",
+                ErrorLog.LevelP1, null);
+        }
         catch (Exception ex)
         {
             StatusMessage = $"翻译失败: {ex.Message}";
-            await _errorLogService.LogErrorAsync("文本翻译-翻译", ex.Message, ArasToolkit.Core.Entities.ErrorLog.LevelP1, ex.StackTrace);
+            await _errorLogService.LogErrorAsync("文本翻译-翻译", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
         }
-        finally { IsTranslating = false; }
+        finally
+        {
+            IsTranslating = false;
+            _cts?.Dispose();
+            _cts = null;
+        }
+    }
+
+    private void CancelTranslate()
+    {
+        try
+        {
+            _cts?.Cancel();
+            StatusMessage = "正在取消翻译...";
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[TextTranslation] 取消异常: {ex.Message}");
+        }
     }
 
     private void OpenOutputFile()

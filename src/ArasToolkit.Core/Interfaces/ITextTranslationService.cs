@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using ArasToolkit.Core.Entities;
+using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.Core.Interfaces;
 
@@ -27,7 +29,8 @@ public interface ITextTranslationService
         string templateType,
         string? sourceLanguage = null,
         string? customPrompt = null,
-        IProgress<string>? progress = null);
+        IProgress<TranslationProgressInfo>? progress = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>获取历史翻译记录列表（分页）</summary>
     Task<(List<TextTranslationRecord> Items, int TotalCount)> GetHistoryAsync(string? userId = null, int page = 1, int pageSize = 20);

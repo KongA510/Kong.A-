@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Interfaces;
@@ -99,7 +100,8 @@ public class TextTranslationService : ITextTranslationService
         string templateType,
         string? sourceLanguage = null,
         string? customPrompt = null,
-        IProgress<string>? progress = null)
+        IProgress<TranslationProgressInfo>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         var sourceFileName = Path.GetFileNameWithoutExtension(filePath);
         var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
@@ -109,14 +111,24 @@ public class TextTranslationService : ITextTranslationService
         var outputPath = Path.Combine(outputDir, outputFileName);
 
         // 1. 读取源数据
-        progress?.Report("正在读取源文件...");
+        progress?.Report(new TranslationProgressInfo
+        {
+            Phase = "读取源文件",
+            ItemName = Path.GetFileName(filePath)
+        });
         var allRows = await ReadSourceRowsAsync(filePath, maxRows: int.MaxValue);
         if (allRows.Count == 0)
             throw new InvalidOperationException("源文件中没有可翻译的数据");
 
         const int batchSize = 100;
         var batches = SplitIntoBatches(allRows, batchSize);
-        progress?.Report($"共 {allRows.Count} 条数据，分 {batches.Count} 批翻译");
+        progress?.Report(new TranslationProgressInfo
+        {
+            Phase = "准备翻译",
+            OverallTotal = allRows.Count,
+            PhaseTotal = batches.Count,
+            ItemName = $"共 {allRows.Count} 条，分 {batches.Count} 批"
+        });
 
         // 2. 获取启用的 AI 模型
         var aiModel = await GetEnabledAiModelAsync();
@@ -129,17 +141,38 @@ public class TextTranslationService : ITextTranslationService
 
         // 3. 分批串行翻译
         var allResults = new List<string[]>();
+        int processedCount = 0;
         for (int i = 0; i < batches.Count; i++)
         {
-            progress?.Report($"正在翻译第 {i + 1}/{batches.Count} 批 ({batches[i].Count} 条)...");
-            var prompt = BuildPrompt(batches[i], templateType, sourceLanguage, customPrompt);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var batch = batches[i];
+            var batchLabel = $"第 {i + 1}/{batches.Count} 批 ({batch.Count} 条)";
+            progress?.Report(new TranslationProgressInfo
+            {
+                Phase = "翻译中",
+                Current = i + 1,
+                PhaseTotal = batches.Count,
+                OverallCurrent = processedCount,
+                OverallTotal = allRows.Count,
+                ItemName = batchLabel
+            });
+
+            var prompt = BuildPrompt(batch, templateType, sourceLanguage, customPrompt);
             var responseText = await CallAIAsync(apiUrl, apiKey, modelId, prompt);
-            var parsedRows = ParseTranslationResult(responseText, batches[i].Count, templateType);
+            var parsedRows = ParseTranslationResult(responseText, batch.Count, templateType);
             allResults.AddRange(parsedRows);
+            processedCount += batch.Count;
         }
 
         // 4. 写入输出 Excel
-        progress?.Report("正在生成输出文件...");
+        progress?.Report(new TranslationProgressInfo
+        {
+            Phase = "生成输出文件",
+            OverallCurrent = allRows.Count,
+            OverallTotal = allRows.Count,
+            ItemName = outputFileName
+        });
         await WriteOutputExcelAsync(outputPath, allRows, allResults, templateType, sourceLanguage);
 
         // 5. 保存到数据库
@@ -158,7 +191,13 @@ public class TextTranslationService : ITextTranslationService
         };
         await SaveRecordAsync(record);
 
-        progress?.Report($"翻译完成！输出文件: {outputFileName}");
+        progress?.Report(new TranslationProgressInfo
+        {
+            Phase = "完成",
+            OverallCurrent = allRows.Count,
+            OverallTotal = allRows.Count,
+            ItemName = outputFileName
+        });
         return record;
     }
 

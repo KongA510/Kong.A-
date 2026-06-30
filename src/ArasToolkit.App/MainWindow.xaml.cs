@@ -82,7 +82,7 @@ public partial class MainWindow : Window
         LoginContentControl.Content = new AppLoginView { DataContext = appLoginVM };
    }
 
-    private void OnAppLoginSucceeded()
+    private async void OnAppLoginSucceeded()
    {
        _mainVM.IsLoggedIn = true;
        _mainVM.RefreshVersion();
@@ -91,6 +91,17 @@ public partial class MainWindow : Window
        {
            _mainVM.SelectedMenuItem = _mainVM.MenuItems[0];
            NavigateToPage(_mainVM.MenuItems[0]);
+       }
+
+       // 自动连接已启用的 Aras 配置
+       try
+       {
+           var arasLoginVM = App.Services.GetRequiredService<ArasLoginViewModel>();
+           await arasLoginVM.TryAutoConnectAsync();
+       }
+       catch (Exception ex)
+       {
+           System.Diagnostics.Debug.WriteLine($"[MainWindow] Aras自动连接异常: {ex.Message}");
        }
    }
 
