@@ -112,6 +112,7 @@ public partial class MainWindow : Window
                 "窗体翻译" => CreatePlaceholder("窗体翻译", "Aras窗体翻译工具 - 功能开发中，敬请期待..."),
                 "窗体配置" => CreatePlaceholder("窗体配置", "Aras窗体配置工具 - 功能开发中，敬请期待..."),
                 "对象类配置" => new ObjectClassConfigView { DataContext = App.Services.GetRequiredService<ObjectClassConfigViewModel>() },
+                "List配置" => new ListConfigView { DataContext = App.Services.GetRequiredService<ListConfigViewModel>() },
                 "属性配置" => CreatePlaceholder("属性配置", "Aras属性配置工具 - 功能开发中，敬请期待..."),
                 "数据汇入" => new DataImportView { DataContext = App.Services.GetRequiredService<DataImportViewModel>() },
                 "权限配置" => CreatePlaceholder("权限配置", "Aras权限配置工具 - 功能开发中，敬请期待..."),

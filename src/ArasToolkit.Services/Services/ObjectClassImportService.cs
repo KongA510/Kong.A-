@@ -566,7 +566,8 @@ public class ObjectClassImportService : IObjectClassImportService
         var sortOrder = row.GetValueOrDefault(3, "");                // 页签序号
         var label = row.GetValueOrDefault(4, "");                    // 页签标签
         var forRelatedOption = row.GetValueOrDefault(7, "");         // 新建关系选项
-
+        var formisOpen = row.GetValueOrDefault(8, "");               // 打开相关窗体 
+        var related_name = row.GetValueOrDefault(9, "");             // 相关对象类
         // 新增模式: 创建全新 RelationshipType
         if (importMode == "新增")
         {
@@ -587,8 +588,16 @@ public class ObjectClassImportService : IObjectClassImportService
                    // 搜索与分页
                    $"      <auto_search>{DefaultAutoSearch}</auto_search>" +
                    $"      <default_page_size>{DefaultPageSize}</default_page_size>" +
+                   // 打开相关窗体
+                   $"       <new_show_related>{formisOpen}</new_show_related>" +
                    // 排序
                    $"      <sort_order>{sortOrder}</sort_order>" +
+                   // 关联对象（覆盖模式下复用关联对象名称）
+                   $"      <related_id>" +
+                   $"          <Item type='ItemType' action='get' select='id'>" +
+                   $"              <name>{related_name}</name>" +
+                   $"          </Item>" +
+                   $"      </related_id>" +
                    $"   </Item>" +
                    $"</AML>";
         }
@@ -611,12 +620,14 @@ public class ObjectClassImportService : IObjectClassImportService
                // 搜索与分页
                $"      <auto_search>{DefaultAutoSearch}</auto_search>" +
                $"      <default_page_size>{DefaultPageSize}</default_page_size>" +
+               // 打开相关窗体
+               $"       <new_show_related>{formisOpen}</new_show_related>" +
                // 排序
                $"      <sort_order>{sortOrder}</sort_order>" +
-               // 关联对象（覆盖模式下复用父对象名称）
+               // 关联对象（覆盖模式下复用关联对象名称）
                $"      <related_id>" +
                $"          <Item type='ItemType' action='get' select='id'>" +
-               $"              <name>{sourceName}</name>" +
+               $"              <name>{related_name}</name>" +
                $"          </Item>" +
                $"      </related_id>" +
                $"   </Item>" +
@@ -626,14 +637,18 @@ public class ObjectClassImportService : IObjectClassImportService
     // ==================== 私有辅助方法 ====================
 
     /// <summary>
-    /// 写入 Excel 表头行（加粗）
+    /// 写入 Excel 表头行（加粗 + 淡橙色背景，便于区分表头与数据区）
     /// </summary>
     private static void WriteHeaders(ExcelWorksheet ws, string[] headers)
     {
         for (int i = 0; i < headers.Length; i++)
         {
-            ws.Cells[1, i + 1].Value = headers[i];
-            ws.Cells[1, i + 1].Style.Font.Bold = true;
+            var cell = ws.Cells[1, i + 1];
+            cell.Value = headers[i];
+            cell.Style.Font.Bold = true;
+            // 淡橙色背景 (#FDEBD0)
+            cell.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+            cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(253, 235, 208));
         }
     }
 

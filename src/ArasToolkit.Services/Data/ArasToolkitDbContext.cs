@@ -37,6 +37,9 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>对象类配置导入日志表</summary>
     public DbSet<ObjectClassImportLog> ObjectClassImportLogs => Set<ObjectClassImportLog>();
 
+    /// <summary>List配置导入日志表</summary>
+    public DbSet<ListImportLog> ListImportLogs => Set<ListImportLog>();
+
     /// <summary>缓存的连接字符串（避免重复读取文件）</summary>
     private static string? _cachedConnectionString;
 
@@ -213,6 +216,28 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.ErrorLog).HasColumnName("error_log");
             entity.Property(e => e.Sheet1Count).HasColumnName("sheet1_count");
             entity.Property(e => e.Sheet2Count).HasColumnName("sheet2_count");
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+
+            entity.Ignore(e => e.DisplayImportTime);
+            entity.Ignore(e => e.DisplayCreatedAt);
+            entity.Ignore(e => e.StatusText);
+            entity.Ignore(e => e.Summary);
+        });
+
+        // ===== List导入日志表 =====
+        modelBuilder.Entity<ListImportLog>(entity =>
+        {
+            entity.ToTable("list_import_log");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.ImportTime).HasColumnName("import_time").IsRequired();
+            entity.Property(e => e.ImportFile).HasColumnName("import_file").IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(20);
+            entity.Property(e => e.ErrorLog).HasColumnName("error_log");
+            entity.Property(e => e.Sheet1Count).HasColumnName("sheet1_count");
+            entity.Property(e => e.Sheet2Count).HasColumnName("sheet2_count");
+            entity.Property(e => e.Sheet3Count).HasColumnName("sheet3_count");
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
 
             entity.Ignore(e => e.DisplayImportTime);
@@ -486,6 +511,23 @@ public class ArasToolkitDbContext : DbContext
                         error_log NVARCHAR(MAX) NULL,
                         sheet1_count INT NOT NULL DEFAULT 0,
                         sheet2_count INT NOT NULL DEFAULT 0,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+
+                -- ===== list_import_log 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='list_import_log')
+                BEGIN
+                    CREATE TABLE list_import_log (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        user_id NVARCHAR(100) NOT NULL,
+                        import_time DATETIME2 NOT NULL DEFAULT GETDATE(),
+                        import_file NVARCHAR(500) NOT NULL,
+                        status NVARCHAR(20) NOT NULL DEFAULT 'Success',
+                        error_log NVARCHAR(MAX) NULL,
+                        sheet1_count INT NOT NULL DEFAULT 0,
+                        sheet2_count INT NOT NULL DEFAULT 0,
+                        sheet3_count INT NOT NULL DEFAULT 0,
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
                 END
