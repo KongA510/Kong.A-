@@ -596,6 +596,21 @@ public class ArasToolkitDbContext : DbContext
                     IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='aras_login_config' AND COLUMN_NAME='user_id')
                         ALTER TABLE aras_login_config ADD user_id NVARCHAR(100) NULL;
                 END
+
+                -- ===== property_import_log 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='property_import_log')
+                BEGIN
+                    CREATE TABLE property_import_log (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        user_id NVARCHAR(100) NOT NULL,
+                        import_time DATETIME2 NOT NULL DEFAULT GETDATE(),
+                        import_file NVARCHAR(500) NOT NULL,
+                        status NVARCHAR(20) NOT NULL DEFAULT 'Success',
+                        error_log NVARCHAR(MAX) NULL,
+                        sheet1_count INT NOT NULL DEFAULT 0,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
             ";
             await Database.ExecuteSqlRawAsync(sql);
         }
