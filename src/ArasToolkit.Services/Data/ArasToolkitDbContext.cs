@@ -46,6 +46,12 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>Aras登录配置表</summary>
     public DbSet<ArasLoginConfig> ArasLoginConfigs => Set<ArasLoginConfig>();
 
+    /// <summary>权限配置导入日志表</summary>
+    public DbSet<PermissionImportLog> PermissionImportLogs => Set<PermissionImportLog>();
+
+    /// <summary>生命周期配置导入日志表</summary>
+    public DbSet<LifecycleImportLog> LifecycleImportLogs => Set<LifecycleImportLog>();
+
     /// <summary>缓存的连接字符串（避免重复读取文件）</summary>
     private static string? _cachedConnectionString;
 
@@ -287,6 +293,46 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
 
             entity.Ignore(e => e.StatusText);
+        });
+
+        // ===== 权限配置导入日志表 =====
+        modelBuilder.Entity<PermissionImportLog>(entity =>
+        {
+            entity.ToTable("permission_import_log");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.ImportTime).HasColumnName("import_time").IsRequired();
+            entity.Property(e => e.ImportFile).HasColumnName("import_file").IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(20);
+            entity.Property(e => e.ErrorLog).HasColumnName("error_log");
+            entity.Property(e => e.Sheet1Count).HasColumnName("sheet1_count");
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+
+            entity.Ignore(e => e.DisplayImportTime);
+            entity.Ignore(e => e.DisplayCreatedAt);
+            entity.Ignore(e => e.StatusText);
+            entity.Ignore(e => e.Summary);
+        });
+
+        // ===== 生命周期配置导入日志表 =====
+        modelBuilder.Entity<LifecycleImportLog>(entity =>
+        {
+            entity.ToTable("lifecycle_import_log");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.ImportTime).HasColumnName("import_time").IsRequired();
+            entity.Property(e => e.ImportFile).HasColumnName("import_file").IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(20);
+            entity.Property(e => e.ErrorLog).HasColumnName("error_log");
+            entity.Property(e => e.Sheet1Count).HasColumnName("sheet1_count");
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+
+            entity.Ignore(e => e.DisplayImportTime);
+            entity.Ignore(e => e.DisplayCreatedAt);
+            entity.Ignore(e => e.StatusText);
+            entity.Ignore(e => e.Summary);
         });
    }
 
@@ -601,6 +647,36 @@ public class ArasToolkitDbContext : DbContext
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='property_import_log')
                 BEGIN
                     CREATE TABLE property_import_log (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        user_id NVARCHAR(100) NOT NULL,
+                        import_time DATETIME2 NOT NULL DEFAULT GETDATE(),
+                        import_file NVARCHAR(500) NOT NULL,
+                        status NVARCHAR(20) NOT NULL DEFAULT 'Success',
+                        error_log NVARCHAR(MAX) NULL,
+                        sheet1_count INT NOT NULL DEFAULT 0,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+
+                -- ===== permission_import_log 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='permission_import_log')
+                BEGIN
+                    CREATE TABLE permission_import_log (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        user_id NVARCHAR(100) NOT NULL,
+                        import_time DATETIME2 NOT NULL DEFAULT GETDATE(),
+                        import_file NVARCHAR(500) NOT NULL,
+                        status NVARCHAR(20) NOT NULL DEFAULT 'Success',
+                        error_log NVARCHAR(MAX) NULL,
+                        sheet1_count INT NOT NULL DEFAULT 0,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+
+                -- ===== lifecycle_import_log 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='lifecycle_import_log')
+                BEGIN
+                    CREATE TABLE lifecycle_import_log (
                         id NVARCHAR(12) NOT NULL PRIMARY KEY,
                         user_id NVARCHAR(100) NOT NULL,
                         import_time DATETIME2 NOT NULL DEFAULT GETDATE(),

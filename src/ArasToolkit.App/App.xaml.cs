@@ -63,6 +63,8 @@ public partial class App : Application
         services.AddTransient<ObjectClassConfigViewModel>();
         services.AddTransient<ListConfigViewModel>();
         services.AddTransient<PropertyConfigViewModel>();
+        services.AddTransient<PermissionConfigViewModel>();
+        services.AddTransient<LifecycleConfigViewModel>();
         services.AddTransient<FileExplorerViewModel>();
         services.AddTransient<SettingsWindow>();
         services.AddTransient<ArasLoginWindow>();
@@ -87,6 +89,8 @@ public partial class App : Application
         services.AddTransient<ObjectClassConfigView>();
         services.AddTransient<ListConfigView>();
         services.AddTransient<PropertyConfigView>();
+        services.AddTransient<PermissionConfigView>();
+        services.AddTransient<LifecycleConfigView>();
         services.AddTransient<FileExplorerView>();
 
         _serviceProvider = services.BuildServiceProvider();

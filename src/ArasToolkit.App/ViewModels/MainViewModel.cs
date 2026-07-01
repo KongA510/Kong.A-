@@ -114,7 +114,8 @@ public class MainViewModel : ObservableObject
         sysConfig.Children.Add(new MenuItemInfo { Name = "List配置", Icon = "FormatListBulleted", CardIcon = "📋", Description = "批量创建Aras List主档和菜单项" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "属性配置", Icon = "Tune", CardIcon = "🔧", Description = "批量创建Aras对象类属性定义" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "📀", Description = "Excel数据导入Aras系统" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "权限配置", Icon = "ShieldAccount", CardIcon = "🔒", Description = "Aras权限配置工具", IsPlaceholder = true });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "生命周期配置", Icon = "Refresh", CardIcon = "🔄", Description = "批量创建Aras对象类的生命周期状态定义" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "权限配置", Icon = "ShieldAccount", CardIcon = "🔒", Description = "Aras权限配置工具" });
         MenuItems.Add(sysConfig);
 
         // ===== 二级菜单：系统日志（更新日志 / 错误日志 / 敏感操作日志） =====

@@ -76,6 +76,12 @@ public static class ServiceCollectionExtensions
         // 注册属性配置导入服务（单例）
         services.AddSingleton<IPropertyImportService, PropertyImportService>();
 
+        // 注册权限配置导入服务（单例）
+        services.AddSingleton<IPermissionImportService, PermissionImportService>();
+
+        // 注册生命周期配置导入服务（单例）
+        services.AddSingleton<ILifecycleImportService, LifecycleImportService>();
+
         // 注册文件浏览器服务（单例，纯文件系统操作）
         services.AddSingleton<IFileExplorerService, FileExplorerService>();
 

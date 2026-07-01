@@ -70,6 +70,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "属性配置", Description = "批量创建Aras对象类属性定义", Icon = "🔧" },
         new() { Name = "数据汇入", Description = "Aras 数据汇入工具", Icon = "📀" },
         new() { Name = "权限配置", Description = "Aras权限配置工具", Icon = "🔒" },
+        new() { Name = "生命周期配置", Description = "批量创建Aras对象类的生命周期状态定义", Icon = "🔄" },
         new() { Name = "更新日志", Description = "系统更新日志与版本记录", Icon = "📜" },
         new() { Name = "错误日志", Description = "系统错误记录与排查", Icon = "🐛" },
         new() { Name = "敏感操作日志", Description = "业务操作审计轨迹记录", Icon = "🔒" },
