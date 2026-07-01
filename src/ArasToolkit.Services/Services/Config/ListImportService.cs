@@ -277,15 +277,15 @@ public class ListImportService : IListImportService
     /// </summary>
     private static string BuildListMasterAml(Dictionary<int, string> row, string importMode)
     {
-        var name = row.GetValueOrDefault(0, "");
-        var label = row.GetValueOrDefault(1, "");                         // 备注说明
+        var name = row.GetValueOrDefault(1, "");
+        var label = row.GetValueOrDefault(2, "");                         // 备注说明
 
         if (importMode == "新增")
         {
             return $"<AML>" +
                    $"  <Item type='List' action='add'>" +
                    $"      <name>{name}</name>" +
-                   $"      <label>{label}</label>" +
+                   $"      <description>{label}</description>" +
                    $"  </Item>" +
                    $"</AML>";
         }
@@ -293,7 +293,7 @@ public class ListImportService : IListImportService
         return $"<AML>" +
                $"  <Item type='List' action='merge' where=\"List.name='{name}'\">" +
                $"      <name>{name}</name>" +
-               $"      <label>{label}</label>" +
+               $"      <description>{label}</description>" +
                $"  </Item>" +
                $"</AML>";
     }
@@ -311,12 +311,12 @@ public class ListImportService : IListImportService
     /// </summary>
     private static string BuildMenuContentAml(Dictionary<int, string> row, string importMode)
     {
-        var parentName = row.GetValueOrDefault(0, "");                    // 父阶名称
-        var label = row.GetValueOrDefault(1, "");                         // 显示标签（简）
-        var labelZt = row.GetValueOrDefault(2, "");                       // 显示标签（繁）
-        var labelEn = row.GetValueOrDefault(3, "");                       // 显示标签（英）
-        var value = row.GetValueOrDefault(4, "");                         // 数据库存储值
-        var sortOrder = row.GetValueOrDefault(5, "");                     // 序号
+        var parentName = row.GetValueOrDefault(1, "");                    // 父阶名称
+        var label = row.GetValueOrDefault(2, "");                         // 显示标签（简）
+        var labelZt = row.GetValueOrDefault(3, "");                       // 显示标签（繁）
+        var labelEn = row.GetValueOrDefault(4, "");                       // 显示标签（英）
+        var value = row.GetValueOrDefault(5, "");                         // 数据库存储值
+        var sortOrder = row.GetValueOrDefault(6, "");                     // 序号
 
         if (importMode == "新增")
         {
