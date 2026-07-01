@@ -457,7 +457,8 @@ public class ListImportService : IListImportService
                 PhaseTotal = rows.Count,
                 OverallCurrent = overallIdx,
                 OverallTotal = totalRows,
-                ItemName = itemName
+                ItemName = itemName,
+                ErrorCount = failedDetails.Count
             });
 
             try

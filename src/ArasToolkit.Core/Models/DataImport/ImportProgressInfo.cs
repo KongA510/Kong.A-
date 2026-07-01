@@ -36,6 +36,11 @@ public class ImportProgressInfo
     public string ItemName { get; set; } = string.Empty;
 
     /// <summary>
+    /// 累计错误数
+    /// </summary>
+    public int ErrorCount { get; set; }
+
+    /// <summary>
     /// 全局进度百分比（0-100，精确到 1 位小数）
     /// </summary>
     public double Percentage =>

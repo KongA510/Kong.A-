@@ -140,6 +140,7 @@ public class ListConfigViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(ProgressPercentage));
                 OnPropertyChanged(nameof(ProgressText));
+                OnPropertyChanged(nameof(ImportErrorCount));
                 OnPropertyChanged(nameof(IsProgressIndeterminate));
             }
         }
@@ -147,6 +148,7 @@ public class ListConfigViewModel : ObservableObject
 
     public double ProgressPercentage => ImportProgress?.Percentage ?? 0;
     public string ProgressText => ImportProgress?.StatusText ?? "";
+    public int ImportErrorCount => ImportProgress?.ErrorCount ?? 0;
     public bool IsProgressIndeterminate => ImportProgress == null && IsImporting;
 
     // ===== 分页 =====
