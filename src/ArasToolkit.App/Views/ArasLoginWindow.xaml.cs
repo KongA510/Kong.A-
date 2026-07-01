@@ -9,6 +9,7 @@ namespace ArasToolkit.App.Views;
 public partial class ArasLoginWindow : Window
 {
     private bool _isPasswordPlaceholder;
+    private bool _isSettingPasswordProgrammatically;
 
     public ArasLoginWindow(ArasLoginViewModel viewModel)
     {
@@ -26,13 +27,15 @@ public partial class ArasLoginWindow : Window
             {
                 if (viewModel.IsFormVisible && viewModel.IsEditMode)
                 {
-                    // 编辑模式 — 密码框显示占位符
+                    // 编辑模式 — 密码框显示占位符（程序赋值，不触发用户输入逻辑）
+                    _isSettingPasswordProgrammatically = true;
                     NewPasswordBox.Password = "••••••••";
                     _isPasswordPlaceholder = true;
                 }
                 else if (viewModel.IsFormVisible && !viewModel.IsEditMode)
                 {
                     // 新增模式 — 清空密码框
+                    _isSettingPasswordProgrammatically = true;
                     NewPasswordBox.Password = "";
                     _isPasswordPlaceholder = false;
                 }
@@ -41,10 +44,15 @@ public partial class ArasLoginWindow : Window
     }
 
     /// <summary>
-    /// 密码输入事件 — 用户输入时清除占位符标记
+    /// 密码输入事件 — 仅在用户真实输入时清除占位符标记
     /// </summary>
     private void NewPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
     {
+        if (_isSettingPasswordProgrammatically)
+        {
+            _isSettingPasswordProgrammatically = false;
+            return;
+        }
         _isPasswordPlaceholder = false;
     }
 

@@ -12,7 +12,6 @@ public class ArasLoginViewModel : ObservableObject
     private readonly IConfigService _configService;
     private readonly ILoginService _loginService;
     private readonly IArasConnectionService _connectionService;
-    private readonly IArasConnectionPool _connectionPool;
     private readonly IArasLoginConfigService _loginConfigService;
     private readonly IErrorLogService _errorLogService;
 
@@ -25,14 +24,12 @@ public class ArasLoginViewModel : ObservableObject
         IConfigService configService,
         ILoginService loginService,
         IArasConnectionService connectionService,
-        IArasConnectionPool connectionPool,
         IArasLoginConfigService loginConfigService,
         IErrorLogService errorLogService)
     {
         _configService = configService;
         _loginService = loginService;
         _connectionService = connectionService;
-        _connectionPool = connectionPool;
         _loginConfigService = loginConfigService;
         _errorLogService = errorLogService;
 
@@ -169,9 +166,7 @@ public class ArasLoginViewModel : ObservableObject
             {
                 await _loginConfigService.EnableAsync(info.Id, CurrentUserContext.CurrentUserId);
             }
-            // 重建连接池
-            _connectionPool.Reinitialize(10);
-            StatusMessage = "已切换到 " + info.Username + "@" + info.Database + "，连接池已更新";
+            StatusMessage = "已切换到 " + info.Username + "@" + info.Database;
             // 刷新列表以更新启用状态
             await LoadAsync();
         }
@@ -252,6 +247,11 @@ public class ArasLoginViewModel : ObservableObject
                 // 编辑模式且密码未改动 — 保留原有MD5
                 var existing = await _loginConfigService.GetByIdAsync(EditingId!);
                 md5Password = existing?.Md5Password ?? "";
+                if (string.IsNullOrEmpty(md5Password))
+                {
+                    ErrorMessage = "请输入密码";
+                    return;
+                }
             }
             else
             {
@@ -335,7 +335,6 @@ public class ArasLoginViewModel : ObservableObject
             };
 
             await _loginService.LoginAsync(info);
-            _connectionPool.Reinitialize(10);
             StatusMessage = $"自动连接: {enabled.Username}@{enabled.DatabaseName}";
         }
         catch (Exception ex)

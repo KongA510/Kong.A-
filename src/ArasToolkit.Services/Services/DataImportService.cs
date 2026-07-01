@@ -269,11 +269,18 @@ public class DataImportService : IDataImportService
 
         try
         {
-            // 连接池大小验证
-            if (maxConcurrency > 1 && _connectionPool.PoolSize < maxConcurrency)
+            // 连接池懒初始化 — 仅在多线程导入时按需创建
+            if (maxConcurrency > 1)
             {
-                await writer.WriteLineAsync("[警告] 连接池大小(" + _connectionPool.PoolSize + ")不足，回退为单线程");
-                maxConcurrency = 1;
+                if (_connectionPool.PoolSize < maxConcurrency)
+                {
+                    await _connectionPool.ReinitializeAsync(maxConcurrency);
+                }
+                if (_connectionPool.PoolSize < maxConcurrency)
+                {
+                    await writer.WriteLineAsync("[警告] 连接池初始化失败，回退为单线程");
+                    maxConcurrency = 1;
+                }
             }
 
             using var package = new ExcelPackage(new FileInfo(filePath), true);

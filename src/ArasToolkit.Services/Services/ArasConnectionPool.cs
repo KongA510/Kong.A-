@@ -70,14 +70,31 @@ public class ArasConnectionPool : IArasConnectionPool
     }
 
     /// <summary>
-    /// 从池中租用一个连接（阻塞等待直到有可用连接）
+    /// 从全局单例 CurrentConnection 读取登录信息重建连接池（异步版本，不阻塞 UI）。
+    /// 切换全局连接后调用此方法同步池状态。poolSize=0 时仅清空。
+    /// </summary>
+    public async Task ReinitializeAsync(int poolSize)
+    {
+        await Task.Run(() => Reinitialize(poolSize)).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// 从池中租用一个连接（阻塞等待直到有可用连接，超时抛出异常）
     /// </summary>
     public PooledConnection Rent()
     {
         // ConcurrentBag.TryTake 是非阻塞的，使用自旋+短暂休眠实现阻塞等待
         PooledConnection? item;
+        int waited = 0;
         while (!_pool.TryTake(out item))
+        {
+            if (PoolSize == 0)
+                throw new InvalidOperationException("连接池未初始化，请先调用 Reinitialize");
             Thread.Sleep(10);
+            waited += 10;
+            if (waited > 30_000)
+                throw new TimeoutException("等待可用连接超时（30秒）");
+        }
         return item;
     }
 

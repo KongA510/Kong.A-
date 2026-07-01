@@ -18,6 +18,12 @@ public interface IArasConnectionPool
     /// </summary>
     void Reinitialize(int poolSize);
 
+    /// <summary>
+    /// 异步重建连接池（在后台线程创建连接，不阻塞 UI）。
+    /// poolSize=0 时仅清空。
+    /// </summary>
+    Task ReinitializeAsync(int poolSize);
+
     /// <summary>清空连接池，注销所有池中连接</summary>
     void Clear();
 }
