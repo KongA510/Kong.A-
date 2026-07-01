@@ -73,6 +73,9 @@ public static class ServiceCollectionExtensions
         // 注册List配置导入服务（单例）
         services.AddSingleton<IListImportService, ListImportService>();
 
+        // 注册属性配置导入服务（单例）
+        services.AddSingleton<IPropertyImportService, PropertyImportService>();
+
         // 注册文件浏览器服务（单例，纯文件系统操作）
         services.AddSingleton<IFileExplorerService, FileExplorerService>();
 

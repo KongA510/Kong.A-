@@ -112,7 +112,7 @@ public class MainViewModel : ObservableObject
         sysConfig.Children.Add(new MenuItemInfo { Name = "窗体配置", Icon = "Cog", CardIcon = "🖼️", Description = "Aras窗体配置工具", IsPlaceholder = true });
         sysConfig.Children.Add(new MenuItemInfo { Name = "对象类配置", Icon = "CubeOutline", CardIcon = "📦", Description = "批量创建Aras对象类和关系类" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "List配置", Icon = "FormatListBulleted", CardIcon = "📋", Description = "批量创建Aras List主档和菜单项" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "属性配置", Icon = "Tune", CardIcon = "🔧", Description = "Aras属性配置工具", IsPlaceholder = true });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "属性配置", Icon = "Tune", CardIcon = "🔧", Description = "批量创建Aras对象类属性定义" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "📀", Description = "Excel数据导入Aras系统" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "权限配置", Icon = "ShieldAccount", CardIcon = "🔒", Description = "Aras权限配置工具", IsPlaceholder = true });
         MenuItems.Add(sysConfig);

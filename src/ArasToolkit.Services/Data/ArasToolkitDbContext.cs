@@ -40,6 +40,9 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>List配置导入日志表</summary>
     public DbSet<ListImportLog> ListImportLogs => Set<ListImportLog>();
 
+    /// <summary>属性配置导入日志表</summary>
+    public DbSet<PropertyImportLog> PropertyImportLogs => Set<PropertyImportLog>();
+
     /// <summary>Aras登录配置表</summary>
     public DbSet<ArasLoginConfig> ArasLoginConfigs => Set<ArasLoginConfig>();
 
@@ -241,6 +244,26 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.Sheet1Count).HasColumnName("sheet1_count");
             entity.Property(e => e.Sheet2Count).HasColumnName("sheet2_count");
             entity.Property(e => e.Sheet3Count).HasColumnName("sheet3_count");
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+
+            entity.Ignore(e => e.DisplayImportTime);
+            entity.Ignore(e => e.DisplayCreatedAt);
+            entity.Ignore(e => e.StatusText);
+            entity.Ignore(e => e.Summary);
+        });
+
+        // ===== 属性配置导入日志表 =====
+        modelBuilder.Entity<PropertyImportLog>(entity =>
+        {
+            entity.ToTable("property_import_log");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.ImportTime).HasColumnName("import_time").IsRequired();
+            entity.Property(e => e.ImportFile).HasColumnName("import_file").IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(20);
+            entity.Property(e => e.ErrorLog).HasColumnName("error_log");
+            entity.Property(e => e.Sheet1Count).HasColumnName("sheet1_count");
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
 
             entity.Ignore(e => e.DisplayImportTime);
