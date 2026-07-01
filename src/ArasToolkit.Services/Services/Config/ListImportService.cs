@@ -378,7 +378,7 @@ public class ListImportService : IListImportService
         if (importMode == "新增")
         {
             return $"<AML>" +
-                   $"  <Item type='Value' action='add'>" +
+                   $"  <Item type='Filter Value' action='add'>" +
                    $"      <source_id>" +
                    $"          <Item type='List' action='get' select='id'>" +
                    $"              <name>{parentName}</name>" +
@@ -388,14 +388,14 @@ public class ListImportService : IListImportService
                    $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
                    $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
                    $"      <value>{value}</value>" +
-                   $"      <filter_value>{filterValue}</filter_value>" +
+                   $"      <filter>{filterValue}</filter>" +
                    $"      <sort_order>{sortOrder}</sort_order>" +
                    $"  </Item>" +
                    $"</AML>";
         }
 
         return $"<AML>" +
-               $"  <Item type='Value' action='merge' where=\"Value.value='{value}'\">" +
+               $"  <Item type='Filter Value' action='merge' where=\"Filter_Value.value='{value}'\">" +
                $"      <source_id>" +
                $"          <Item type='List' action='get' select='id'>" +
                $"              <name>{parentName}</name>" +
@@ -405,7 +405,7 @@ public class ListImportService : IListImportService
                $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
                $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
                $"      <value>{value}</value>" +
-               $"      <filter_value>{filterValue}</filter_value>" +
+               $"      <filter>{filterValue}</filter>" +
                $"      <sort_order>{sortOrder}</sort_order>" +
                $"  </Item>" +
                $"</AML>";
