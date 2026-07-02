@@ -183,9 +183,8 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock FontSize="13"
-                                       Foreground="{StaticResource TextPrimaryBrush}">
-                                📂 <Run Text="{Binding Mode=OneWay}" />
-                            </TextBlock>
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       Text="{Binding}" />
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
