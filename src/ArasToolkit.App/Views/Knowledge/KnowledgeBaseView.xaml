@@ -11,6 +11,14 @@
         <converters:InverseBoolConverter x:Key="InverseBool" />
         <converters:StringToVisibilityConverter x:Key="StringToVisibility" />
 
+        <!-- 查看态元数据项 -->
+        <Style x:Key="ViewMetaLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
         <!-- 格式化工具栏按钮样式 -->
         <Style TargetType="Button" x:Key="ToolbarBtn">
             <Setter Property="Background" Value="Transparent" />
@@ -384,14 +392,12 @@
                 <!-- 元数据区 -->
                 <Border Grid.Row="1" Background="White"
                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,1,0"
-                        Padding="16,12">
+                        Padding="14,10">
                     <WrapPanel>
                         <!-- 标题 -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,20,4">
-                            <TextBlock Text="标题：" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding ViewingEntry.Title}" FontSize="14"
+                            <TextBlock Text="标题：" Style="{StaticResource ViewMetaLabel}" />
+                            <TextBlock Text="{Binding ViewingEntry.Title}" FontSize="13"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" />
@@ -408,10 +414,8 @@
                         <!-- 分类 -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,20,4"
                                     Visibility="{Binding ViewingEntry.Category, Converter={StaticResource StringToVisibility}}">
-                            <TextBlock Text="分类：" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding ViewingEntry.Category}" FontSize="12"
+                            <TextBlock Text="分类：" Style="{StaticResource ViewMetaLabel}" Margin="0,0,4,0" />
+                            <TextBlock Text="{Binding ViewingEntry.Category}" FontSize="13"
                                        Foreground="{StaticResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" />
                         </StackPanel>
@@ -419,18 +423,14 @@
                         <!-- 标签 -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,20,4"
                                     Visibility="{Binding ViewingEntry.HasTags, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Text="标签：" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       VerticalAlignment="Center" Margin="0,0,4,0" />
+                            <TextBlock Text="标签：" Style="{StaticResource ViewMetaLabel}" Margin="0,0,4,0" />
                             <TextBlock Text="{Binding ViewingEntry.DisplayTags}" Style="{StaticResource TagLabel}"
                                        VerticalAlignment="Center" />
                         </StackPanel>
 
                         <!-- 日期 -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                            <TextBlock Text="最后修改：" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       VerticalAlignment="Center" Margin="0,0,4,0" />
+                            <TextBlock Text="最后修改：" Style="{StaticResource ViewMetaLabel}" Margin="0,0,4,0" />
                             <TextBlock Text="{Binding ViewingEntry.DisplayModifiedDate}" FontSize="12"
                                        Foreground="{StaticResource TextFillColorTertiaryBrush}"
                                        VerticalAlignment="Center" />
