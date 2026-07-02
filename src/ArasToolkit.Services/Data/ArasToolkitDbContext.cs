@@ -212,6 +212,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.ApiKey).HasColumnName("api_key").HasMaxLength(500);
             entity.Property(e => e.ApiBaseUrl).HasColumnName("api_base_url").HasMaxLength(500);
             entity.Property(e => e.ModelIdentifier).HasColumnName("model_identifier").HasMaxLength(100);
+            entity.Property(e => e.ExtraParams).HasColumnName("extra_params");
             entity.Property(e => e.IsEnabled).HasColumnName("is_enabled");
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
 
@@ -605,6 +606,7 @@ public class ArasToolkitDbContext : DbContext
                         api_key NVARCHAR(500) NULL,
                         api_base_url NVARCHAR(500) NULL DEFAULT 'https://apihub.agnes-ai.com/v1/chat/completions',
                         model_identifier NVARCHAR(100) NULL DEFAULT 'agnes-2.0-flash',
+                        extra_params NVARCHAR(MAX) NULL,
                         is_enabled BIT NOT NULL DEFAULT 0,
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
@@ -613,6 +615,8 @@ public class ArasToolkitDbContext : DbContext
                 BEGIN
                     IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ai_model_config' AND COLUMN_NAME='creator_on')
                         ALTER TABLE ai_model_config ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ai_model_config' AND COLUMN_NAME='extra_params')
+                        ALTER TABLE ai_model_config ADD extra_params NVARCHAR(MAX) NULL;
                 END
 
                 -- ===== object_class_import_log 表 =====
