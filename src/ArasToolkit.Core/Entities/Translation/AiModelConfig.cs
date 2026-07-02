@@ -43,6 +43,10 @@ public class AiModelConfig
     [MaxLength(100)]
     public string ModelIdentifier { get; set; } = "agnes-2.0-flash";
 
+    /// <summary>额外请求参数 JSON — 用户粘贴原始 JSON，合并到 AI 请求体根级（如 {"max_completion_tokens":1024,"temperature":1.0}）。为空则不追加</summary>
+    [Column("extra_params")]
+    public string? ExtraParams { get; set; }
+
     /// <summary>是否启用（同一用户只能有一个启用）</summary>
     [Column("is_enabled")]
     public bool IsEnabled { get; set; }
