@@ -130,10 +130,15 @@ public class AiDispatcherService : IAiDispatcherService
         string prompt, ChatOptions? options)
     {
         var aiModel = await _modelConfigService.GetEnabledAsync();
-        var apiUrl = (aiModel?.ApiBaseUrl).NullIfEmpty() ?? "https://apihub.agnes-ai.com/v1/chat/completions";
-        var apiKey = (aiModel?.ApiKey).NullIfEmpty()
-            ?? throw new InvalidOperationException("请先在设置中配置 AI API Key");
-        var modelId = (aiModel?.ModelIdentifier).NullIfEmpty() ?? "agnes-2.0-flash";
+        var apiUrl = !string.IsNullOrWhiteSpace(aiModel?.ApiBaseUrl)
+            ? aiModel.ApiBaseUrl
+            : "https://apihub.agnes-ai.com/v1/chat/completions";
+        var apiKey = !string.IsNullOrWhiteSpace(aiModel?.ApiKey)
+            ? aiModel.ApiKey
+            : throw new InvalidOperationException("请先在设置中配置 AI API Key");
+        var modelId = !string.IsNullOrWhiteSpace(aiModel?.ModelIdentifier)
+            ? aiModel.ModelIdentifier
+            : "agnes-2.0-flash";
 
         var body = new Dictionary<string, object?>
         {

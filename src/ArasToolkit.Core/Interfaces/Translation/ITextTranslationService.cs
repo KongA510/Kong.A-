@@ -60,19 +60,4 @@ public interface ITextTranslationService
 
     /// <summary>按 ID 获取单条历史记录</summary>
     Task<TextTranslationRecord?> GetHistoryByIdAsync(string id);
-
-    /// <summary>获取所有 AI 模型配置</summary>
-    Task<List<AiModelConfig>> GetAiModelsAsync(string? userId = null);
-
-    /// <summary>保存 AI 模型配置</summary>
-    Task SaveAiModelAsync(AiModelConfig config);
-
-    /// <summary>启用指定 AI 模型（禁用其他的）</summary>
-    Task EnableAiModelAsync(string id, string userId);
-
-    /// <summary>获取当前启用的 AI 模型</summary>
-    Task<AiModelConfig?> GetEnabledAiModelAsync(string? userId = null);
-
-    /// <summary>删除 AI 模型配置</summary>
-    Task DeleteAiModelAsync(string id);
 }

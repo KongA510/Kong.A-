@@ -2,10 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using ArasToolkit.Core.Entities;
@@ -26,7 +23,7 @@ public class TextTranslationService : ITextTranslationService
 {
     private readonly IConfigService _configService;
     private readonly IDbContextFactory<ArasToolkitDbContext> _dbFactory;
-    private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromMinutes(5) };
+    private readonly IAiDispatcherService _aiDispatcher;
     private const string HistoryDir = "Config/TextTranslations";
 
     /// <summary>
@@ -42,10 +39,12 @@ public class TextTranslationService : ITextTranslationService
     }
 
     public TextTranslationService(IConfigService configService,
-        IDbContextFactory<ArasToolkitDbContext> dbFactory)
+        IDbContextFactory<ArasToolkitDbContext> dbFactory,
+        IAiDispatcherService aiDispatcher)
     {
         _configService = configService;
         _dbFactory = dbFactory;
+        _aiDispatcher = aiDispatcher;
     }
 
     // ========== API Key 管理（兼容旧逻辑，从配置读取） ==========
@@ -53,7 +52,7 @@ public class TextTranslationService : ITextTranslationService
     public async Task<string?> GetApiKeyAsync()
     {
         // 优先从启用的 AI 模型配置读取
-        var enabledModel = await GetEnabledAiModelAsync();
+        var enabledModel = await _aiDispatcher.GetCurrentModelAsync();
         if (enabledModel != null && !string.IsNullOrWhiteSpace(enabledModel.ApiKey))
             return enabledModel.ApiKey;
 
@@ -215,14 +214,6 @@ public class TextTranslationService : ITextTranslationService
         if (sourceItems.Count == 0)
             throw new InvalidOperationException("所选数据列中没有可翻译的文本");
 
-        // 2. 获取启用的 AI 模型
-        var aiModel = await GetEnabledAiModelAsync();
-        var apiKey = aiModel?.ApiKey ?? await GetApiKeyAsync();
-        var apiUrl = aiModel?.ApiBaseUrl ?? "https://apihub.agnes-ai.com/v1/chat/completions";
-        var modelId = aiModel?.ModelIdentifier ?? "agnes-2.0-flash";
-        if (string.IsNullOrWhiteSpace(apiKey))
-            throw new InvalidOperationException("请先在设置中配置 AI API Key");
-
         // 3. 分批翻译（序号化输入/输出，按序号回填，避免错位）
         const int batchSize = 100;
         var translations = new Dictionary<int, string>(); // rowIndex → 译文
@@ -244,7 +235,7 @@ public class TextTranslationService : ITextTranslationService
             });
 
             var prompt = BuildSourceCustomPrompt(batch, targetLanguage);
-            var responseText = await CallAIAsync(apiUrl, apiKey, modelId, prompt);
+            var responseText = await _aiDispatcher.ChatAsync(prompt);
             var parsed = ParseNumberedTranslations(responseText);
 
             for (int i = 0; i < batch.Count; i++)
@@ -295,7 +286,7 @@ public class TextTranslationService : ITextTranslationService
             SourceRowCount = sourceItems.Count,
             BatchCount = totalBatches,
             UserId = CurrentUserContext.CurrentUserId,
-            AiModelId = aiModel?.Id,
+            AiModelId = (await _aiDispatcher.GetCurrentModelAsync())?.Id,
             CreatorOn = DateTime.Now
         };
         await SaveRecordAsync(record);
@@ -379,16 +370,8 @@ public class TextTranslationService : ITextTranslationService
             ItemName = $"共 {allRows.Count} 条，分 {batches.Count} 批"
         });
 
-        // 2. 获取启用的 AI 模型
-        var aiModel = await GetEnabledAiModelAsync();
-        var apiKey = aiModel?.ApiKey ?? await GetApiKeyAsync();
-        var apiUrl = aiModel?.ApiBaseUrl ?? "https://apihub.agnes-ai.com/v1/chat/completions";
-        var modelId = aiModel?.ModelIdentifier ?? "agnes-2.0-flash";
-
-        if (string.IsNullOrWhiteSpace(apiKey))
-            throw new InvalidOperationException("请先在设置中配置 AI API Key");
-
-        // 3. 分批串行翻译
+        // 2. 分批串行翻译
+        var aiModel = await _aiDispatcher.GetCurrentModelAsync();
         var allResults = new List<string[]>();
         int processedCount = 0;
         for (int i = 0; i < batches.Count; i++)
@@ -408,7 +391,7 @@ public class TextTranslationService : ITextTranslationService
             });
 
             var prompt = BuildPrompt(batch, templateType, sourceLanguage, customPrompt);
-            var responseText = await CallAIAsync(apiUrl, apiKey, modelId, prompt);
+            var responseText = await _aiDispatcher.ChatAsync(prompt);
             var parsedRows = ParseTranslationResult(responseText, batch.Count, templateType);
             allResults.AddRange(parsedRows);
             processedCount += batch.Count;
@@ -474,66 +457,6 @@ public class TextTranslationService : ITextTranslationService
         return await db.TextTranslationRecords.FindAsync(id);
     }
 
-    // ========== AI 模型配置管理（EF Core） ==========
-
-    public async Task<List<AiModelConfig>> GetAiModelsAsync(string? userId = null)
-    {
-        await using var db = await _dbFactory.CreateDbContextAsync();
-        var query = db.AiModelConfigs.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(userId))
-            query = query.Where(m => m.UserId == userId);
-        return await query.OrderByDescending(m => m.CreatorOn).ToListAsync();
-    }
-
-    public async Task SaveAiModelAsync(AiModelConfig config)
-    {
-        await using var db = await _dbFactory.CreateDbContextAsync();
-        var existing = await db.AiModelConfigs.FindAsync(config.Id);
-        if (existing != null)
-        {
-            existing.ModelName = config.ModelName;
-            existing.ApiKey = config.ApiKey;
-            existing.ApiBaseUrl = config.ApiBaseUrl;
-            existing.ModelIdentifier = config.ModelIdentifier;
-            existing.IsEnabled = config.IsEnabled;
-        }
-        else
-        {
-            db.AiModelConfigs.Add(config);
-        }
-        await db.SaveChangesAsync();
-    }
-
-    public async Task EnableAiModelAsync(string id, string userId)
-    {
-        await using var db = await _dbFactory.CreateDbContextAsync();
-        // 禁用该用户所有模型
-        var all = await db.AiModelConfigs.Where(m => m.UserId == userId).ToListAsync();
-        foreach (var m in all)
-            m.IsEnabled = (m.Id == id);
-        await db.SaveChangesAsync();
-    }
-
-    public async Task<AiModelConfig?> GetEnabledAiModelAsync(string? userId = null)
-    {
-        await using var db = await _dbFactory.CreateDbContextAsync();
-        return await db.AiModelConfigs
-            .Where(m => m.IsEnabled)
-            .OrderByDescending(m => m.CreatorOn)
-            .FirstOrDefaultAsync();
-    }
-
-    public async Task DeleteAiModelAsync(string id)
-    {
-        await using var db = await _dbFactory.CreateDbContextAsync();
-        var model = await db.AiModelConfigs.FindAsync(id);
-        if (model != null)
-        {
-            db.AiModelConfigs.Remove(model);
-            await db.SaveChangesAsync();
-        }
-    }
-
     // ========== 私有方法 ==========
 
     private async Task SaveRecordAsync(TextTranslationRecord record)
@@ -586,34 +509,6 @@ public class TextTranslationService : ITextTranslationService
         for (int i = 0; i < rows.Count; i++)
             promptBuilder.AppendLine($"{i + 1}. {(rows[i].TryGetValue(3, out var v3) ? v3 : "")}");
         return promptBuilder.ToString();
-    }
-
-    private static async Task<string> CallAIAsync(string apiUrl, string apiKey, string model, string prompt)
-    {
-        var requestBody = new
-        {
-            model,
-            messages = new[] { new { role = "user", content = prompt } }
-        };
-
-        var jsonContent = JsonSerializer.Serialize(requestBody);
-        var request = new HttpRequestMessage(HttpMethod.Post, apiUrl)
-        {
-            Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
-        };
-        request.Headers.Add("Authorization", $"Bearer {apiKey}");
-
-        var response = await _httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
-
-        var responseBody = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<AgnesResponse>(responseBody);
-
-        if (result?.Choices == null || result.Choices.Length == 0)
-            throw new InvalidOperationException("AI 返回结果为空");
-
-        return result.Choices[0].Message.Content?.Trim()
-               ?? throw new InvalidOperationException("AI 返回内容为空");
     }
 
     private static List<string[]> ParseTranslationResult(string responseText, int expectedCount, string templateType)
@@ -703,25 +598,5 @@ public class TextTranslationService : ITextTranslationService
             ws.Cells[1, 1, 1, 5].AutoFitColumns(8, 30);
             package.SaveAs(new FileInfo(outputPath));
         });
-    }
-
-    // ========== API 响应模型 ==========
-
-    private class AgnesResponse
-    {
-        [JsonPropertyName("choices")]
-        public AgnesChoice[]? Choices { get; set; }
-    }
-
-    private class AgnesChoice
-    {
-        [JsonPropertyName("message")]
-        public AgnesMessage? Message { get; set; }
-    }
-
-    private class AgnesMessage
-    {
-        [JsonPropertyName("content")]
-        public string? Content { get; set; }
     }
 }

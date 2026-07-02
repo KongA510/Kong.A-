@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="AI 模型配置管理"
-        Height="520" Width="560"
+        Height="600" Width="560"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -126,12 +126,11 @@
                                  ToolTip="API 基础 URL" />
                     </Grid>
 
-                    <!-- Row 3: API Key + 按钮 -->
-                    <Grid Margin="0,0,0,0">
+                    <!-- Row 3: API Key -->
+                    <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="API Key" FontSize="12"
                                    Foreground="{StaticResource TextFillColorSecondaryBrush}"
@@ -139,7 +138,31 @@
                         <TextBox Grid.Column="1" Text="{Binding NewApiKey, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource DarkTextBox}" FontSize="12"
                                  ToolTip="API 密钥" />
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0">
+                    </Grid>
+
+                    <!-- Row 4: ExtraParams JSON -->
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="额外参数 JSON" FontSize="12"
+                                   Foreground="{StaticResource TextFillColorSecondaryBrush}"
+                                   VerticalAlignment="Top" Margin="0,4,6,0" />
+                        <TextBox Grid.Column="1" Text="{Binding NewExtraParams, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource DarkTextBox}" FontSize="12"
+                                 TextWrapping="Wrap" AcceptsReturn="True"
+                                 MinHeight="60" Height="Auto"
+                                 ToolTip="粘贴 JSON 自定义参数，如 {&quot;max_completion_tokens&quot;:1024,&quot;temperature&quot;:1.0}" />
+                    </Grid>
+
+                    <!-- Row 5: 保存/取消按钮 -->
+                    <Grid Margin="0,0,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
                             <Button Content="保存" Command="{Binding SaveCommand}"
                                     Style="{StaticResource AccentBtn}" Height="30" FontSize="12" Padding="14,0" />
                             <Button Content="取消" Command="{Binding CancelEditCommand}"

@@ -61,6 +61,12 @@ public static class ServiceCollectionExtensions
         // 注册数据导入服务
         services.AddSingleton<IDataImportService, DataImportService>();
 
+        // 注册 AI 模型配置管理服务（单例）
+        services.AddSingleton<IAiModelConfigService, AiModelConfigService>();
+
+        // 注册 AI 统一调度服务（单例）
+        services.AddSingleton<IAiDispatcherService, AiDispatcherService>();
+
         // 注册文本翻译服务（单例）
         services.AddSingleton<ITextTranslationService, TextTranslationService>();
 

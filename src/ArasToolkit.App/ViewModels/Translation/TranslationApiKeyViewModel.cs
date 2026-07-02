@@ -13,7 +13,7 @@ namespace ArasToolkit.App.ViewModels;
 /// </summary>
 public class TranslationApiKeyViewModel : ObservableObject
 {
-    private readonly ITextTranslationService _translationService;
+    private readonly IAiModelConfigService _modelConfigService;
     private readonly IErrorLogService _errorLogService;
 
     private ObservableCollection<AiModelConfig> _models = [];
@@ -22,10 +22,10 @@ public class TranslationApiKeyViewModel : ObservableObject
     private bool _isProcessing;
 
     public TranslationApiKeyViewModel(
-        ITextTranslationService translationService,
+        IAiModelConfigService modelConfigService,
         IErrorLogService errorLogService)
     {
-        _translationService = translationService;
+        _modelConfigService = modelConfigService;
         _errorLogService = errorLogService;
 
         SaveCommand = new RelayCommand(async _ => await SaveAsync(), _ => !IsProcessing && !string.IsNullOrEmpty(NewModelName));
@@ -97,6 +97,14 @@ public class TranslationApiKeyViewModel : ObservableObject
         set => SetProperty(ref _newModelIdentifier, value);
     }
 
+    private string _newExtraParams = string.Empty;
+    /// <summary>额外请求参数 JSON（合并到 AI 请求体根级）</summary>
+    public string NewExtraParams
+    {
+        get => _newExtraParams;
+        set => SetProperty(ref _newExtraParams, value);
+    }
+
     private bool _isFormVisible;
     public bool IsFormVisible
     {
@@ -147,7 +155,7 @@ public class TranslationApiKeyViewModel : ObservableObject
         try
         {
             var userId = CurrentUserContext.CurrentUserId;
-            var models = await _translationService.GetAiModelsAsync(userId);
+            var models = await _modelConfigService.GetAllAsync(userId);
             Models = new ObservableCollection<AiModelConfig>(models);
             StatusMessage = models.Count > 0
                 ? $"已加载 {models.Count} 个模型配置"
@@ -187,11 +195,12 @@ public class TranslationApiKeyViewModel : ObservableObject
                 ModelIdentifier = string.IsNullOrWhiteSpace(NewModelIdentifier)
                     ? "agnes-2.0-flash"
                     : NewModelIdentifier.Trim(),
+                ExtraParams = string.IsNullOrWhiteSpace(NewExtraParams) ? null : NewExtraParams.Trim(),
                 IsEnabled = false,
                 CreatorOn = DateTime.Now
             };
 
-            await _translationService.SaveAiModelAsync(config);
+            await _modelConfigService.SaveAsync(config);
             StatusMessage = IsEditMode ? $"已更新: {config.ModelName}" : $"已新增: {config.ModelName}";
             CancelEdit();
             await LoadAsync();
@@ -216,7 +225,7 @@ public class TranslationApiKeyViewModel : ObservableObject
         ErrorMessage = string.Empty;
         try
         {
-            await _translationService.DeleteAiModelAsync(id);
+            await _modelConfigService.DeleteAsync(id);
             StatusMessage = "已删除模型配置";
             await LoadAsync();
         }
@@ -241,7 +250,7 @@ public class TranslationApiKeyViewModel : ObservableObject
         try
         {
             var userId = CurrentUserContext.CurrentUserId;
-            await _translationService.EnableAiModelAsync(id, userId);
+            await _modelConfigService.EnableAsync(id, userId);
             StatusMessage = "已切换启用模型";
             await LoadAsync();
         }
@@ -268,6 +277,7 @@ public class TranslationApiKeyViewModel : ObservableObject
         NewApiKey = config.ApiKey;
         NewApiBaseUrl = config.ApiBaseUrl;
         NewModelIdentifier = config.ModelIdentifier;
+        NewExtraParams = config.ExtraParams ?? string.Empty;
         IsFormVisible = true;
         OnPropertyChanged(nameof(FormTitle));
     }
@@ -295,6 +305,7 @@ public class TranslationApiKeyViewModel : ObservableObject
         NewApiKey = "";
         NewApiBaseUrl = "https://apihub.agnes-ai.com/v1/chat/completions";
         NewModelIdentifier = "agnes-2.0-flash";
+        NewExtraParams = string.Empty;
         OnPropertyChanged(nameof(FormTitle));
     }
 }
