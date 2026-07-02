@@ -116,7 +116,11 @@
 
         <!-- Row 0: 标题栏 -->
         <Grid Grid.Row="0" Margin="24,20,24,0">
-            <StackPanel>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
                 <TextBlock Text="📚 个人资料库" FontSize="20" FontWeight="Bold"
                            Foreground="{StaticResource TextPrimaryBrush}" />
                 <TextBlock Text="知识笔记管理与富文本编辑" FontSize="12"
@@ -124,10 +128,10 @@
             </StackPanel>
 
             <!-- 查看/编辑态返回按钮 -->
-            <Button Content="← 返回列表"
+            <Button Grid.Column="1" Content="← 返回列表"
                     Command="{Binding BackToBrowseCommand}"
                     HorizontalAlignment="Right" VerticalAlignment="Center"
-                    FontSize="12" MinWidth="110" MinHeight="34" Margin="0,0,10,0"
+                    FontSize="12" MinWidth="110" MinHeight="34"
                     Visibility="{Binding IsBrowseMode, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
