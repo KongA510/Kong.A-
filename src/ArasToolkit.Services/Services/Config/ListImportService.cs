@@ -172,27 +172,27 @@ public class ListImportService : IListImportService
 
             ReportPhase(progress, "读取Excel", 0, totalRows, $"共 {totalRows} 条待处理");
 
-            // ===== 6-1. Sheet1: List主档 =====
+            // ===== 6-1. Sheet1: List主档（不需要 source_id）=====
             int sheet1Success = await ProcessSheetAsync(
                 innovator, sheet1Rows, 0, totalRows,
                 importMode, "List主档",
-                BuildListMasterAml, writer, result.FailedDetails,
+                BuildListMasterAml, false, writer, result.FailedDetails,
                 progress, cancellationToken).ConfigureAwait(false);
             result.Sheet1Count = sheet1Success;
 
-            // ===== 6-2. Sheet2: 菜单内容 =====
+            // ===== 6-2. Sheet2: 菜单内容（需要 source_id）=====
             int sheet2Success = await ProcessSheetAsync(
                 innovator, sheet2Rows, sheet1Rows.Count, totalRows,
                 importMode, "菜单内容",
-                BuildMenuContentAml, writer, result.FailedDetails,
+                BuildMenuContentAml, true, writer, result.FailedDetails,
                 progress, cancellationToken).ConfigureAwait(false);
             result.Sheet2Count = sheet2Success;
 
-            // ===== 6-3. Sheet3: 菜单内容(过滤) =====
+            // ===== 6-3. Sheet3: 菜单内容(过滤)（需要 source_id）=====
             int sheet3Success = await ProcessSheetAsync(
                 innovator, sheet3Rows, sheet1Rows.Count + sheet2Rows.Count, totalRows,
                 importMode, "菜单内容(过滤)",
-                BuildMenuFilterAml, writer, result.FailedDetails,
+                BuildMenuFilterAml, true, writer, result.FailedDetails,
                 progress, cancellationToken).ConfigureAwait(false);
             result.Sheet3Count = sheet3Success;
 
@@ -275,7 +275,7 @@ public class ListImportService : IListImportService
     /// - Col 1 (idx 0): 名称(英文) → 映射到 Aras List <name>
     /// - Col 2 (idx 1): 备注说明 → 映射到 Aras List <label>
     /// </summary>
-    private static string BuildListMasterAml(Dictionary<int, string> row, string importMode)
+    private static string BuildListMasterAml(Dictionary<int, string> row, string importMode, string sourceId)
     {
         var name = row.GetValueOrDefault(1, "");
         var label = row.GetValueOrDefault(2, "");                         // 备注说明
@@ -309,7 +309,7 @@ public class ListImportService : IListImportService
     /// - Col 5 (idx 4): 数据库存储值 → <value>
     /// - Col 6 (idx 5): 序号 → <sort_order>
     /// </summary>
-    private static string BuildMenuContentAml(Dictionary<int, string> row, string importMode)
+    private static string BuildMenuContentAml(Dictionary<int, string> row, string importMode, string sourceId)
     {
         var parentName = row.GetValueOrDefault(1, "");                    // 父阶名称
         var label = row.GetValueOrDefault(2, "");                         // 显示标签（简）
@@ -327,7 +327,7 @@ public class ListImportService : IListImportService
                    $"              <name>{parentName}</name>" +
                    $"          </Item>" +
                    $"      </source_id>" +
-                   $"      <label  xml:lang=\"en\">{labelEn}</label>" +
+                   $"      <i18n:label  xml:lang=\"en\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelEn}</i18n:label>" +
                    $"      <i18n:label xml:lang=\"zc\" xmlns:i18n=\"http://www.aras.com/I18N\">{label}</i18n:label>" +
                    $"      <i18n:label xml:lang=\"zt\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelZt}</i18n:label>" +
                    $"      <value>{value}</value>" +
@@ -337,13 +337,13 @@ public class ListImportService : IListImportService
         }
 
         return $"<AML>" +
-               $"  <Item type='Value' action='merge' where=\"Value.value='{value}'\">" +
+               $"  <Item type='Value' action='merge' where=\"Value.value='{value}' and Value.source_id='{sourceId}'\">" +
                $"      <source_id>" +
                $"          <Item type='List' action='get' select='id'>" +
                $"              <name>{parentName}</name>" +
                $"          </Item>" +
                $"      </source_id>" +
-               $"      <label  xml:lang=\"en\">{labelEn}</label>" +
+               $"      <i18n:label  xml:lang=\"en\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelEn}</i18n:label>" +
                $"      <i18n:label xml:lang=\"zc\" xmlns:i18n=\"http://www.aras.com/I18N\">{label}</i18n:label>" +
                $"      <i18n:label xml:lang=\"zt\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelZt}</i18n:label>" +
                $"      <value>{value}</value>" +
@@ -365,7 +365,7 @@ public class ListImportService : IListImportService
     /// - Col 6 (idx 5): 过滤值 → <filter_value>（过滤条件值）
     /// - Col 7 (idx 6): 序号 → <sort_order>
     /// </summary>
-    private static string BuildMenuFilterAml(Dictionary<int, string> row, string importMode)
+    private static string BuildMenuFilterAml(Dictionary<int, string> row, string importMode, string sourceId)
     {
         var parentName = row.GetValueOrDefault(1, "");                    // 父阶名称
         var label = row.GetValueOrDefault(2, "");                         // 显示标签（简）
@@ -384,7 +384,7 @@ public class ListImportService : IListImportService
                    $"              <name>{parentName}</name>" +
                    $"          </Item>" +
                    $"      </source_id>" +
-                   $"      <label  xml:lang=\"en\">{labelEn}</label>" +
+                   $"      <i18n:label  xml:lang=\"en\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelEn}</i18n:label>" +
                    $"      <i18n:label xml:lang=\"zc\" xmlns:i18n=\"http://www.aras.com/I18N\">{label}</i18n:label>" +
                    $"      <i18n:label xml:lang=\"zt\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelZt}</i18n:label>" +
                    $"      <value>{value}</value>" +
@@ -395,13 +395,13 @@ public class ListImportService : IListImportService
         }
 
         return $"<AML>" +
-               $"  <Item type='Filter Value' action='merge' where=\"Filter_Value.value='{value}'\">" +
+               $"  <Item type='Filter Value' action='merge' where=\"Filter_Value.value='{value}' and Filter_Value.source_id='{sourceId}' and Filter_Value.filter='{filterValue}' \">" +
                $"      <source_id>" +
                $"          <Item type='List' action='get' select='id'>" +
                $"              <name>{parentName}</name>" +
                $"          </Item>" +
                $"      </source_id>" +
-               $"      <label  xml:lang=\"en\">{labelEn}</label>" +
+               $"      <i18n:label  xml:lang=\"en\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelEn}</i18n:label>" +
                $"      <i18n:label xml:lang=\"zc\" xmlns:i18n=\"http://www.aras.com/I18N\">{label}</i18n:label>" +
                $"      <i18n:label xml:lang=\"zt\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelZt}</i18n:label>" +
                $"      <value>{value}</value>" +
@@ -422,7 +422,8 @@ public class ListImportService : IListImportService
     /// <param name="totalRows">全局总行数</param>
     /// <param name="importMode">"新增" 或 "覆盖"</param>
     /// <param name="phaseName">阶段名称（如 "List主档"）</param>
-    /// <param name="buildAml">AML 构建委托</param>
+    /// <param name="buildAml">AML 构建委托(row, importMode, sourceId) → AML字符串</param>
+    /// <param name="needSourceId">覆盖模式是否需要解析 source_id（List主档不需要）</param>
     /// <param name="writer">日志写入器</param>
     /// <param name="failedDetails">失败明细列表</param>
     /// <param name="progress">进度回调</param>
@@ -435,13 +436,16 @@ public class ListImportService : IListImportService
         int totalRows,
         string importMode,
         string phaseName,
-        Func<Dictionary<int, string>, string, string> buildAml,
+        Func<Dictionary<int, string>, string, string, string> buildAml,
+        bool needSourceId,
         StreamWriter writer,
         List<string> failedDetails,
         IProgress<ImportProgressInfo>? progress,
         CancellationToken ct)
     {
         int success = 0;
+        var sourceIdCache = new Dictionary<string, string>();
+
         for (int i = 0; i < rows.Count; i++)
         {
             ct.ThrowIfCancellationRequested();
@@ -463,7 +467,18 @@ public class ListImportService : IListImportService
 
             try
             {
-                var aml = buildAml(row, importMode);
+                var sourceId = "";
+                if (needSourceId && importMode == "覆盖")
+                {
+                    var parentName = row.GetValueOrDefault(1, "");
+                    if (!sourceIdCache.TryGetValue(parentName, out sourceId!))
+                    {
+                        sourceId = ResolveListId(innovator, parentName);
+                        sourceIdCache[parentName] = sourceId;
+                    }
+                }
+
+                var aml = buildAml(row, importMode, sourceId);
                 var amlResult = innovator.applyAML(aml);
                 if (amlResult.isError())
                 {
@@ -504,6 +519,22 @@ public class ListImportService : IListImportService
         var connection = _connectionService.HttpConnection
             ?? throw new InvalidOperationException("未连接到 Aras 系统，请先登录。");
         return connection.Login().getInnovator();
+    }
+
+    /// <summary>
+    /// 根据 List name 查询其 id，用于覆盖模式的 source_id 精确匹配
+    /// </summary>
+    private static string ResolveListId(dynamic innovator, string listName)
+    {
+        if (string.IsNullOrWhiteSpace(listName)) return "";
+
+        var queryAml = "<AML>" +
+                       $"  <Item type='List' action='get' where=\"List.name='{listName}'\" select='id'/>" +
+                       "</AML>";
+        var result = innovator.applyAML(queryAml);
+        if (result.isError() || result.getItemCount() == 0) return "";
+
+        return result.getItemByIndex(0).getID();
     }
 
     // ===== 工具方法 =====
