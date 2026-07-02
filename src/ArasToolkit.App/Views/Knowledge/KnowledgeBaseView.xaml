@@ -116,18 +116,19 @@
             </StackPanel>
 
             <!-- 查看/编辑态返回按钮 -->
-            <Button Content="← 返回列表" Style="{StaticResource IconBtn}"
+            <Button Content="← 返回列表"
                     Command="{Binding BackToBrowseCommand}"
                     HorizontalAlignment="Right" VerticalAlignment="Center"
-                    FontSize="12" Padding="14,6" MinWidth="100" Margin="0,0,10,0"
-                    Background="#FFF8E1"
+                    FontSize="12" MinWidth="110" MinHeight="34" Margin="0,0,10,0"
                     Visibility="{Binding IsBrowseMode, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bg" Background="#FFF8E1"
-                                CornerRadius="6" Padding="12,6"
+                                CornerRadius="6" Padding="14,8"
                                 BorderBrush="#FFE082" BorderThickness="1">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextBlock.FontSize="12"
+                                              TextBlock.Foreground="#7B6B2D" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
