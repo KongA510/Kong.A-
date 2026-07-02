@@ -110,6 +110,109 @@
                                 BorderThickness="1" Cursor="Hand" />
                     </Grid>
 
+                    <!-- 「源文本自定义翻译」模式专属 UI -->
+                    <StackPanel Visibility="{Binding IsSourceCustomMode, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,12">
+                        <!-- Sheet 选择 -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="200" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="📊 Sheet:" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding SheetNames}"
+                                      SelectedItem="{Binding SelectedSheetName}"
+                                      Width="180" FontSize="13" Height="30"
+                                      Style="{StaticResource FluentComboBox}" />
+                            <TextBlock Grid.Column="2" Text="（选完 Sheet 自动加载列）" FontSize="11"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       VerticalAlignment="Center" Margin="8,0,0,0" />
+                        </Grid>
+
+                        <!-- 数据列 / 翻译列 / 目标语言 -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="200" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="200" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="140" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 数据列 -->
+                            <TextBlock Grid.Column="0" Text="📥 数据列:" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding SourceColumns}"
+                                      SelectedItem="{Binding SelectedSourceColumn}"
+                                      DisplayMemberPath="Label"
+                                      Width="180" FontSize="13" Height="30"
+                                      Style="{StaticResource FluentComboBox}" />
+
+                            <!-- 翻译列 -->
+                            <TextBlock Grid.Column="2" Text="📤 翻译列:" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="12,0,6,0" />
+                            <ComboBox Grid.Column="3" ItemsSource="{Binding TargetColumns}"
+                                      SelectedItem="{Binding SelectedTargetColumn}"
+                                      DisplayMemberPath="Label"
+                                      Width="180" FontSize="13" Height="30"
+                                      Style="{StaticResource FluentComboBox}" />
+
+                            <!-- 目标语言 -->
+                            <TextBlock Grid.Column="4" Text="🎯 目标语言:" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="12,0,6,0" />
+                            <ComboBox Grid.Column="5" ItemsSource="{Binding TargetLanguages}"
+                                      SelectedItem="{Binding SelectedTargetLanguage}"
+                                      Width="120" FontSize="13" Height="30"
+                                      Style="{StaticResource FluentComboBox}" />
+                        </Grid>
+
+                        <!-- 源文本预览 + 复制 -->
+                        <Border Padding="10,8" CornerRadius="6"
+                                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Margin="0,0,0,6">
+                                    <TextBlock Text="📋 源文本预览" FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               VerticalAlignment="Center" />
+                                    <Button HorizontalAlignment="Right"
+                                            Content="📋 复制" Command="{Binding CopySourceTextCommand}"
+                                            Padding="10,3" FontSize="11" Height="26"
+                                            Background="Transparent"
+                                            Foreground="{DynamicResource SystemAccentBrush}"
+                                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                            BorderThickness="1" Cursor="Hand"
+                                            IsEnabled="{Binding HasSourceTextPreview}" />
+                                </Grid>
+
+                                <TextBox Grid.Row="1"
+                                         Text="{Binding SourceTextPreview, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"
+                                         MinHeight="60" MaxHeight="150"
+                                         FontSize="12"
+                                         FontFamily="Consolas"
+                                         Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                         Background="{DynamicResource ControlFillColorTertiaryBrush}"
+                                         BorderThickness="0" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
                     <!-- 翻译进度区域（翻译中显示） -->
                     <StackPanel Visibility="{Binding IsTranslating, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,12">
                         <!-- 进度状态卡片 -->

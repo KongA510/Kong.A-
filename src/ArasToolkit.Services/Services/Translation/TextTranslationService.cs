@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
+using ArasToolkit.Core.Models.Translation;
 using ArasToolkit.Services.Data;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
@@ -91,6 +92,254 @@ public class TextTranslationService : ITextTranslationService
             }
             return rows;
         });
+    }
+
+    // ========== 「源文本自定义翻译」模式：Sheet / 列 / 预览 ==========
+
+    /// <summary>1-based 列序号 → Excel 列字母（1→A, 27→AA）</summary>
+    private static string GetColumnLetter(int column)
+    {
+        var sb = new StringBuilder();
+        while (column > 0)
+        {
+            column--;
+            sb.Insert(0, (char)('A' + column % 26));
+            column /= 26;
+        }
+        return sb.ToString();
+    }
+
+    public Task<List<string>> GetSheetNamesAsync(string filePath)
+    {
+        return Task.Run(() =>
+        {
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using var package = new ExcelPackage(new FileInfo(filePath));
+            return package.Workbook.Worksheets
+                .Where(w => !string.IsNullOrWhiteSpace(w.Name))
+                .Select(w => w.Name)
+                .ToList();
+        });
+    }
+
+    public Task<List<ExcelColumnInfo>> GetSheetColumnsAsync(string filePath, string sheetName)
+    {
+        return Task.Run(() =>
+        {
+            var list = new List<ExcelColumnInfo>();
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using var package = new ExcelPackage(new FileInfo(filePath));
+            var ws = package.Workbook.Worksheets[sheetName]
+                     ?? throw new InvalidOperationException($"Sheet \"{sheetName}\" 不存在");
+
+            int endCol = ws.Dimension?.End.Column ?? 0;
+            if (endCol < 50) endCol = 50; // 至少列出 50 列，方便用户选无表头列
+            for (int col = 1; col <= endCol; col++)
+            {
+                var header = ws.Cells[1, col].Text?.Trim();
+                var letter = GetColumnLetter(col);
+                list.Add(new ExcelColumnInfo
+                {
+                    Index = col,
+                    Label = string.IsNullOrWhiteSpace(header) ? letter : $"{letter} - {header}"
+                });
+            }
+            return list;
+        });
+    }
+
+    public Task<List<string>> ReadColumnTextAsync(string filePath, string sheetName, int columnIndex)
+    {
+        return Task.Run(() =>
+        {
+            var texts = new List<string>();
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using var package = new ExcelPackage(new FileInfo(filePath));
+            var ws = package.Workbook.Worksheets[sheetName]
+                     ?? throw new InvalidOperationException($"Sheet \"{sheetName}\" 不存在");
+
+            int endRow = ws.Dimension?.End.Row ?? 1;
+            for (int row = 2; row <= endRow; row++)
+            {
+                var val = ws.Cells[row, columnIndex].Text?.Trim();
+                if (!string.IsNullOrWhiteSpace(val))
+                    texts.Add(val);
+            }
+            return texts;
+        });
+    }
+
+    /// <summary>
+    /// 「源文本自定义翻译」模式 — 读取指定 Sheet 数据列文本，AI 翻译后写入翻译列，
+    /// 复制原 Sheet 全部内容到输出文件并在翻译列填入译文（原文件不动）。
+    /// </summary>
+    public async Task<TextTranslationRecord> TranslateSourceCustomAsync(
+        string filePath,
+        string sheetName,
+        int sourceColumnIndex,
+        int targetColumnIndex,
+        string targetLanguage,
+        IProgress<TranslationProgressInfo>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        var sourceFileName = Path.GetFileNameWithoutExtension(filePath);
+        var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+        var outputFileName = $"{sourceFileName}_{timestamp}_translated.xlsx";
+        var outputDir = GetOutputDir();
+        var outputPath = Path.Combine(outputDir, outputFileName);
+
+        // 1. 读取数据列（保留行号映射，跳过空单元格）
+        progress?.Report(new TranslationProgressInfo
+        {
+            Phase = "读取源文件",
+            ItemName = $"{sheetName} → {GetColumnLetter(sourceColumnIndex)} 列"
+        });
+
+        var sourceItems = await Task.Run(() =>
+        {
+            var items = new List<(int Row, string Text)>();
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using var package = new ExcelPackage(new FileInfo(filePath));
+            var ws = package.Workbook.Worksheets[sheetName]
+                     ?? throw new InvalidOperationException($"Sheet \"{sheetName}\" 不存在");
+            int endRow = ws.Dimension?.End.Row ?? 1;
+            for (int row = 2; row <= endRow; row++)
+            {
+                var val = ws.Cells[row, sourceColumnIndex].Text?.Trim();
+                if (!string.IsNullOrWhiteSpace(val))
+                    items.Add((row, val));
+            }
+            return items;
+        });
+
+        if (sourceItems.Count == 0)
+            throw new InvalidOperationException("所选数据列中没有可翻译的文本");
+
+        // 2. 获取启用的 AI 模型
+        var aiModel = await GetEnabledAiModelAsync();
+        var apiKey = aiModel?.ApiKey ?? await GetApiKeyAsync();
+        var apiUrl = aiModel?.ApiBaseUrl ?? "https://apihub.agnes-ai.com/v1/chat/completions";
+        var modelId = aiModel?.ModelIdentifier ?? "agnes-2.0-flash";
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new InvalidOperationException("请先在设置中配置 AI API Key");
+
+        // 3. 分批翻译（序号化输入/输出，按序号回填，避免错位）
+        const int batchSize = 100;
+        var translations = new Dictionary<int, string>(); // rowIndex → 译文
+        int totalBatches = (sourceItems.Count + batchSize - 1) / batchSize;
+        int processed = 0;
+
+        for (int b = 0; b < totalBatches; b++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var batch = sourceItems.Skip(b * batchSize).Take(batchSize).ToList();
+            progress?.Report(new TranslationProgressInfo
+            {
+                Phase = "翻译中",
+                Current = b + 1,
+                PhaseTotal = totalBatches,
+                OverallCurrent = processed,
+                OverallTotal = sourceItems.Count,
+                ItemName = $"第 {b + 1}/{totalBatches} 批 ({batch.Count} 条)"
+            });
+
+            var prompt = BuildSourceCustomPrompt(batch, targetLanguage);
+            var responseText = await CallAIAsync(apiUrl, apiKey, modelId, prompt);
+            var parsed = ParseNumberedTranslations(responseText);
+
+            for (int i = 0; i < batch.Count; i++)
+            {
+                var (row, _) = batch[i];
+                translations[row] = i < parsed.Count ? parsed[i] : "";
+            }
+            processed += batch.Count;
+        }
+
+        // 4. 复制原 Sheet 到输出文件，把译文写入翻译列
+        progress?.Report(new TranslationProgressInfo
+        {
+            Phase = "生成输出文件",
+            OverallCurrent = sourceItems.Count,
+            OverallTotal = sourceItems.Count,
+            ItemName = outputFileName
+        });
+
+        await Task.Run(() =>
+        {
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using var package = new ExcelPackage(new FileInfo(filePath));
+            var ws = package.Workbook.Worksheets[sheetName]
+                     ?? throw new InvalidOperationException($"Sheet \"{sheetName}\" 不存在");
+
+            // 翻译列表头：若为空则补一个标题
+            if (string.IsNullOrWhiteSpace(ws.Cells[1, targetColumnIndex].Text))
+                ws.Cells[1, targetColumnIndex].Value = $"翻译({targetLanguage})";
+            ws.Cells[1, targetColumnIndex].Style.Font.Bold = true;
+
+            foreach (var (row, translated) in translations)
+                ws.Cells[row, targetColumnIndex].Value = translated;
+
+            ws.Cells[ws.Dimension.Start.Row, ws.Dimension.Start.Column,
+                     ws.Dimension.End.Row, ws.Dimension.End.Column].AutoFitColumns(8, 50);
+            package.SaveAs(new FileInfo(outputPath));
+        });
+
+        // 5. 保存历史记录
+        var record = new TextTranslationRecord
+        {
+            SourceFileName = Path.GetFileName(filePath),
+            OutputFileName = outputFileName,
+            OutputFilePath = outputPath,
+            TemplateType = "源文本自定义翻译",
+            SourceLanguage = $"{sheetName}: {GetColumnLetter(sourceColumnIndex)}→{GetColumnLetter(targetColumnIndex)}",
+            SourceRowCount = sourceItems.Count,
+            BatchCount = totalBatches,
+            UserId = CurrentUserContext.CurrentUserId,
+            AiModelId = aiModel?.Id,
+            CreatorOn = DateTime.Now
+        };
+        await SaveRecordAsync(record);
+
+        progress?.Report(new TranslationProgressInfo
+        {
+            Phase = "完成",
+            OverallCurrent = sourceItems.Count,
+            OverallTotal = sourceItems.Count,
+            ItemName = outputFileName
+        });
+        return record;
+    }
+
+    /// <summary>构造「源文本自定义翻译」序号化 prompt</summary>
+    private static string BuildSourceCustomPrompt(List<(int Row, string Text)> batch, string targetLanguage)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"请将以下文本翻译为{targetLanguage}。");
+        sb.AppendLine("严格要求输出格式：每行一条，格式为 \"序号. 译文\"，序号与输入一致。");
+        sb.AppendLine("不要输出任何解释、标题或额外文字，只输出翻译结果。");
+        sb.AppendLine("原文：");
+        for (int i = 0; i < batch.Count; i++)
+            sb.AppendLine($"{i + 1}. {batch[i].Text}");
+        return sb.ToString();
+    }
+
+    /// <summary>解析序号化翻译结果，按序号升序返回译文列表（1-based 序号 → 索引）</summary>
+    private static List<string> ParseNumberedTranslations(string responseText)
+    {
+        var dict = new Dictionary<int, string>();
+        var lines = responseText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var raw in lines)
+        {
+            var line = raw.Trim();
+            if (string.IsNullOrEmpty(line)) continue;
+            var dotIndex = line.IndexOf(". ");
+            if (dotIndex <= 0 || dotIndex > 6) continue;
+            var numPart = line[..dotIndex];
+            if (!int.TryParse(numPart, out var num)) continue;
+            var text = line[(dotIndex + 2)..].Trim();
+            dict[num] = text;
+        }
+        return dict.OrderBy(kv => kv.Key).Select(kv => kv.Value).ToList();
     }
 
     // ========== AI 翻译 ==========
