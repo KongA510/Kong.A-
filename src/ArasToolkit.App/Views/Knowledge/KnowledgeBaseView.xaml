@@ -459,7 +459,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
+                        <RowDefinition Height="*" MinHeight="200" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
@@ -559,7 +559,7 @@
                     <!-- RichTextBox 编辑器 -->
                     <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="1" CornerRadius="6"
-                            Background="White">
+                            Background="White" Padding="4">
                         <RichTextBox x:Name="EditorRichTextBox"
                                      BorderThickness="0"
                                      Padding="16"
