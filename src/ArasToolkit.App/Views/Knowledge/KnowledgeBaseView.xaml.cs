@@ -75,7 +75,8 @@ public partial class KnowledgeBaseView : UserControl
     /// </summary>
     private void CategoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_vm?.SelectCategoryCommand.CanExecute(_vm.SelectedCategory) == true)
+        if (_vm == null || _vm.SelectedCategory == null) return;
+        if (_vm.SelectCategoryCommand.CanExecute(_vm.SelectedCategory))
         {
             _vm.SelectCategoryCommand.Execute(_vm.SelectedCategory);
         }
