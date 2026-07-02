@@ -216,18 +216,33 @@
                 </Grid.RowDefinitions>
 
                 <!-- 分类标题 -->
-                <TextBlock Grid.Row="0" FontSize="15" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimaryBrush}" Margin="8,0,0,8">
-                    <Run Text="{Binding SelectedCategory, Mode=OneWay}" />
-                    <Run Text=" (" />
-                    <Run Text="{Binding TotalCount, Mode=OneWay}" />
-                    <Run Text=")" />
-                </TextBlock>
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="8,0,0,8">
+                    <TextBlock FontSize="15" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Text="{Binding SelectedCategory, Mode=OneWay}" />
+                    <TextBlock FontSize="15" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Text=" (" />
+                    <TextBlock FontSize="15" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Text="{Binding TotalCount, Mode=OneWay}" />
+                    <TextBlock FontSize="15" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Text=")" />
+                </StackPanel>
 
                 <!-- 空状态提示 -->
-                <StackPanel Grid.Row="1" HorizontalAlignment="Center"
-                            Margin="0,60,0,0"
-                            Visibility="{Binding TotalCount, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+                <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,60,0,0">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding TotalCount}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
                     <TextBlock Text="📝" FontSize="48" HorizontalAlignment="Center"
                                Foreground="{StaticResource TextFillColorTertiaryBrush}" />
                     <TextBlock Text="此分类下暂无笔记" FontSize="14"
@@ -259,11 +274,6 @@
                                                     <Setter Property="BorderThickness" Value="2" />
                                                     <Setter Property="Background" Value="#F0F1FF" />
                                                 </DataTrigger>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsSelected}" Value="False" />
-                                                    </MultiDataTrigger.Conditions>
-                                                </MultiDataTrigger>
                                                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True">
                                                     <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                                                     <Setter Property="Background" Value="#F8F9FB" />
