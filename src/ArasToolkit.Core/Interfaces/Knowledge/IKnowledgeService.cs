@@ -34,6 +34,16 @@ public interface IKnowledgeService
     Task DeleteAsync(string id);
 
     /// <summary>
+    /// 获取当前用户所有不重复的分类名
+    /// </summary>
+    Task<List<string>> GetCategoriesAsync();
+
+    /// <summary>
+    /// 按分类获取笔记列表（不含 Content，null/空=全部）
+    /// </summary>
+    Task<List<KnowledgeEntry>> GetByCategoryAsync(string? category);
+
+    /// <summary>
     /// 同步数据库表结构
     /// </summary>
     Task SyncSchemaAsync();

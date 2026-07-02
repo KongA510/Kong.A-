@@ -57,6 +57,33 @@
             </Style.Triggers>
         </Style>
 
+        <!-- 分类项样式 -->
+        <Style TargetType="ListBoxItem" x:Key="CategoryItem">
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="Transparent"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}"
+                                Margin="4,1">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#E5E7EB" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#E0E7FF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- 标签样式 -->
         <Style TargetType="TextBlock" x:Key="TagLabel">
             <Setter Property="FontSize" Value="11" />
@@ -64,11 +91,16 @@
             <Setter Property="Background" Value="#E0E7FF" />
             <Setter Property="Padding" Value="4,2" />
         </Style>
+
+        <!-- 选中的卡片边框 -->
+        <Style TargetType="Border" x:Key="NoteCardSelected" BasedOn="{StaticResource NoteCard}">
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
     </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
@@ -82,29 +114,34 @@
                 <TextBlock Text="知识笔记管理与富文本编辑" FontSize="12"
                            Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
             </StackPanel>
-            <Button Content="＋ 新建" Style="{StaticResource AccentButton}"
-                    Command="{Binding NewEntryCommand}"
+
+            <!-- 查看/编辑态返回按钮 -->
+            <Button Content="← 返回列表" Style="{StaticResource IconBtn}"
+                    Command="{Binding BackToBrowseCommand}"
                     HorizontalAlignment="Right" VerticalAlignment="Center"
-                    Width="80" Height="32" FontSize="12" Padding="0"
-                    FontWeight="Normal" />
+                    FontSize="12" Padding="8,4"
+                    Visibility="{Binding IsBrowseMode, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
         </Grid>
 
         <!-- Row 1: 顶部分隔线 -->
-        <Border Grid.Row="1" Height="1" Background="{StaticResource BorderBrush}" Margin="0,12,0,0" />
+        <Border Grid.Row="1" Height="1" Background="{StaticResource BorderBrush}" Margin="0,12,0,0"
+                VerticalAlignment="Top" />
 
-        <!-- Row 2: 主内容区（左右双栏 + GridSplitter） -->
-        <Grid Grid.Row="2">
+        <!-- Row 1: 主内容区（左右双栏 + GridSplitter） -->
+        <Grid Grid.Row="1" Margin="0,0,0,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="320" MinWidth="250" MaxWidth="500" />
+                <ColumnDefinition Width="240" MinWidth="200" MaxWidth="400" />
                 <ColumnDefinition Width="4" />
                 <ColumnDefinition Width="*" MinWidth="400" />
             </Grid.ColumnDefinitions>
 
-            <!-- ===== 左栏：列表 ===== -->
+            <!-- ===== 左栏：分类列表 ===== -->
             <Grid Grid.Column="0" Margin="24,12,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <!-- 搜索框 -->
@@ -124,7 +161,6 @@
                                  BorderThickness="0" Background="Transparent"
                                  FontSize="13" VerticalAlignment="Center"
                                  Foreground="{StaticResource TextPrimaryBrush}" />
-                        <!-- 清除按钮 -->
                         <Button Grid.Column="2" Content="✕" Style="{StaticResource ToolbarBtn}"
                                 FontSize="10" Width="22" Height="22"
                                 Click="ClearSearch_Click"
@@ -132,22 +168,112 @@
                     </Grid>
                 </Border>
 
-                <!-- 笔记列表 -->
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding Entries}">
+                <!-- 分类标题 -->
+                <TextBlock Grid.Row="1" Text="📂 分类" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="4,0,0,8" />
+
+                <!-- 分类列表 -->
+                <ListBox Grid.Row="2"
+                         ItemsSource="{Binding Categories}"
+                         SelectedItem="{Binding SelectedCategory}"
+                         ItemContainerStyle="{StaticResource CategoryItem}"
+                         BorderThickness="0" Background="Transparent"
+                         SelectionChanged="CategoryList_SelectionChanged">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock FontSize="13"
+                                       Foreground="{StaticResource TextPrimaryBrush}">
+                                <Run Text="📂 " /><Run Text="{Binding}" />
+                            </TextBlock>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- 新建按钮 -->
+                <Button Grid.Row="3" Content="＋ 新建笔记" Style="{StaticResource AccentButton}"
+                        Command="{Binding NewEntryCommand}"
+                        HorizontalAlignment="Stretch" Margin="0,12,0,12"
+                        Height="32" FontSize="12" Padding="0" FontWeight="Normal" />
+            </Grid>
+
+            <!-- GridSplitter -->
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center"
+                          VerticalAlignment="Stretch"
+                          Background="Transparent"
+                          BorderBrush="{StaticResource BorderBrush}"
+                          BorderThickness="1,0,0,0" />
+
+            <!-- ===== 右栏：三态面板 ===== -->
+
+            <!-- ▸ 浏览态：笔记卡片列表 -->
+            <Grid Grid.Column="2" Margin="4,12,24,0"
+                  Visibility="{Binding IsBrowseMode, Converter={StaticResource BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- 分类标题 -->
+                <TextBlock Grid.Row="0" FontSize="15" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}" Margin="8,0,0,8">
+                    <Run Text="{Binding SelectedCategory, Mode=OneWay}" />
+                    <Run Text=" (" />
+                    <Run Text="{Binding TotalCount, Mode=OneWay}" />
+                    <Run Text=")" />
+                </TextBlock>
+
+                <!-- 空状态提示 -->
+                <StackPanel Grid.Row="1" HorizontalAlignment="Center"
+                            Margin="0,60,0,0"
+                            Visibility="{Binding TotalCount, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+                    <TextBlock Text="📝" FontSize="48" HorizontalAlignment="Center"
+                               Foreground="{StaticResource TextFillColorTertiaryBrush}" />
+                    <TextBlock Text="此分类下暂无笔记" FontSize="14"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center" Margin="0,12,0,0" />
+                    <TextBlock Text="点击左侧「＋ 新建笔记」开始记录" FontSize="12"
+                               Foreground="{StaticResource TextFillColorTertiaryBrush}"
+                               HorizontalAlignment="Center" Margin="0,4,0,0" />
+                </StackPanel>
+
+                <!-- 笔记卡片列表 -->
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding NotesInCategory}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Style="{StaticResource NoteCard}"
-                                        MouseLeftButtonDown="NoteCard_Click">
-                                    <Border.InputBindings>
-                                        <MouseBinding Gesture="LeftDoubleClick"
-                                                      Command="{Binding DataContext.OpenEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                      CommandParameter="{Binding}" />
-                                    </Border.InputBindings>
+                                <Border MouseLeftButtonDown="NoteCard_Click">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{StaticResource CardBrush}" />
+                                            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                                            <Setter Property="BorderThickness" Value="1" />
+                                            <Setter Property="CornerRadius" Value="8" />
+                                            <Setter Property="Padding" Value="12,10" />
+                                            <Setter Property="Margin" Value="0,0,0,8" />
+                                            <Setter Property="Cursor" Value="Hand" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                    <Setter Property="BorderThickness" Value="2" />
+                                                    <Setter Property="Background" Value="#F0F1FF" />
+                                                </DataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsSelected}" Value="False" />
+                                                    </MultiDataTrigger.Conditions>
+                                                </MultiDataTrigger>
+                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                    <Setter Property="Background" Value="#F8F9FB" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                     <StackPanel>
                                         <!-- 第1行：标题 + 置顶标记 -->
                                         <StackPanel Orientation="Horizontal">
-                                            <!-- 置顶标记 -->
                                             <TextBlock Text="📌" FontSize="11" Margin="0,0,6,0"
                                                        VerticalAlignment="Center"
                                                        Visibility="{Binding Pinned, Converter={StaticResource BoolToVisibility}}" />
@@ -156,10 +282,14 @@
                                                        TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
 
-                                        <!-- 第2行：标签 -->
-                                        <WrapPanel Margin="0,6,0,0"
-                                                   Visibility="{Binding HasTags, Converter={StaticResource BoolToVisibility}}">
-                                            <TextBlock Text="{Binding DisplayTags}" Style="{StaticResource TagLabel}" />
+                                        <!-- 第2行：分类 + 标签 -->
+                                        <WrapPanel Margin="0,6,0,0">
+                                            <TextBlock Text="{Binding Category}" FontSize="11"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       Margin="0,0,8,0"
+                                                       Visibility="{Binding Category, Converter={StaticResource StringToVisibility}}" />
+                                            <TextBlock Text="{Binding DisplayTags}" Style="{StaticResource TagLabel}"
+                                                       Visibility="{Binding HasTags, Converter={StaticResource BoolToVisibility}}" />
                                         </WrapPanel>
 
                                         <!-- 第3行：预览文本 -->
@@ -182,16 +312,120 @@
                 </ScrollViewer>
             </Grid>
 
-            <!-- GridSplitter -->
-            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center"
-                          VerticalAlignment="Stretch"
-                          Background="Transparent"
-                          BorderBrush="{StaticResource BorderBrush}"
-                          BorderThickness="1,0,0,0" />
+            <!-- ▸ 查看态：只读预览 -->
+            <Grid Grid.Column="2" Margin="4,12,24,0"
+                  Visibility="{Binding IsViewMode, Converter={StaticResource BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-            <!-- ===== 右栏：编辑器 ===== -->
+                <!-- 工具栏 -->
+                <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+                        Padding="12,8" CornerRadius="8,8,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="✏️ 编辑" Style="{StaticResource AccentButton}"
+                                Command="{Binding EnterEditCommand}"
+                                Width="70" Height="28" FontSize="12" Padding="0" FontWeight="Normal"
+                                Margin="0,0,8,0" />
+                        <Button Content="🗑️ 删除" Command="{Binding DeleteFromViewCommand}"
+                                Width="70" Height="28" FontSize="12"
+                                Background="#FEE2E2" Foreground="#DC2626"
+                                BorderThickness="0" Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bg" Background="{TemplateBinding Background}"
+                                            CornerRadius="4" Padding="0">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="#FECACA" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- 元数据区 -->
+                <Border Grid.Row="1" Background="White"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,1,0"
+                        Padding="16,12">
+                    <WrapPanel>
+                        <!-- 标题 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,20,4">
+                            <TextBlock Text="标题：" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding ViewingEntry.Title}" FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- 置顶标记 -->
+                        <Border Background="#FFF3E0" CornerRadius="4" Padding="6,2"
+                                Margin="0,0,16,4"
+                                Visibility="{Binding ViewingEntry.Pinned, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="📌 已置顶" FontSize="11"
+                                       Foreground="#E65100" />
+                        </Border>
+
+                        <!-- 分类 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,20,4"
+                                    Visibility="{Binding ViewingEntry.Category, Converter={StaticResource StringToVisibility}}">
+                            <TextBlock Text="分类：" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding ViewingEntry.Category}" FontSize="12"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- 标签 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,20,4"
+                                    Visibility="{Binding ViewingEntry.HasTags, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="标签：" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,4,0" />
+                            <TextBlock Text="{Binding ViewingEntry.DisplayTags}" Style="{StaticResource TagLabel}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- 日期 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="最后修改：" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,4,0" />
+                            <TextBlock Text="{Binding ViewingEntry.DisplayModifiedDate}" FontSize="12"
+                                       Foreground="{StaticResource TextFillColorTertiaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </WrapPanel>
+                </Border>
+
+                <!-- 分隔线 -->
+                <Border Grid.Row="2" Height="1" Background="{StaticResource BorderBrush}" />
+
+                <!-- 只读 FlowDocument -->
+                <Border Grid.Row="3" Background="White"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,1,1"
+                        CornerRadius="0,0,8,8">
+                    <FlowDocumentScrollViewer x:Name="ViewFlowDocumentScrollViewer"
+                                             VerticalScrollBarVisibility="Auto"
+                                             Padding="20,16"
+                                             IsToolBarVisible="False" />
+                </Border>
+            </Grid>
+
+            <!-- ▸ 编辑态：RichTextBox 编辑器 -->
             <Border Grid.Column="2" Background="{StaticResource SystemBaseBrush}"
-                    Visibility="{Binding IsEditorOpen, Converter={StaticResource BoolToVisibility}}">
+                    Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibility}}">
                 <Grid Margin="20,12,24,12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -200,13 +434,13 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <!-- 编辑器工具栏 -->
+                    <!-- 编辑工具栏 -->
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                        <Button Content="保存" Style="{StaticResource AccentButton}"
+                        <Button Content="💾 保存" Style="{StaticResource AccentButton}"
                                 Command="{Binding SaveEntryCommand}"
-                                Width="56" Height="28" FontSize="12" Padding="0" FontWeight="Normal" Margin="0,0,8,0" />
-                        <Button Content="取消" Command="{Binding CloseEditorCommand}"
-                                Width="56" Height="28" FontSize="12"
+                                Width="70" Height="28" FontSize="12" Padding="0" FontWeight="Normal" Margin="0,0,8,0" />
+                        <Button Content="❌ 取消" Command="{Binding CancelEditCommand}"
+                                Width="70" Height="28" FontSize="12"
                                 Background="#E5E7EB" Foreground="{StaticResource TextPrimaryBrush}"
                                 BorderThickness="0" Cursor="Hand">
                             <Button.Template>
@@ -315,27 +549,11 @@
                     </StackPanel>
                 </Grid>
             </Border>
-
-            <!-- 右栏空白提示（编辑器未打开时） -->
-            <Border Grid.Column="2" Background="{StaticResource SystemBaseBrush}"
-                    Visibility="{Binding IsEditorOpen, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock Text="📒" FontSize="48" HorizontalAlignment="Center"
-                               Foreground="{StaticResource TextFillColorTertiaryBrush}" />
-                    <TextBlock Text="选择一条笔记开始编辑" FontSize="14"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               HorizontalAlignment="Center" Margin="0,12,0,0" />
-                    <TextBlock Text="双击左侧笔记 或 点击「＋ 新建」" FontSize="12"
-                               Foreground="{StaticResource TextFillColorTertiaryBrush}"
-                               HorizontalAlignment="Center" Margin="0,4,0,0" />
-                </StackPanel>
-            </Border>
         </Grid>
 
-        <!-- Row 3: 底部状态栏 -->
-        <Border Grid.Row="3" BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,1,0,0" Padding="24,8" Margin="24,0"
-                Visibility="{Binding IsEditorOpen, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+        <!-- Row 2: 底部状态栏 -->
+        <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0" Padding="24,8" Margin="24,0">
             <Grid>
                 <TextBlock Text="{Binding PageInfo}" FontSize="12"
                            Foreground="{StaticResource TextSecondaryBrush}" />
@@ -346,7 +564,7 @@
         </Border>
 
         <!-- 加载遮罩 -->
-        <Border Grid.RowSpan="4" Background="#80000000"
+        <Border Grid.RowSpan="3" Background="#80000000"
                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock Text="⏳" FontSize="32" HorizontalAlignment="Center" />

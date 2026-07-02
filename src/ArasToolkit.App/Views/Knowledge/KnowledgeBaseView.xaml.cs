@@ -10,7 +10,7 @@ using Microsoft.Win32;
 namespace ArasToolkit.App.Views;
 
 /// <summary>
-/// 个人资料库 View — 左栏列表 + 右栏 RichTextBox 编辑器
+/// 个人资料库 View — 三态工作流：分类列表 → 查看(只读) → 编辑(RichTextBox)
 /// </summary>
 public partial class KnowledgeBaseView : UserControl
 {
@@ -29,14 +29,13 @@ public partial class KnowledgeBaseView : UserControl
         _vm = DataContext as KnowledgeViewModel;
         if (_vm == null) return;
 
-        // 注册保存时获取 FlowDocument 的回调
+        // 注册保存时获取 FlowDocument 的回调（编辑态使用）
         _vm.OnRequestDocument = () => EditorRichTextBox.Document;
 
-        // 注册加载时设置 FlowDocument 的回调
+        // 注册加载时设置 FlowDocument 的回调（编辑态使用）
         _vm.OnLoadDocument = doc =>
         {
             EditorRichTextBox.Document = doc;
-            // 重置编辑状态
             _vm.IsEditorDirty = false;
         };
 
@@ -45,6 +44,15 @@ public partial class KnowledgeBaseView : UserControl
 
         // 注册内容变更回调
         _vm.OnEditorContentChanged = () => _vm.IsEditorDirty = true;
+
+        // 监听 ViewDocument 变化以更新只读预览
+        _vm.PropertyChanged += (s, args) =>
+        {
+            if (args.PropertyName == nameof(KnowledgeViewModel.ViewDocument) && _vm.ViewDocument != null)
+            {
+                ViewFlowDocumentScrollViewer.Document = _vm.ViewDocument;
+            }
+        };
     }
 
     /// <summary>
@@ -59,6 +67,37 @@ public partial class KnowledgeBaseView : UserControl
             _vm.OnInsertImageRequested = null;
             _vm.OnEditorContentChanged = null;
             _vm = null;
+        }
+    }
+
+    /// <summary>
+    /// 分类列表选中变更 → 加载该分类笔记
+    /// </summary>
+    private void CategoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_vm?.SelectCategoryCommand.CanExecute(_vm.SelectedCategory) == true)
+        {
+            _vm.SelectCategoryCommand.Execute(_vm.SelectedCategory);
+        }
+    }
+
+    /// <summary>
+    /// 笔记卡片单击 — 选中高亮；双击 — 进入查看态
+    /// </summary>
+    private void NoteCard_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not Border border || border.DataContext is not Core.Entities.KnowledgeEntry entry)
+            return;
+
+        _vm!.SelectedNote = entry;
+
+        if (e.ClickCount == 2)
+        {
+            if (_vm.ViewEntryCommand.CanExecute(entry))
+            {
+                _vm.ViewEntryCommand.Execute(entry);
+            }
+            e.Handled = true;
         }
     }
 
@@ -79,20 +118,6 @@ public partial class KnowledgeBaseView : UserControl
         {
             e.Handled = true;
             _vm?.SaveEntryCommand.Execute(null);
-        }
-    }
-
-    /// <summary>
-    /// 笔记卡片单击 — 选中高亮
-    /// </summary>
-    private void NoteCard_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is Border border && border.DataContext is Core.Entities.KnowledgeEntry entry)
-        {
-            if (_vm != null)
-            {
-                _vm.SelectedEntry = entry;
-            }
         }
     }
 

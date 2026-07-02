@@ -173,6 +173,66 @@ public class KnowledgeService : IKnowledgeService
         }
     }
 
+    public async Task<List<string>> GetCategoriesAsync()
+    {
+        try
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.KnowledgeEntries
+                .Where(e => e.UserId == CurrentUserContext.CurrentUserId
+                    && e.Category != null && e.Category != "")
+                .Select(e => e.Category!)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            await _errorLogService.LogErrorAsync("资料库-获取分类", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
+        }
+    }
+
+    public async Task<List<KnowledgeEntry>> GetByCategoryAsync(string? category)
+    {
+        try
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var query = context.KnowledgeEntries
+                .Where(e => e.UserId == CurrentUserContext.CurrentUserId);
+
+            if (!string.IsNullOrEmpty(category))
+            {
+                query = query.Where(e => e.Category == category);
+            }
+
+            return await query
+                .OrderByDescending(e => e.Pinned)
+                .ThenByDescending(e => e.CreatorOn)
+                .Select(e => new KnowledgeEntry
+                {
+                    Id = e.Id,
+                    Title = e.Title,
+                    PlainTextPreview = e.PlainTextPreview,
+                    Tags = e.Tags,
+                    Category = e.Category,
+                    Pinned = e.Pinned,
+                    CreatedDate = e.CreatedDate,
+                    ModifiedDate = e.ModifiedDate,
+                    CreatorOn = e.CreatorOn,
+                    UserId = e.UserId
+                })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            await _errorLogService.LogErrorAsync("资料库-按分类查询", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
+        }
+    }
+
     public async Task SyncSchemaAsync()
     {
         try
