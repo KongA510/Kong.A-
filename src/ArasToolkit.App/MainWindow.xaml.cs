@@ -134,6 +134,7 @@ public partial class MainWindow : Window
                 "数据报表" => new ChartView { DataContext = App.Services.GetRequiredService<ChartViewModel>() },
                 "待办项目" => new TodoView { DataContext = App.Services.GetRequiredService<TodoViewModel>() },
                 "我的资料" => new FileExplorerView { DataContext = App.Services.GetRequiredService<FileExplorerViewModel>() },
+                "个人资料库" => new KnowledgeBaseView { DataContext = App.Services.GetRequiredService<KnowledgeViewModel>() },
                 _ => null
             };
 

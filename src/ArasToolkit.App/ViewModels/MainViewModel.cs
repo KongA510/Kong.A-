@@ -139,6 +139,9 @@ public class MainViewModel : ObservableObject
 
         // ===== 我的资料 =====
         MenuItems.Add(new MenuItemInfo { Name = "我的资料", Icon = "Folder", CardIcon = "📁", Description = "文件资源管理器" });
+
+        // ===== 个人资料库 =====
+        MenuItems.Add(new MenuItemInfo { Name = "个人资料库", Icon = "BookOpen", CardIcon = "📚", Description = "个人知识库与笔记管理" });
     }
 
     public void ShowLogin()

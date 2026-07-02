@@ -66,6 +66,7 @@ public partial class App : Application
         services.AddTransient<PermissionConfigViewModel>();
         services.AddTransient<LifecycleConfigViewModel>();
         services.AddTransient<FileExplorerViewModel>();
+        services.AddTransient<KnowledgeViewModel>();
         services.AddTransient<SettingsWindow>();
         services.AddTransient<ArasLoginWindow>();
         services.AddTransient<TranslationApiKeyWindow>();
@@ -92,6 +93,7 @@ public partial class App : Application
         services.AddTransient<PermissionConfigView>();
         services.AddTransient<LifecycleConfigView>();
         services.AddTransient<FileExplorerView>();
+        services.AddTransient<KnowledgeBaseView>();
 
         _serviceProvider = services.BuildServiceProvider();
     }

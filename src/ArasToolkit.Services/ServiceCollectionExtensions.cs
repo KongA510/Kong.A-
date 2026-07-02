@@ -85,6 +85,9 @@ public static class ServiceCollectionExtensions
         // 注册文件浏览器服务（单例，纯文件系统操作）
         services.AddSingleton<IFileExplorerService, FileExplorerService>();
 
+        // 注册个人资料库服务（单例）
+        services.AddSingleton<IKnowledgeService, KnowledgeService>();
+
         return services;
     }
 }

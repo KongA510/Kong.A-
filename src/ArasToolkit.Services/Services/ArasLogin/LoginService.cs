@@ -1,3 +1,4 @@
+using System.Threading;
 using Aras.IOM;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
@@ -19,7 +20,11 @@ public class LoginService : ILoginService
 
     public Task<ArasConnectionInfo?> LoginAsync(LoginInfo loginInfo)
     {
-        return Task.Run<ArasConnectionInfo?>(() =>
+        // 使用专用后台 STA 线程而非 Task.Run（MTA线程池）
+        // Aras.IOM 是 COM 组件，需要 STA 线程；若在 MTA 线程调用，
+        // COM 互操作层会将调用封送回 UI STA 线程，导致 UI 顿挫。
+        var tcs = new TaskCompletionSource<ArasConnectionInfo?>();
+        var thread = new Thread(() =>
         {
             try
             {
@@ -36,26 +41,33 @@ public class LoginService : ILoginService
                     loginInfo.Username,
                     md5Password);
 
-               var connectionInfo = new ArasConnectionInfo
-               {
-                   Url = loginInfo.Url,
-                   Database = loginInfo.Database,
-                   Username = loginInfo.Username,
-                   Md5Password = md5Password,
-                   LoginTime = DateTime.Now
-               };
-
-                // 持久化连接
+                // 登录并获取 Innovator 实例
                 var loginResult = connection.Login();
                 var innovator = loginResult.getInnovator();
+
+                var connectionInfo = new ArasConnectionInfo
+                {
+                    Url = loginInfo.Url,
+                    Database = loginInfo.Database,
+                    Username = loginInfo.Username,
+                    Md5Password = md5Password,
+                    LoginTime = DateTime.Now
+                };
+
+                // 持久化连接
+      
                 _connectionService.SetConnection(connectionInfo, innovator, connection);
-                return connectionInfo;
+                tcs.SetResult(connectionInfo);
             }
             catch (Exception ex)
             {
-                throw new Exception($"CreateHttpServerConnection: {ex.Message}", ex);
+                tcs.SetException(new Exception($"CreateHttpServerConnection: {ex.Message}", ex));
             }
         });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.IsBackground = true;
+        thread.Start();
+        return tcs.Task;
     }
 
     public Task<bool> ValidateConnectionAsync(ArasConnectionInfo connectionInfo)

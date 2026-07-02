@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Input;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Extensions;
@@ -19,6 +20,8 @@ public class ArasLoginViewModel : ObservableObject
     private string _statusMessage = string.Empty;
     private string _errorMessage = string.Empty;
     private bool _isProcessing;
+    /// <summary>当前正在连接的记录ID（用于按钮加载态）</summary>
+    private string? _connectingId;
 
     public ArasLoginViewModel(
         IConfigService configService,
@@ -67,6 +70,13 @@ public class ArasLoginViewModel : ObservableObject
     {
         get => _isProcessing;
         set { SetProperty(ref _isProcessing, value); RefreshCommands(); }
+    }
+
+    /// <summary>当前正在连接的记录ID（null=无连接进行中）</summary>
+    public string? ConnectingId
+    {
+        get => _connectingId;
+        set => SetProperty(ref _connectingId, value);
     }
 
     public ICommand ConnectCommand { get; }
@@ -153,14 +163,19 @@ public class ArasLoginViewModel : ObservableObject
     {
         if (parameter is not LoginInfo info) return;
 
+        // 阻止重复点击
+        if (ConnectingId != null) return;
+
+        ConnectingId = info.Id;
         IsProcessing = true;
         ErrorMessage = string.Empty;
-        StatusMessage = "正在连接到 " + info.Username + "@" + info.Database + "...";
+        StatusMessage = $"正在连接 {info.Username}@{info.Database}...";
 
         try
         {
-            // LoginInfo.Password 已是从DB加载的MD5哈希, IsPasswordHashed=true
+            // 登录在后台 STA 线程执行，不阻塞 UI
             await _loginService.LoginAsync(info);
+
             // 连接成功后设为启用（禁用其他）
             if (!string.IsNullOrEmpty(info.Id))
             {
@@ -172,12 +187,26 @@ public class ArasLoginViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            ErrorMessage = "连接失败: " + ex.Message;
+            // 后台异步完成 — 失败不阻塞UI，弹窗让用户手动切换其他连接
+            ErrorMessage = string.Empty;
+            StatusMessage = $"连接 {info.Username}@{info.Database} 失败，请选择其他连接重试";
+
+            // 在 UI 线程上显示消息框提示用户
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                MessageBox.Show(
+                    $"无法连接到 {info.Username}@{info.Database}\n\n错误: {ex.Message}\n\n请选择其他已保存的连接重试，或检查网络/Aras服务器状态。",
+                    "Aras 连接失败",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            });
+
             await _errorLogService.LogErrorAsync("Aras登录-切换连接", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
         {
+            ConnectingId = null;
             IsProcessing = false;
         }
     }
@@ -239,12 +268,11 @@ public class ArasLoginViewModel : ObservableObject
         {
             // 从 View 读取密码
             var pwd = OnRequestPassword?.Invoke() ?? "";
-            var isPlaceholder = OnIsPasswordPlaceholder?.Invoke() ?? false;
 
             string md5Password;
-            if (IsEditMode && isPlaceholder)
+            if (IsEditMode && string.IsNullOrEmpty(pwd))
             {
-                // 编辑模式且密码未改动 — 保留原有MD5
+                // 编辑模式且密码留空 — 保留数据库中已有的 MD5 哈希
                 var existing = await _loginConfigService.GetByIdAsync(EditingId!);
                 md5Password = existing?.Md5Password ?? "";
                 if (string.IsNullOrEmpty(md5Password))
@@ -255,7 +283,7 @@ public class ArasLoginViewModel : ObservableObject
             }
             else
             {
-                // 新密码 → MD5（32位小写十六进制）
+                // 新增模式 / 编辑模式输入了新密码 — 转为小写32位 MD5 保存
                 md5Password = pwd.ToMd5();
             }
 
@@ -350,9 +378,4 @@ public class ArasLoginViewModel : ObservableObject
     /// 请求密码回调 — 由 View 层注册，从 PasswordBox 获取当前输入的密码
     /// </summary>
     public Func<string>? OnRequestPassword { get; set; }
-
-    /// <summary>
-    /// 密码是否为占位符回调 — View 层注册，判断编辑模式下密码是否被修改
-    /// </summary>
-    public Func<bool>? OnIsPasswordPlaceholder { get; set; }
 }

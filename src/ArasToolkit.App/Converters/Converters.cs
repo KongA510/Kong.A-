@@ -195,3 +195,41 @@ public class EnterTooltipConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
+
+/// <summary>
+/// Null → false, 非Null → true 转换器（用于禁用控制）
+/// </summary>
+public class NotNullToBoolConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value != null && (value is not string s || !string.IsNullOrEmpty(s));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// 多值字符串相等比较转换器 — 用于判断当前项是否正在加载（如 ConnectingId==ItemId）
+/// 支持 values[0] 为 null 的场景（两个都为 null 时返回 false）
+/// </summary>
+public class MultiStringEqualityConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (values == null || values.Length < 2) return false;
+        var a = values[0]?.ToString();
+        var b = values[1]?.ToString();
+        // 任意一方为空则不等
+        if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return false;
+        return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}

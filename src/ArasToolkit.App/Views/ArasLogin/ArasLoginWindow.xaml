@@ -13,6 +13,8 @@
     <Window.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
         <converters:StringToVisibilityConverter x:Key="StringToVisibility" />
+        <converters:MultiStringEqualityConverter x:Key="MultiStringEquality" />
+        <converters:InverseBoolConverter x:Key="InverseBool" />
 
         <Style TargetType="Button" x:Key="WindowButton">
             <Setter Property="Background" Value="Transparent"/>
@@ -140,8 +142,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="密码:" Style="{StaticResource FormLabel}" />
                         <PasswordBox Grid.Column="1" x:Name="NewPasswordBox"
-                                     FontSize="13" Padding="8,6"
-                                     PasswordChanged="NewPasswordBox_PasswordChanged" />
+                                     FontSize="13" Padding="8,6" />
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0">
                             <Button Content="保存" Command="{Binding SaveCommand}"
                                     Style="{StaticResource ConnectBtn}" Height="28" FontSize="12" Padding="12,0" />
@@ -193,9 +194,31 @@
                                         <Button Content="编辑" Style="{StaticResource EditBtn}"
                                                 Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                 CommandParameter="{Binding}" />
-                                        <Button Content="连接" Style="{StaticResource ConnectBtn}"
+                                        <Button Style="{StaticResource ConnectBtn}"
                                                 Command="{Binding DataContext.ConnectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                CommandParameter="{Binding}" Margin="4,0,0,0" />
+                                                CommandParameter="{Binding}" Margin="4,0,0,0"
+                                                IsEnabled="{Binding DataContext.IsProcessing, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBool}, FallbackValue=True}">
+                                            <Button.Content>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="连接" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Value="True">
+                                                                    <DataTrigger.Binding>
+                                                                        <MultiBinding Converter="{StaticResource MultiStringEquality}">
+                                                                            <Binding Path="Id" />
+                                                                            <Binding Path="DataContext.ConnectingId" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                        </MultiBinding>
+                                                                    </DataTrigger.Binding>
+                                                                    <Setter Property="Text" Value="连接中..." />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Button.Content>
+                                        </Button>
                                         <Button Content="删除" Style="{StaticResource DeleteBtn}"
                                                 Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                 CommandParameter="{Binding Id}"
