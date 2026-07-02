@@ -1,0 +1,12 @@
+<Project>
+  <!--
+    统一抑制 MSB3277（程序集版本冲突警告）。
+    根因：R37lib/IOM.dll 编译时绑定 System.IdentityModel.Tokens.Jwt / Microsoft.IdentityModel.Tokens 7.5.1，
+    而 Microsoft.EntityFrameworkCore.SqlServer 间接带入 6.35.0。两者主版本不同（6.x vs 7.x），
+    强行升级到 7.x 会破坏 SqlClient 依赖。运行时已由 .NET 程序集统一机制处理，项目可正常运行，
+    故仅抑制编译期警告，不改变任何运行时行为。
+  -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+  </PropertyGroup>
+</Project>
