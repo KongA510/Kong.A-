@@ -327,9 +327,9 @@ public class ListImportService : IListImportService
                    $"              <name>{parentName}</name>" +
                    $"          </Item>" +
                    $"      </source_id>" +
-                   $"      <label>{label}</label>" +
-                   $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
-                   $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
+                   $"      <label  xml:lang=\"en\">{labelEn}</label>" +
+                   $"      <i18n:label xml:lang=\"zc\" xmlns:i18n=\"http://www.aras.com/I18N\">{label}</i18n:label>" +
+                   $"      <i18n:label xml:lang=\"zt\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelZt}</i18n:label>" +
                    $"      <value>{value}</value>" +
                    $"      <sort_order>{sortOrder}</sort_order>" +
                    $"  </Item>" +
@@ -343,9 +343,9 @@ public class ListImportService : IListImportService
                $"              <name>{parentName}</name>" +
                $"          </Item>" +
                $"      </source_id>" +
-               $"      <label>{label}</label>" +
-               $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
-               $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
+               $"      <label  xml:lang=\"en\">{labelEn}</label>" +
+               $"      <i18n:label xml:lang=\"zc\" xmlns:i18n=\"http://www.aras.com/I18N\">{label}</i18n:label>" +
+               $"      <i18n:label xml:lang=\"zt\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelZt}</i18n:label>" +
                $"      <value>{value}</value>" +
                $"      <sort_order>{sortOrder}</sort_order>" +
                $"  </Item>" +
@@ -367,13 +367,13 @@ public class ListImportService : IListImportService
     /// </summary>
     private static string BuildMenuFilterAml(Dictionary<int, string> row, string importMode)
     {
-        var parentName = row.GetValueOrDefault(0, "");                    // 父阶名称
-        var label = row.GetValueOrDefault(1, "");                         // 显示标签（简）
-        var labelZt = row.GetValueOrDefault(2, "");                       // 显示标签（繁）
-        var labelEn = row.GetValueOrDefault(3, "");                       // 显示标签（英）
-        var value = row.GetValueOrDefault(4, "");                         // 数据库存储值
-        var filterValue = row.GetValueOrDefault(5, "");                   // 过滤值
-        var sortOrder = row.GetValueOrDefault(6, "");                     // 序号
+        var parentName = row.GetValueOrDefault(1, "");                    // 父阶名称
+        var label = row.GetValueOrDefault(2, "");                         // 显示标签（简）
+        var labelZt = row.GetValueOrDefault(3, "");                       // 显示标签（繁）
+        var labelEn = row.GetValueOrDefault(4, "");                       // 显示标签（英）
+        var value = row.GetValueOrDefault(5, "");                         // 数据库存储值
+        var filterValue = row.GetValueOrDefault(6, "");                   // 过滤值
+        var sortOrder = row.GetValueOrDefault(7, "");                     // 序号
 
         if (importMode == "新增")
         {
@@ -384,9 +384,9 @@ public class ListImportService : IListImportService
                    $"              <name>{parentName}</name>" +
                    $"          </Item>" +
                    $"      </source_id>" +
-                   $"      <label>{label}</label>" +
-                   $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
-                   $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
+                   $"      <label  xml:lang=\"en\">{labelEn}</label>" +
+                   $"      <i18n:label xml:lang=\"zc\" xmlns:i18n=\"http://www.aras.com/I18N\">{label}</i18n:label>" +
+                   $"      <i18n:label xml:lang=\"zt\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelZt}</i18n:label>" +
                    $"      <value>{value}</value>" +
                    $"      <filter>{filterValue}</filter>" +
                    $"      <sort_order>{sortOrder}</sort_order>" +
@@ -401,9 +401,9 @@ public class ListImportService : IListImportService
                $"              <name>{parentName}</name>" +
                $"          </Item>" +
                $"      </source_id>" +
-               $"      <label>{label}</label>" +
-               $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
-               $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
+               $"      <label  xml:lang=\"en\">{labelEn}</label>" +
+               $"      <i18n:label xml:lang=\"zc\" xmlns:i18n=\"http://www.aras.com/I18N\">{label}</i18n:label>" +
+               $"      <i18n:label xml:lang=\"zt\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelZt}</i18n:label>" +
                $"      <value>{value}</value>" +
                $"      <filter>{filterValue}</filter>" +
                $"      <sort_order>{sortOrder}</sort_order>" +
