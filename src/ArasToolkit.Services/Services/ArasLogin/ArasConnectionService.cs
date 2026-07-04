@@ -1,3 +1,4 @@
+using System;
 using Aras.IOM;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
@@ -13,20 +14,20 @@ public class ArasConnectionService : IArasConnectionService
     private Innovator? _innovator;
     private HttpServerConnection? _httpConnection;
 
+    /// <summary>连接状态变更时触发（登录/登出/替换连接）</summary>
+    public event Action? ConnectionChanged;
+
     public bool IsConnected => _currentConnection != null && _httpConnection != null;
     public ArasConnectionInfo? CurrentConnection => _currentConnection;
-   public object? InnovatorInstance => _innovator;
-   object? IArasConnectionService.HttpConnection => _httpConnection;
-   /// <summary>获取强类型 HttpServerConnection（供 Services 层内部使用）</summary>
-   public HttpServerConnection? HttpConnection => _httpConnection;
-   /// <summary>
-   /// 获取强类型 Innovator 引用（供 Services 层内部调用 Aras API）
-   /// </summary>
-   public Innovator? TypedInnovator => _innovator;
-
-   /// <summary>
-   /// 登录成功后保存连接
+    public object? InnovatorInstance => _innovator;
+    object? IArasConnectionService.HttpConnection => _httpConnection;
+    /// <summary>获取强类型 HttpServerConnection（供 Services 层内部使用）</summary>
+    public HttpServerConnection? HttpConnection => _httpConnection;
+    /// <summary>
+    /// 获取强类型 Innovator 引用（供 Services 层内部调用 Aras API）
     /// </summary>
+    public Innovator? TypedInnovator => _innovator;
+
     /// <summary>
     /// 登录成功后保存连接 — 如有旧连接先 Logout 再替换
     /// </summary>
@@ -43,6 +44,7 @@ public class ArasConnectionService : IArasConnectionService
         _currentConnection.LoginTime = DateTime.Now;
         _innovator = innovator as Innovator;
         _httpConnection = httpConnection as HttpServerConnection;
+        ConnectionChanged?.Invoke();
     }
 
     /// <summary>
@@ -50,7 +52,6 @@ public class ArasConnectionService : IArasConnectionService
     /// </summary>
     public void Disconnect()
     {
-      
         try
         {
             _httpConnection?.Logout();
@@ -62,5 +63,6 @@ public class ArasConnectionService : IArasConnectionService
         _innovator = null;
         _httpConnection = null;
         _currentConnection = null;
+        ConnectionChanged?.Invoke();
     }
 }

@@ -24,11 +24,11 @@ public partial class MainWindow : Window
         _mainVM = mainViewModel;
         DataContext = _mainVM;
 
-       // 初始化显示登录界面
+        // 初始化显示登录界面
         ShowAppLoginView();
-   }
+    }
 
-   /// <summary>
+    /// <summary>
     /// TreeView 鼠标点击事件 — 父节点：展开/折叠 + 子级仪表盘；叶节点：导航到功能页
     /// </summary>
     private void NavTree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -70,40 +70,40 @@ public partial class MainWindow : Window
         _mainVM.SelectedMenuItem = parentItem;
     }
 
-   public void NavigateToPage(string name)
-   {
-       NavigateToPage(new MenuItemInfo { Name = name });
-   }
+    public void NavigateToPage(string name)
+    {
+        NavigateToPage(new MenuItemInfo { Name = name });
+    }
 
     private void ShowAppLoginView()
-   {
+    {
         var appLoginVM = App.Services.GetRequiredService<AppLoginViewModel>();
         appLoginVM.LoginSucceeded += OnAppLoginSucceeded;
         LoginContentControl.Content = new AppLoginView { DataContext = appLoginVM };
-   }
+    }
 
     private async void OnAppLoginSucceeded()
-   {
-       _mainVM.IsLoggedIn = true;
-       _mainVM.RefreshVersion();
+    {
+        _mainVM.IsLoggedIn = true;
+        _mainVM.RefreshVersion();
 
-       if (_mainVM.MenuItems.Count > 0)
-       {
-           _mainVM.SelectedMenuItem = _mainVM.MenuItems[0];
-           NavigateToPage(_mainVM.MenuItems[0]);
-       }
+        // 先自动连接 Aras，再导航到仪表盘（确保 DashboardViewModel 构造时能读到连接状态）
+        try
+        {
+            var arasLoginVM = App.Services.GetRequiredService<ArasLoginViewModel>();
+            await arasLoginVM.TryAutoConnectAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] Aras自动连接异常: {ex.Message}");
+        }
 
-       // 自动连接已启用的 Aras 配置
-       try
-       {
-           var arasLoginVM = App.Services.GetRequiredService<ArasLoginViewModel>();
-           await arasLoginVM.TryAutoConnectAsync();
-       }
-       catch (Exception ex)
-       {
-           System.Diagnostics.Debug.WriteLine($"[MainWindow] Aras自动连接异常: {ex.Message}");
-       }
-   }
+        if (_mainVM.MenuItems.Count > 0)
+        {
+            _mainVM.SelectedMenuItem = _mainVM.MenuItems[0];
+            NavigateToPage(_mainVM.MenuItems[0]);
+        }
+    }
 
     /// <summary>
     /// 根据菜单项切换右侧内容
@@ -208,7 +208,7 @@ public partial class MainWindow : Window
             };
             window.ShowDialog();
         }
- 
+
          private void ArasLoginButton_Click(object sender, RoutedEventArgs e)
          {
              var vm = App.Services.GetRequiredService<ArasLoginViewModel>();

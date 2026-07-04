@@ -22,8 +22,9 @@ public class DashboardViewModel : ObservableObject
     public DashboardViewModel(IArasConnectionService connectionService)
     {
         _connectionService = connectionService;
+        _connectionService.ConnectionChanged += RefreshConnectionInfo;
         RefreshConnectionInfo();
-        
+
         RefreshCommand = new RelayCommand(_ => RefreshConnectionInfo());
     }
 

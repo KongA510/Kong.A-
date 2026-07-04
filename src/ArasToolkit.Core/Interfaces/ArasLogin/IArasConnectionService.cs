@@ -1,3 +1,4 @@
+using System;
 using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.Core.Interfaces;
@@ -7,6 +8,9 @@ namespace ArasToolkit.Core.Interfaces;
 /// </summary>
 public interface IArasConnectionService
 {
+    /// <summary>连接状态变更时触发</summary>
+    event Action? ConnectionChanged;
+
     /// <summary>当前是否已连接</summary>
     bool IsConnected { get; }
 
