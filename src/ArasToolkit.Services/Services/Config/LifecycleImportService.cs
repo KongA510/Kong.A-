@@ -230,7 +230,14 @@ public class LifecycleImportService : ILifecycleImportService
                         await writer.WriteLineAsync(failMsg).ConfigureAwait(false);
                         result.FailedDetails.Add(failMsg);
                     }
-                    else { s1Success++; }
+                    else { 
+                        s1Success++;
+                        //修复覆盖模式下，新增时未缓存 Life Cycle Map ID 的问题
+                        var mapItem=amlResult.getItemsByXPath("//Item[@type='Life Cycle Map']") ;
+                        var mapId = mapItem.getID();
+                        var mapName = mapItem.getProperty("name", "");
+                        lifecycleMapIdCache[mapName] = mapId;
+                    }
                 }
                 catch (OperationCanceledException) { throw; }
                 catch (Exception ex)
@@ -245,6 +252,8 @@ public class LifecycleImportService : ILifecycleImportService
 
             // 7. 处理 Sheet2: 生命周期状态
             int s2Success = 0;
+            // X轴坐标缓存: key = 生命周期名称 → 下一个X坐标 (每次+100避免节点重叠)
+            var stateXCache = new Dictionary<string, int>();
             for (int i = 0; i < sheet2Rows.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -265,13 +274,14 @@ public class LifecycleImportService : ILifecycleImportService
                 {
                     var lifecycleName = row.GetValueOrDefault(1, "");  // 生命周期名称
                     var isDefault = row.GetValueOrDefault(6, "");       // 是否为初始状态
-                    string lcMapId = "";
-                    if (importMode == "覆盖")
-                    {
-                        lcMapId = ResolveLifecycleMapId(innovator, lifecycleName, lifecycleMapIdCache);
-                    }
+                    var lcMapId = ResolveLifecycleMapId(innovator, lifecycleName, lifecycleMapIdCache);
 
-                    var aml = BuildLifecycleStateAml(row, importMode, lcMapId);
+                    // 动态计算 X 坐标: 同一生命周期下每次+100，避免节点重叠
+                    if (!stateXCache.TryGetValue(lcMapId, out var x))
+                        x = 0;
+                    stateXCache[lcMapId] = x + 200;
+
+                    var aml = BuildLifecycleStateAml(row, importMode, x, lcMapId);
                     var amlResult = innovator.applyAML(aml);
                     if (amlResult.isError())
                     {
@@ -532,7 +542,7 @@ public class LifecycleImportService : ILifecycleImportService
     /// </summary>
     /// <param name="lcMapId">覆盖模式: 预解析的 Life Cycle Map GUID（所属生命周期）</param>
     private static string BuildLifecycleStateAml(Dictionary<int, string> row, string importMode,
-        string lcMapId = "")
+        int x, string lcMapId = "")
     {
         var lifecycleName = row.GetValueOrDefault(1, "");  // 生命周期名称
         var stateName = row.GetValueOrDefault(2, "");      // 状态名称
@@ -547,9 +557,12 @@ public class LifecycleImportService : ILifecycleImportService
                    $"  <Item type='Life Cycle State' action='add'>" +
                    $"      <name>{stateName}</name>" +
                    $"      <label>{label}</label>" +
-                   $"      <y>50</y>" +
-                   $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
-                   $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
+                   $"      <x>{x}</x>" +
+                   $"      <y>100</y>" +
+                   $"      <image>../images/LifeCycleState.svg</image>" +
+                   $"      <i18n:label  xml:lang=\"en\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelEn}</i18n:label>" +
+                   $"      <i18n:label xml:lang=\"zc\" xmlns:i18n=\"http://www.aras.com/I18N\">{label}</i18n:label>" +
+                   $"      <i18n:label xml:lang=\"zt\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelZt}</i18n:label>" +
                    $"      <source_id>" +
                    $"          <Item type='Life Cycle Map' action='get' select='id'>" +
                    $"              <name>{lifecycleName}</name>" +
@@ -562,12 +575,14 @@ public class LifecycleImportService : ILifecycleImportService
         // 覆盖模式: where 使用 source_id + name 组合作为唯一键
         return $"<AML>" +
                $"  <Item type='Life Cycle State' action='merge' where=\"source_id='{lcMapId}' and name='{stateName}'\">" +
-               $"      <y>50</y>" +
+               $"      <x>{x}</x>" +
+               $"      <y>100</y>" +
+               $"      <image>../images/LifeCycleState.svg</image>" +
                $"      <source_id>{lcMapId}</source_id>" +
                $"      <name>{stateName}</name>" +
-               $"      <label>{label}</label>" +
-               $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
-               $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
+               $"      <i18n:label  xml:lang=\"en\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelEn}</i18n:label>" +
+               $"      <i18n:label xml:lang=\"zc\" xmlns:i18n=\"http://www.aras.com/I18N\">{label}</i18n:label>" +
+               $"      <i18n:label xml:lang=\"zt\" xmlns:i18n=\"http://www.aras.com/I18N\">{labelZt}</i18n:label>" +
                $"  </Item>" +
                $"</AML>";
     }
