@@ -171,13 +171,39 @@
                                Text="📊 导入结果" />
                     <StackPanel Margin="0,8,0,0">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="生命周期配置: " FontSize="13" Foreground="#6B7280" />
+                            <TextBlock Text="生命周期汇入: " FontSize="13" Foreground="#6B7280" />
                             <TextBlock Text="{Binding LastResult.Sheet1Count}"
                                        FontSize="13" FontWeight="Bold" Foreground="#16A34A" />
                             <TextBlock Text=" 条" FontSize="13" Foreground="#6B7280" />
                             <TextBlock Text=" (失败: " FontSize="13" Foreground="#EF4444"
                                        Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" />
                             <TextBlock Text="{Binding LastResult.Sheet1Failed}"
+                                       FontSize="13" FontWeight="Bold" Foreground="#EF4444"
+                                       Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" />
+                            <TextBlock Text=" 条)" FontSize="13" Foreground="#EF4444"
+                                       Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="生命周期状态: " FontSize="13" Foreground="#6B7280" />
+                            <TextBlock Text="{Binding LastResult.Sheet2Count}"
+                                       FontSize="13" FontWeight="Bold" Foreground="#16A34A" />
+                            <TextBlock Text=" 条" FontSize="13" Foreground="#6B7280" />
+                            <TextBlock Text=" (失败: " FontSize="13" Foreground="#EF4444"
+                                       Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" />
+                            <TextBlock Text="{Binding LastResult.Sheet2Failed}"
+                                       FontSize="13" FontWeight="Bold" Foreground="#EF4444"
+                                       Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" />
+                            <TextBlock Text=" 条)" FontSize="13" Foreground="#EF4444"
+                                       Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="转变: " FontSize="13" Foreground="#6B7280" />
+                            <TextBlock Text="{Binding LastResult.Sheet3Count}"
+                                       FontSize="13" FontWeight="Bold" Foreground="#16A34A" />
+                            <TextBlock Text=" 条" FontSize="13" Foreground="#6B7280" />
+                            <TextBlock Text=" (失败: " FontSize="13" Foreground="#EF4444"
+                                       Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" />
+                            <TextBlock Text="{Binding LastResult.Sheet3Failed}"
                                        FontSize="13" FontWeight="Bold" Foreground="#EF4444"
                                        Visibility="{Binding HasFailures, Converter={StaticResource BoolToVis}}" />
                             <TextBlock Text=" 条)" FontSize="13" Foreground="#EF4444"
@@ -222,7 +248,9 @@
                             <DataGridTextColumn Header="状态" Binding="{Binding StatusText}" Width="60" />
                             <DataGridTextColumn Header="汇入时间" Binding="{Binding DisplayImportTime}" Width="150" />
                             <DataGridTextColumn Header="文件" Binding="{Binding ImportFile}" Width="220" />
-                            <DataGridTextColumn Header="生命周期" Binding="{Binding Sheet1Count}" Width="65" />
+                            <DataGridTextColumn Header="生命周期" Binding="{Binding Sheet1Count}" Width="55" />
+                            <DataGridTextColumn Header="状态" Binding="{Binding Sheet2Count}" Width="45" />
+                            <DataGridTextColumn Header="转变" Binding="{Binding Sheet3Count}" Width="45" />
                             <DataGridTextColumn Header="备注" Binding="{Binding Summary}" Width="*" />
                             <DataGridTemplateColumn Header="操作" Width="80">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -256,7 +284,7 @@
         <!-- Row 4: 提示信息 -->
         <Border Grid.Row="4" Margin="0,12,0,0">
             <TextBlock FontSize="11" Foreground="#9CA3AF" TextWrapping="Wrap"
-                       Text="提示：点击「下载模板」获取标准 Excel 模板（生命周期配置Sheet，9列：状态名称/状态标签/状态标签繁体/状态标签英文/所属对象类/是否为初始状态/允许流转目标/转移条件/备注说明），填写后上传导入。导入过程中可随时点击「取消导入」终止当前操作。" />
+                       Text="提示：点击「下载模板」获取标准 Excel 模板（3个Sheet：生命周期汇入/生命周期状态/转变），填写后上传导入。导入过程中可随时点击「取消导入」终止当前操作。" />
         </Border>
     </Grid>
 </UserControl>

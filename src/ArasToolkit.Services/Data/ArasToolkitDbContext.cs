@@ -331,6 +331,8 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(20);
             entity.Property(e => e.ErrorLog).HasColumnName("error_log");
             entity.Property(e => e.Sheet1Count).HasColumnName("sheet1_count");
+            entity.Property(e => e.Sheet2Count).HasColumnName("sheet2_count");
+            entity.Property(e => e.Sheet3Count).HasColumnName("sheet3_count");
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
 
             entity.Ignore(e => e.DisplayImportTime);
@@ -715,8 +717,17 @@ public class ArasToolkitDbContext : DbContext
                         status NVARCHAR(20) NOT NULL DEFAULT 'Success',
                         error_log NVARCHAR(MAX) NULL,
                         sheet1_count INT NOT NULL DEFAULT 0,
+                        sheet2_count INT NOT NULL DEFAULT 0,
+                        sheet3_count INT NOT NULL DEFAULT 0,
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
+                END
+                ELSE
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='lifecycle_import_log' AND COLUMN_NAME='sheet2_count')
+                        ALTER TABLE lifecycle_import_log ADD sheet2_count INT NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='lifecycle_import_log' AND COLUMN_NAME='sheet3_count')
+                        ALTER TABLE lifecycle_import_log ADD sheet3_count INT NOT NULL DEFAULT 0;
                 END
 
                 -- ===== knowledge_entry 表 =====

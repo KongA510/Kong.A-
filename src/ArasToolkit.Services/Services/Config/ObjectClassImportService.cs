@@ -531,11 +531,11 @@ public class ObjectClassImportService : IObjectClassImportService
                // 硬编码系统引用
                $"      <revisions>{DefaultRevisionsGuid}</revisions>" +
                // 嵌套关系: 合并模式用 merge where 避免重复创建
-               $"      <Relationships>" +
-               $"        <Item type='Can Add' action='merge' where=\"Can_Add.related_id='{CanAddRelatedIdGuid}'\">" +
-               $"            <related_id>{CanAddRelatedIdGuid}</related_id>" +
-               $"        </Item>" +
-               $"      </Relationships>" +
+               //$"      <Relationships>" +
+               //$"        <Item type='Can Add' action='merge' where=\"Can_Add.related_id='{CanAddRelatedIdGuid}'\">" +
+               //$"            <related_id>{CanAddRelatedIdGuid}</related_id>" +
+               //$"        </Item>" +
+               //$"      </Relationships>" +
                $"  </Item>" +
                $"</AML>";
     }

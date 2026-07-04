@@ -275,8 +275,8 @@ public class LifecycleConfigViewModel : ObservableObject
             if (LastResult.IsSuccess)
             {
                 StatusMessage = LastResult.HasFailures
-                    ? $"导入完成（部分失败）: 生命周期{LastResult.Sheet1Count}/{LastResult.Sheet1Total}"
-                    : $"导入成功: 生命周期{LastResult.Sheet1Count}条";
+                    ? $"导入完成（部分失败）: 生命周期{LastResult.Sheet1Count}/{LastResult.Sheet1Total}  状态{LastResult.Sheet2Count}/{LastResult.Sheet2Total}  转变{LastResult.Sheet3Count}/{LastResult.Sheet3Total}"
+                    : $"导入成功: 生命周期{LastResult.Sheet1Count}  状态{LastResult.Sheet2Count}  转变{LastResult.Sheet3Count}";
             }
             else
             {

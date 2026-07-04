@@ -48,6 +48,14 @@ public class LifecycleImportLog
     [Column("sheet1_count")]
     public int Sheet1Count { get; set; }
 
+    /// <summary>生命周期状态成功导入条数</summary>
+    [Column("sheet2_count")]
+    public int Sheet2Count { get; set; }
+
+    /// <summary>转变成功导入条数</summary>
+    [Column("sheet3_count")]
+    public int Sheet3Count { get; set; }
+
     /// <summary>记录创建时间</summary>
     [Column("creator_on")]
     public DateTime CreatorOn { get; set; } = DateTime.Now;
@@ -72,5 +80,5 @@ public class LifecycleImportLog
 
     /// <summary>统计摘要</summary>
     [NotMapped]
-    public string Summary => $"生命周期配置 {Sheet1Count} 条";
+    public string Summary => $"生命周期 {Sheet1Count} 状态 {Sheet2Count} 转变 {Sheet3Count}";
 }

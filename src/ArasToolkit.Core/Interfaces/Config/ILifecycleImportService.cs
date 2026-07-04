@@ -13,8 +13,10 @@ namespace ArasToolkit.Core.Interfaces;
 public interface ILifecycleImportService
 {
     /// <summary>
-    /// 生成 Excel 模板文件（1个Sheet：生命周期配置）
-    /// 列: 状态名称 | 状态标签 | 状态标签繁体 | 状态标签英文 | 所属对象类 | 是否为初始状态 | 允许流转目标 | 转移条件 | 备注说明
+    /// 生成 Excel 模板文件（3个Sheet：生命周期汇入/生命周期状态/转变）
+    /// Sheet「生命周期汇入」4列: 生命周期名称 | 描述 | 挂载位置 | 分类
+    /// Sheet「生命周期状态」5列: 状态名称 | 状态标签 | 状态标签繁体 | 状态标签英文 | 是否为初始状态
+    /// Sheet「转变」5列: 角色 | 转换前 | 转换后 | 转换前执行 | 转换后执行
     /// </summary>
     /// <returns>Excel 文件字节数组</returns>
     byte[] GenerateTemplate();
