@@ -135,7 +135,7 @@
                             </Border.Style>
                             <StackPanel>
                                 <TextBlock Text="{Binding Icon}" FontSize="28" Margin="0,0,0,10"
-                                           Foreground="{x:Null}" />
+                                           Foreground="{DynamicResource SystemAccentBrush}" />
                                 <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4" />
                                 <TextBlock Text="{Binding Description}" FontSize="12"

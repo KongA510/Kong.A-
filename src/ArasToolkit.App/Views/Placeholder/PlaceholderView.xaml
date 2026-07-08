@@ -21,7 +21,7 @@
             <!-- 无子功能时的占位图标 -->
             <StackPanel x:Name="EmptyPlaceholder" VerticalAlignment="Center" HorizontalAlignment="Center">
                 <TextBlock Text="🚧" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,16"
-                           Foreground="{x:Null}" />
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                 <TextBlock Text="Aras 开发工具箱"
                            FontSize="13"
                            Foreground="{StaticResource TextSecondaryBrush}"
@@ -40,7 +40,7 @@
                                 MouseLeftButtonDown="ChildCard_Click">
                             <StackPanel>
                                 <TextBlock Text="{Binding CardIcon}" FontSize="28" Margin="0,0,0,10"
-                                           Foreground="{x:Null}" />
+                                           Foreground="{DynamicResource SystemAccentBrush}" />
                                 <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4" />
                                 <TextBlock Text="{Binding Description}" FontSize="12"

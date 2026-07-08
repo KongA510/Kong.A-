@@ -95,7 +95,7 @@
                                                Grid.Column="2"
                                                Text="{Binding CardIcon}"
                                                FontSize="15"
-                                               Foreground="{x:Null}"
+                                               Foreground="{DynamicResource SystemAccentBrush}"
                                                VerticalAlignment="Center"
                                                HorizontalAlignment="Center" />
 
