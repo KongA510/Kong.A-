@@ -1,8 +1,9 @@
+using System;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System;
 using ArasToolkit.App.ViewModels;
 using ArasToolkit.App.Views;
 using ArasToolkit.App.Views.Placeholder;
@@ -135,6 +136,12 @@ public partial class MainWindow : Window
                 "待办项目" => new TodoView { DataContext = App.Services.GetRequiredService<TodoViewModel>() },
                 "我的资料" => new FileExplorerView { DataContext = App.Services.GetRequiredService<FileExplorerViewModel>() },
                 "个人资料库" => new KnowledgeBaseView { DataContext = App.Services.GetRequiredService<KnowledgeViewModel>() },
+                "设置" => CreateSettingsMenu(),
+                "设置-资料文件夹地址" => CreateSettingsView("datafolder"),
+                "设置-AI模型配置" => new TranslationApiKeyView(App.Services.GetRequiredService<TranslationApiKeyViewModel>()),
+                "设置-数据库检查" => CreateSettingsView("database"),
+                "设置-数据库连接字符串" => CreateSettingsView("connection"),
+                "设置-退出登录" => CreateSettingsView("logout"),
                 _ => null
             };
 
@@ -163,6 +170,30 @@ public partial class MainWindow : Window
         var view = new PlaceholderView();
         view.SetTitle(title, description);
         return view;
+    }
+
+    private PlaceholderView CreateSettingsMenu()
+    {
+        var settingsItems = new ObservableCollection<MenuItemInfo>
+        {
+            new() { Name = "设置-资料文件夹地址", CardIcon = "📁", Description = "设置个人资料文件的存储位置" },
+            new() { Name = "设置-AI模型配置", CardIcon = "🤖", Description = "管理多个AI模型API Key，支持启用/切换" },
+            new() { Name = "设置-数据库检查", CardIcon = "🔍", Description = "检查数据库表结构完整性，同步缺失字段" },
+            new() { Name = "设置-数据库连接字符串", CardIcon = "🗄️", Description = "配置应用数据库连接，保存后即时生效" },
+            new() { Name = "设置-退出登录", CardIcon = "🚪", Description = "退出当前登录，返回登录界面" },
+        };
+
+        var dashboard = new PlaceholderView();
+        dashboard.SetTitle("设置", "应用配置与系统管理");
+        dashboard.AddChildItems(settingsItems, NavigateToPage);
+        return dashboard;
+    }
+
+    private SettingsView CreateSettingsView(string mode)
+    {
+        var settingsVM = App.Services.GetRequiredService<SettingsViewModel>();
+        settingsVM.LogoutRequested += () => ResetToLogin();
+        return new SettingsView(settingsVM, mode);
     }
 
     #region 标题栏事件
@@ -196,25 +227,26 @@ public partial class MainWindow : Window
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
-        var settingsVM = App.Services.GetRequiredService<SettingsViewModel>();
-        var window = new SettingsWindow(settingsVM);
-        window.Owner = this;
-            settingsVM.LogoutRequested += () =>
-            {
-                _mainVM.IsLoggedIn = false;
-                MainContentControl.Content = null;
-                _mainVM.SelectedMenuItem = null;
-                ShowAppLoginView();
-            };
-            window.ShowDialog();
-        }
+        NavigateToPage("设置");
+    }
 
-         private void ArasLoginButton_Click(object sender, RoutedEventArgs e)
-         {
-             var vm = App.Services.GetRequiredService<ArasLoginViewModel>();
-             var window = new ArasLoginWindow(vm);
-             window.Owner = this;
-             window.ShowDialog();
-         }
+    private void ArasLoginButton_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = App.Services.GetRequiredService<ArasLoginViewModel>();
+        var window = new ArasLoginWindow(vm);
+        window.Owner = this;
+        window.ShowDialog();
+    }
+
+    /// <summary>
+    /// 退出登录 → 重置整个应用状态回到登录界面
+    /// </summary>
+    public void ResetToLogin()
+    {
+        _mainVM.IsLoggedIn = false;
+        MainContentControl.Content = null;
+        _mainVM.SelectedMenuItem = null;
+        ShowAppLoginView();
+    }
         #endregion
     }

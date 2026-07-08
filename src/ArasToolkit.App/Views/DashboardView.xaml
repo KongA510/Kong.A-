@@ -16,8 +16,8 @@
             <TextBlock Text="Aras 开发工具箱" FontSize="13"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,24" />
 
-            <!-- 连接状态卡片组 -->
-            <TextBlock Text="连接状态" FontSize="15" FontWeight="SemiBold"
+            <!-- Aras链接详情 -->
+            <TextBlock Text="Aras链接详情" FontSize="15" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12" />
 
             <WrapPanel Margin="0,0,0,32">
@@ -64,12 +64,36 @@
                     </StackPanel>
                 </Border>
 
-                <!-- 用户 -->
+                <!-- Aras用户 -->
                 <Border Style="{DynamicResource SimpleCard}" Width="210" Margin="0,0,12,12" Padding="20,16">
                     <StackPanel>
                         <TextBlock Text="{Binding ConnectedUser}" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="当前用户" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                        <TextBlock Text="Aras用户" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
+
+            <!-- Users链接详情 -->
+            <TextBlock Text="Users链接详情" FontSize="15" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12" />
+
+            <WrapPanel Margin="0,0,0,32">
+                <!-- 应用用户名 -->
+                <Border Style="{DynamicResource SimpleCard}" Width="210" Margin="0,0,12,12" Padding="20,16">
+                    <StackPanel>
+                        <TextBlock Text="{Binding AppUsername}" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="当前登录用户" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 应用显示名 -->
+                <Border Style="{DynamicResource SimpleCard}" Width="210" Margin="0,0,12,12" Padding="20,16">
+                    <StackPanel>
+                        <TextBlock Text="{Binding AppDisplayName}" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="显示名称" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
                     </StackPanel>
                 </Border>
 
@@ -78,7 +102,7 @@
                     <StackPanel>
                         <TextBlock Text="{Binding LoginTime}" FontSize="13" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="登录时间" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                        <TextBlock Text="Aras登录时间" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
                     </StackPanel>
                 </Border>
             </WrapPanel>
@@ -110,7 +134,8 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="{Binding Icon}" FontSize="28" Margin="0,0,0,10" />
+                                <TextBlock Text="{Binding Icon}" FontSize="28" Margin="0,0,0,10"
+                                           Foreground="{x:Null}" />
                                 <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4" />
                                 <TextBlock Text="{Binding Description}" FontSize="12"

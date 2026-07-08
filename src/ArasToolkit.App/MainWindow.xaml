@@ -93,9 +93,9 @@
                                     <!-- 图标 -->
                                     <TextBlock x:Name="IconText"
                                                Grid.Column="2"
-                                               Text="●"
-                                               FontSize="10"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               Text="{Binding CardIcon}"
+                                               FontSize="15"
+                                               Foreground="{x:Null}"
                                                VerticalAlignment="Center"
                                                HorizontalAlignment="Center" />
 
@@ -120,14 +120,12 @@
                             <!-- Hover -->
                             <Trigger SourceName="NavBorder" Property="IsMouseOver" Value="True">
                                 <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
-                                <Setter TargetName="IconText" Property="Foreground" Value="{DynamicResource SystemAccentBrush}" />
                                 <Setter TargetName="NavLabel" Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
                             </Trigger>
                             <!-- Selected: 左侧指示条 + 半透明背景 + 强调色文字 -->
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
                                 <Setter TargetName="IndicatorBar" Property="Background" Value="{DynamicResource SystemAccentBrush}" />
-                                <Setter TargetName="IconText" Property="Foreground" Value="{DynamicResource SystemAccentBrush}" />
                                 <Setter TargetName="NavLabel" Property="Foreground" Value="{DynamicResource SystemAccentBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>

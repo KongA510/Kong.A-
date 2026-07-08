@@ -59,6 +59,7 @@ public partial class App : Application
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<ArasLoginViewModel>();
         services.AddTransient<TranslationApiKeyViewModel>();
+        services.AddTransient<TranslationApiKeyView>();
         services.AddTransient<DataImportViewModel>();
         services.AddTransient<ObjectClassConfigViewModel>();
         services.AddTransient<ListConfigViewModel>();
@@ -67,7 +68,6 @@ public partial class App : Application
         services.AddTransient<LifecycleConfigViewModel>();
         services.AddTransient<FileExplorerViewModel>();
         services.AddTransient<KnowledgeViewModel>();
-        services.AddTransient<SettingsWindow>();
         services.AddTransient<ArasLoginWindow>();
         services.AddTransient<TranslationApiKeyWindow>();
         services.AddTransient<DataImportView>();

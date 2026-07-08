@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using ArasToolkit.Core.Extensions;
@@ -18,12 +19,16 @@ public class DashboardViewModel : ObservableObject
     private string _connectedDatabase = "";
     private string _connectedUser = "";
     private string _loginTime = "";
+    private string _appUsername = "";
+    private string _appDisplayName = "";
+    private string _appLoginTime = "";
 
     public DashboardViewModel(IArasConnectionService connectionService)
     {
         _connectionService = connectionService;
         _connectionService.ConnectionChanged += RefreshConnectionInfo;
         RefreshConnectionInfo();
+        RefreshAppUserInfo();
 
         RefreshCommand = new RelayCommand(_ => RefreshConnectionInfo());
     }
@@ -58,6 +63,24 @@ public class DashboardViewModel : ObservableObject
         set => SetProperty(ref _loginTime, value);
     }
 
+    public string AppUsername
+    {
+        get => _appUsername;
+        set => SetProperty(ref _appUsername, value);
+    }
+
+    public string AppDisplayName
+    {
+        get => _appDisplayName;
+        set => SetProperty(ref _appDisplayName, value);
+    }
+
+    public string AppLoginTime
+    {
+        get => _appLoginTime;
+        set => SetProperty(ref _appLoginTime, value);
+    }
+
     public ObservableCollection<QuickAction> AllFeatures { get; } = new()
     {
         new() { Name = "导入表格", Description = "读取Excel文件并按Sheet显示数据", Icon = "📊" },
@@ -75,8 +98,8 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "更新日志", Description = "系统更新日志与版本记录", Icon = "📜" },
         new() { Name = "错误日志", Description = "系统错误记录与排查", Icon = "🐛" },
         new() { Name = "敏感操作日志", Description = "业务操作审计轨迹记录", Icon = "🔒" },
-        new() { Name = "数据报表", Description = "数据统计与图表可视化", Icon = "📊" },
-        new() { Name = "待办项目", Description = "个人待办任务管理与追踪", Icon = "📀" },
+        new() { Name = "数据报表", Description = "数据统计与图表可视化", Icon = "📈" },
+        new() { Name = "待办项目", Description = "个人待办任务管理与追踪", Icon = "✅" },
         new() { Name = "我的资料", Description = "文件资源管理器", Icon = "📁" },
         new() { Name = "个人资料库", Description = "个人知识库与笔记管理", Icon = "📚" },
     };
@@ -101,6 +124,23 @@ public class DashboardViewModel : ObservableObject
             ConnectedDatabase = "";
             ConnectedUser = "";
             LoginTime = "";
+        }
+    }
+
+    private void RefreshAppUserInfo()
+    {
+        var user = CurrentUserContext.Current;
+        if (user != null)
+        {
+            AppUsername = user.Username;
+            AppDisplayName = user.DisplayName ?? user.Username;
+            AppLoginTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        }
+        else
+        {
+            AppUsername = "未登录";
+            AppDisplayName = "未登录";
+            AppLoginTime = "";
         }
     }
 }
