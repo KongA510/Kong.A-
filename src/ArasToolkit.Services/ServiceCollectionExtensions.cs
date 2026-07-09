@@ -52,7 +52,7 @@ public static class ServiceCollectionExtensions
         // 注册错误日志服务（单例）
         services.AddSingleton<IErrorLogService, ErrorLogService>();
 
-        // 注册待办项目服务（单例，通过 IDbContextFactory 创建 DbContext）
+        // 注册个人任务记录服务（单例，通过 IDbContextFactory 创建 DbContext）
         services.AddSingleton<ITodoService, TodoService>();
 
         // 注册图表报表服务（单例）

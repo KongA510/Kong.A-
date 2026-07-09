@@ -8,7 +8,7 @@ using OfficeOpenXml;
 namespace ArasToolkit.Services.Services;
 
 /// <summary>
-/// 待办项目服务实现 — EF Core 数据库存储、操作日志、EPPlus 导入导出
+/// 个人任务记录服务实现 — EF Core 数据库存储、操作日志、EPPlus 导入导出
 /// </summary>
 public class TodoService : ITodoService
 {
@@ -280,8 +280,11 @@ public class TodoService : ITodoService
                             ?? ParseDateSafe(GetCellValue(headers, worksheet, row, "预计完成时间")),
                         StartDate = ParseDateSafe(GetCellValue(headers, worksheet, row, "开始时间")),
                         CompletionDate = ParseDateSafe(GetCellValue(headers, worksheet, row, "完成时间")),
+                        CompletionPercent = ParseIntSafe(GetCellValue(headers, worksheet, row, "完成度 %")),
                         CreatedDate = DateTime.Now,
-                        CreatorOn = DateTime.Now
+                        CreatorOn = DateTime.Now,
+                        UserId = CurrentUserContext.CurrentUserId,
+                        CreatedBy = CurrentUserContext.CurrentUserName
                     };
 
                     // 验证
@@ -298,6 +301,10 @@ public class TodoService : ITodoService
                         errors.Add($"第{row}行: 无效状态 '{item.Status}'，已设为'未开始'");
                         item.Status = "未开始";
                     }
+
+                    // 当状态为"已完成"时，完成度自动设为 100%
+                    if (item.Status == "已完成")
+                        item.CompletionPercent = 100;
 
                     if (item.CompletionPercent < 0) item.CompletionPercent = 0;
                     if (item.CompletionPercent > 100) item.CompletionPercent = 100;
@@ -345,10 +352,10 @@ public class TodoService : ITodoService
         {
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             using var package = new ExcelPackage();
-            var worksheet = package.Workbook.Worksheets.Add("待办项目模板");
+            var worksheet = package.Workbook.Worksheets.Add("个人任务记录模板");
 
             // 表头（与 DataGrid 列顺序一致）
-            var headers = new[] { "任务名称", "项目名称", "任务说明", "备注", "完成状态", "任务到期时间", "开始时间", "完成时间" };
+            var headers = new[] { "任务名称", "项目名称", "任务说明", "备注", "完成状态", "完成度 %", "任务到期时间", "开始时间", "完成时间" };
             for (int i = 0; i < headers.Length; i++)
                 worksheet.Cells[1, i + 1].Value = headers[i];
 
@@ -362,7 +369,7 @@ public class TodoService : ITodoService
             }
 
             // 示例行
-            var sampleRow = new[] { "示例任务", "ArasToolkit", "示例说明", "示例备注", "处理中", "2026-06-20", "2026-06-15", "2026-06-20" };
+            var sampleRow = new[] { "示例任务", "ArasToolkit", "示例说明", "示例备注", "处理中", "50", "2026-06-20", "2026-06-15", "2026-06-20" };
             for (int i = 0; i < sampleRow.Length; i++)
                 worksheet.Cells[2, i + 1].Value = sampleRow[i];
 

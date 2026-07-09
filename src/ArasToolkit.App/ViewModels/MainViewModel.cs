@@ -134,8 +134,8 @@ public class MainViewModel : ObservableObject
         // ===== 数据报表 =====
         MenuItems.Add(new MenuItemInfo { Name = "数据报表", Icon = "ChartBar", CardIcon = "📊", Description = "数据统计与图表可视化" });
 
-        // ===== 待办项目 =====
-        MenuItems.Add(new MenuItemInfo { Name = "待办项目", Icon = "ClipboardCheck", CardIcon = "📋", Description = "个人待办任务管理" });
+        // ===== 个人任务记录 =====
+        MenuItems.Add(new MenuItemInfo { Name = "个人任务记录", Icon = "ClipboardCheck", CardIcon = "📋", Description = "个人待办任务管理" });
 
         // ===== 我的资料 =====
         MenuItems.Add(new MenuItemInfo { Name = "我的资料", Icon = "Folder", CardIcon = "📁", Description = "文件资源管理器" });

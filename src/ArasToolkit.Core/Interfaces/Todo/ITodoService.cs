@@ -3,7 +3,7 @@ using ArasToolkit.Core.Entities;
 namespace ArasToolkit.Core.Interfaces;
 
 /// <summary>
-/// 待办项目服务接口 — 管理待办任务的增删改查、分页、Excel导入导出
+/// 个人任务记录服务接口 — 管理待办任务的增删改查、分页、Excel导入导出
 /// </summary>
 public interface ITodoService
 {

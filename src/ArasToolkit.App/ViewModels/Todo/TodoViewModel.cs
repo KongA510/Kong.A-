@@ -9,7 +9,7 @@ using Microsoft.Win32;
 namespace ArasToolkit.App.ViewModels;
 
 /// <summary>
-/// 待办项目 ViewModel — 分页、CRUD、导入导出、到期高亮
+/// 个人任务记录 ViewModel — 分页、CRUD、导入导出、到期高亮
 /// </summary>
 public class TodoViewModel : ObservableObject
 {
@@ -429,7 +429,7 @@ public class TodoViewModel : ObservableObject
     {
         var openFileDialog = new OpenFileDialog
         {
-            Title = "选择待办项目Excel文件",
+            Title = "选择个人任务记录Excel文件",
             Filter = "Excel文件|*.xlsx;*.xls|所有文件|*.*",
             Multiselect = false
         };
@@ -461,9 +461,9 @@ public class TodoViewModel : ObservableObject
     {
         var saveFileDialog = new SaveFileDialog
         {
-            Title = "导出待办项目模板",
+            Title = "导出个人任务记录模板",
             Filter = "Excel文件|*.xlsx",
-            FileName = "待办项目导入模板.xlsx"
+            FileName = "个人任务记录导入模板.xlsx"
         };
 
         if (saveFileDialog.ShowDialog() != true) return;

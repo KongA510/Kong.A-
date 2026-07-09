@@ -133,7 +133,7 @@ public partial class MainWindow : Window
                 "错误日志" => new ErrorLogView { DataContext = App.Services.GetRequiredService<ErrorLogViewModel>() },
                 "敏感操作日志" => new OperationLogView { DataContext = App.Services.GetRequiredService<OperationLogViewModel>() },
                 "数据报表" => new ChartView { DataContext = App.Services.GetRequiredService<ChartViewModel>() },
-                "待办项目" => new TodoView { DataContext = App.Services.GetRequiredService<TodoViewModel>() },
+                "个人任务记录" => new TodoView { DataContext = App.Services.GetRequiredService<TodoViewModel>() },
                 "我的资料" => new FileExplorerView { DataContext = App.Services.GetRequiredService<FileExplorerViewModel>() },
                 "个人资料库" => new KnowledgeBaseView { DataContext = App.Services.GetRequiredService<KnowledgeViewModel>() },
                 "设置" => CreateSettingsMenu(),

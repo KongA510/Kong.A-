@@ -99,7 +99,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "错误日志", Description = "系统错误记录与排查", Icon = "🐛" },
         new() { Name = "敏感操作日志", Description = "业务操作审计轨迹记录", Icon = "🔒" },
         new() { Name = "数据报表", Description = "数据统计与图表可视化", Icon = "📈" },
-        new() { Name = "待办项目", Description = "个人待办任务管理与追踪", Icon = "✅" },
+        new() { Name = "个人任务记录", Description = "个人待办任务管理与追踪", Icon = "✅" },
         new() { Name = "我的资料", Description = "文件资源管理器", Icon = "📁" },
         new() { Name = "个人资料库", Description = "个人知识库与笔记管理", Icon = "📚" },
     };
