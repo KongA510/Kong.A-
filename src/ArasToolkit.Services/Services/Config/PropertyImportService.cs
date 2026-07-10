@@ -161,6 +161,7 @@ public class PropertyImportService : IPropertyImportService
 
             // 6. 处理 Sheet: 属性配置
             int success = 0;
+            var itemTypeIdCache = new Dictionary<string, string>();
             for (int i = 0; i < rows.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -182,7 +183,15 @@ public class PropertyImportService : IPropertyImportService
 
                 try
                 {
-                    var aml = BuildPropertyAml(row, importMode);
+                    // 覆盖模式: 预解析 source_id（ItemType GUID），用于复合 where 匹配
+                    string sourceId = "";
+                    if (importMode == "覆盖")
+                    {
+                        var sourceName = row.GetValueOrDefault(1, "");     // 源对象
+                        sourceId = ResolveItemTypeId(innovator, sourceName, itemTypeIdCache);
+                    }
+
+                    var aml = BuildPropertyAml(row, importMode, sourceId);
                     var amlResult = innovator.applyAML(aml);
 
                     if (amlResult.isError())
@@ -323,7 +332,8 @@ public class PropertyImportService : IPropertyImportService
     /// Col 12 (idx 12): 设置为键名 → <is_keyed>
     /// Col 13 (idx 13): 默认值 → <default_value>
     /// </summary>
-    private static string BuildPropertyAml(Dictionary<int, string> row, string importMode)
+    private static string BuildPropertyAml(Dictionary<int, string> row, string importMode,
+        string sourceId = "")
     {
         var sourceName = row.GetValueOrDefault(1, "");      // 源对象
         var propName = row.GetValueOrDefault(2, "");         // 属性名称
@@ -364,8 +374,9 @@ public class PropertyImportService : IPropertyImportService
                    $"</AML>";
         }
 
+        // 覆盖模式: where 使用 source_id + name 复合唯一键（参照生命周期汇入覆盖模式）
         return $"<AML>" +
-               $"  <Item type='Property' action='merge' where=\"Property.name='{propName}'\">" +
+               $"  <Item type='Property' action='merge' where=\"source_id='{sourceId}' and Property.name='{propName}'\">" +
                $"      <source_id>" +
                $"          <Item type='ItemType' action='get' select='id'>" +
                $"              <name>{sourceName}</name>" +
@@ -385,6 +396,30 @@ public class PropertyImportService : IPropertyImportService
                $"      <default_value>{defaultValue}</default_value>" +
                $"  </Item>" +
                $"</AML>";
+    }
+
+    // ==================== ID 解析（缓存池 — 同名只查一次 Aras） ====================
+
+    /// <summary>
+    /// 按 ItemType 名称查询其 GUID（带缓存）。空名称返回空字符串。
+    /// </summary>
+    private static string ResolveItemTypeId(dynamic innovator, string itemTypeName,
+        Dictionary<string, string> cache)
+    {
+        if (string.IsNullOrWhiteSpace(itemTypeName)) return "";
+
+        if (!cache.TryGetValue(itemTypeName, out var id))
+        {
+            var queryAml = "<AML>" +
+                           $"  <Item type='ItemType' action='get' where=\"ItemType.name='{itemTypeName}'\" select='id'/>" +
+                           "</AML>";
+            var result = innovator.applyAML(queryAml);
+            id = (!result.isError() && result.getItemCount() > 0)
+                ? result.getItemByIndex(0).getID()
+                : "";
+            cache[itemTypeName] = id;
+        }
+        return id;
     }
 
     // ==================== 私有辅助方法 ====================

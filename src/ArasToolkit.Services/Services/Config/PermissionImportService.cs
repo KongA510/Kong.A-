@@ -157,6 +157,7 @@ public class PermissionImportService : IPermissionImportService
 
             // 6. 处理 Sheet: 权限配置
             int success = 0;
+            var itemTypeIdCache = new Dictionary<string, string>();
             for (int i = 0; i < rows.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -178,7 +179,15 @@ public class PermissionImportService : IPermissionImportService
 
                 try
                 {
-                    var aml = BuildPermissionAml(row, importMode);
+                    // 覆盖模式: 预解析 source_id（ItemType GUID），用于复合 where 匹配
+                    string sourceId = "";
+                    if (importMode == "覆盖")
+                    {
+                        var sourceName = row.GetValueOrDefault(1, "");     // 对象类
+                        sourceId = ResolveItemTypeId(innovator, sourceName, itemTypeIdCache);
+                    }
+
+                    var aml = BuildPermissionAml(row, importMode, sourceId);
                     var amlResult = innovator.applyAML(aml);
 
                     if (amlResult.isError())
@@ -316,7 +325,8 @@ public class PermissionImportService : IPermissionImportService
     /// Col 9 (idx 9):  允许更新 → <can_update>
     /// Col 10 (idx 10): 允许删除 → <can_delete>
     /// </summary>
-    private static string BuildPermissionAml(Dictionary<int, string> row, string importMode)
+    private static string BuildPermissionAml(Dictionary<int, string> row, string importMode,
+        string sourceId = "")
     {
         var sourceName = row.GetValueOrDefault(1, "");       // 对象类
         var permName = row.GetValueOrDefault(2, "");          // 权限名称
@@ -359,8 +369,9 @@ public class PermissionImportService : IPermissionImportService
                    $"</AML>";
         }
 
+        // 覆盖模式: where 使用 source_id + name 复合唯一键（参照生命周期汇入覆盖模式）
         return $"<AML>" +
-               $"  <Item type='Permission' action='merge' where=\"Permission.name='{permName}'\">" +
+               $"  <Item type='Permission' action='merge' where=\"source_id='{sourceId}' and Permission.name='{permName}'\">" +
                $"      <source_id>" +
                $"          <Item type='ItemType' action='get' select='id'>" +
                $"              <name>{sourceName}</name>" +
@@ -385,6 +396,30 @@ public class PermissionImportService : IPermissionImportService
                $"      <can_delete>{canDelete}</can_delete>" +
                $"  </Item>" +
                $"</AML>";
+    }
+
+    // ==================== ID 解析（缓存池 — 同名只查一次 Aras） ====================
+
+    /// <summary>
+    /// 按 ItemType 名称查询其 GUID（带缓存）。空名称返回空字符串。
+    /// </summary>
+    private static string ResolveItemTypeId(dynamic innovator, string itemTypeName,
+        Dictionary<string, string> cache)
+    {
+        if (string.IsNullOrWhiteSpace(itemTypeName)) return "";
+
+        if (!cache.TryGetValue(itemTypeName, out var id))
+        {
+            var queryAml = "<AML>" +
+                           $"  <Item type='ItemType' action='get' where=\"ItemType.name='{itemTypeName}'\" select='id'/>" +
+                           "</AML>";
+            var result = innovator.applyAML(queryAml);
+            id = (!result.isError() && result.getItemCount() > 0)
+                ? result.getItemByIndex(0).getID()
+                : "";
+            cache[itemTypeName] = id;
+        }
+        return id;
     }
 
     // ==================== 私有辅助方法 ====================
