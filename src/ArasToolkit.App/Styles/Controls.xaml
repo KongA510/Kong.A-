@@ -299,8 +299,8 @@
                     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
                     <Style.Triggers>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource SystemAccentBrush}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
                         </Trigger>
                     </Style.Triggers>
                 </Style>
@@ -315,8 +315,8 @@
                             <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource SystemAccentBrush}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
                         </Trigger>
                     </Style.Triggers>
                 </Style>

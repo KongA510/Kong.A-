@@ -83,9 +83,6 @@ public class MainViewModel : ObservableObject
         // ===== 一级菜单：仪表盘 =====
         MenuItems.Add(new MenuItemInfo { Name = "仪表盘", Icon = "Home", CardIcon = "🏠", Description = "系统概览仪表盘" });
 
-        // ===== 一级菜单：导入表格 =====
-        MenuItems.Add(new MenuItemInfo { Name = "导入表格", Icon = "FileExcel", CardIcon = "📊", Description = "导入并查看Excel数据" });
-
         // ===== 二级菜单：系统翻译（字段 / 表单 / 窗体） =====
         var sysTranslation = new MenuItemInfo
         {
@@ -116,6 +113,7 @@ public class MainViewModel : ObservableObject
         sysConfig.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "📀", Description = "Excel数据导入Aras系统" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "生命周期配置", Icon = "Refresh", CardIcon = "🔄", Description = "批量创建Aras对象类的生命周期状态定义" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "权限配置", Icon = "ShieldAccount", CardIcon = "🔒", Description = "Aras权限配置工具" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "数据库导出", Icon = "DatabaseExport", CardIcon = "📤", Description = "执行SQL查询并导出为Excel文件" });
         MenuItems.Add(sysConfig);
 
         // ===== 二级菜单：系统日志（更新日志 / 错误日志 / 敏感操作日志） =====

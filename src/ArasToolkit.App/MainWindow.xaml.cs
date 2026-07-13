@@ -116,7 +116,6 @@ public partial class MainWindow : Window
             object? view = menuItem.Name switch
             {
                 "仪表盘" => new DashboardView { DataContext = App.Services.GetRequiredService<DashboardViewModel>() },
-                "导入表格" => new ExcelImportView { DataContext = App.Services.GetRequiredService<ExcelImportViewModel>() },
                 "文本翻译" => new TextTranslationView { DataContext = App.Services.GetRequiredService<TextTranslationViewModel>() },
                 "翻译历史" => new TranslationHistoryView { DataContext = App.Services.GetRequiredService<TextTranslationViewModel>() },
                 "字段翻译" => CreatePlaceholder("字段翻译", "Aras字段翻译工具 - 功能开发中，敬请期待..."),
@@ -129,6 +128,7 @@ public partial class MainWindow : Window
                 "数据汇入" => new DataImportView { DataContext = App.Services.GetRequiredService<DataImportViewModel>() },
                 "权限配置" => new PermissionConfigView { DataContext = App.Services.GetRequiredService<PermissionConfigViewModel>() },
                 "生命周期配置" => new LifecycleConfigView { DataContext = App.Services.GetRequiredService<LifecycleConfigViewModel>() },
+                "数据库导出" => new DatabaseExportView { DataContext = App.Services.GetRequiredService<DatabaseExportViewModel>() },
                 "更新日志" => new ChangelogView { DataContext = App.Services.GetRequiredService<ChangelogViewModel>() },
                 "错误日志" => new ErrorLogView { DataContext = App.Services.GetRequiredService<ErrorLogViewModel>() },
                 "敏感操作日志" => new OperationLogView { DataContext = App.Services.GetRequiredService<OperationLogViewModel>() },
@@ -141,6 +141,7 @@ public partial class MainWindow : Window
                 "设置-AI模型配置" => new TranslationApiKeyView(App.Services.GetRequiredService<TranslationApiKeyViewModel>()),
                 "设置-数据库检查" => CreateSettingsView("database"),
                 "设置-数据库连接字符串" => CreateSettingsView("connection"),
+                "设置-数据库导出" => new DatabaseExportConfigView { DataContext = App.Services.GetRequiredService<DatabaseExportConfigViewModel>() },
                 "设置-退出登录" => CreateSettingsView("logout"),
                 _ => null
             };
@@ -180,6 +181,7 @@ public partial class MainWindow : Window
             new() { Name = "设置-AI模型配置", CardIcon = "🤖", Description = "管理多个AI模型API Key，支持启用/切换" },
             new() { Name = "设置-数据库检查", CardIcon = "🔍", Description = "检查数据库表结构完整性，同步缺失字段" },
             new() { Name = "设置-数据库连接字符串", CardIcon = "🗄️", Description = "配置应用数据库连接，保存后即时生效" },
+            new() { Name = "设置-数据库导出", CardIcon = "📤", Description = "配置并执行数据库查询导出" },
             new() { Name = "设置-退出登录", CardIcon = "🚪", Description = "退出当前登录，返回登录界面" },
         };
 

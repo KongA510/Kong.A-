@@ -83,7 +83,6 @@ public class DashboardViewModel : ObservableObject
 
     public ObservableCollection<QuickAction> AllFeatures { get; } = new()
     {
-        new() { Name = "导入表格", Description = "读取Excel文件并按Sheet显示数据", Icon = "📊" },
         new() { Name = "文本翻译", Description = "AI 驱动的 Excel 批量翻译工具", Icon = "📝" },
         new() { Name = "字段翻译", Description = "Aras字段翻译工具", Icon = "🔤" },
         new() { Name = "表单翻译", Description = "Aras表单翻译工具", Icon = "📝" },
@@ -95,6 +94,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "数据汇入", Description = "Aras 数据汇入工具", Icon = "📀" },
         new() { Name = "权限配置", Description = "Aras权限配置工具", Icon = "🔒" },
         new() { Name = "生命周期配置", Description = "批量创建Aras对象类的生命周期状态定义", Icon = "🔄" },
+        new() { Name = "数据库导出", Description = "执行SQL查询并导出为Excel文件", Icon = "📤" },
         new() { Name = "更新日志", Description = "系统更新日志与版本记录", Icon = "📜" },
         new() { Name = "错误日志", Description = "系统错误记录与排查", Icon = "🐛" },
         new() { Name = "敏感操作日志", Description = "业务操作审计轨迹记录", Icon = "🔒" },

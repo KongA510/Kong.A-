@@ -40,7 +40,7 @@
                                  Style="{StaticResource DarkTextBox}"
                                  IsReadOnly="True"
                                  TextWrapping="NoWrap"
-                                 VerticalAlignment="Center" Height="30"
+                                 VerticalAlignment="Center"
                                  Background="{DynamicResource ControlFillColorTertiaryBrush}" />
                         <Button Grid.Column="2" Content="浏览..." Command="{Binding BrowseSourceCommand}"
                                 Padding="16,5" Margin="8,0,0,0"

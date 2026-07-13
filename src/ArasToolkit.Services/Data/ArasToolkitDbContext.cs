@@ -55,6 +55,15 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>个人资料库笔记表</summary>
     public DbSet<KnowledgeEntry> KnowledgeEntries => Set<KnowledgeEntry>();
 
+    /// <summary>SQL模板表</summary>
+    public DbSet<SqlTemplate> SqlTemplates => Set<SqlTemplate>();
+
+    /// <summary>数据库导出日志表</summary>
+    public DbSet<DatabaseExportLog> DatabaseExportLogs => Set<DatabaseExportLog>();
+
+    /// <summary>数据库导出配置表</summary>
+    public DbSet<DatabaseExportConfig> DatabaseExportConfigs => Set<DatabaseExportConfig>();
+
     /// <summary>缓存的连接字符串（避免重复读取文件）</summary>
     private static string? _cachedConnectionString;
 
@@ -363,6 +372,62 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.DisplayTags);
             entity.Ignore(e => e.HasTags);
             entity.Ignore(e => e.IsSelected);
+        });
+
+        // ===== SqlTemplate → sql_template 表 =====
+        modelBuilder.Entity<SqlTemplate>(entity =>
+        {
+            entity.ToTable("sql_template");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.TemplateName).HasColumnName("template_name").IsRequired().HasMaxLength(200);
+            entity.Property(e => e.SqlContent).HasColumnName("sql_content").IsRequired();
+            entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
+            entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(100);
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+            entity.Ignore(e => e.DisplayCreatedAt);
+        });
+
+        // ===== DatabaseExportLog → database_export_log 表 =====
+        modelBuilder.Entity<DatabaseExportLog>(entity =>
+        {
+            entity.ToTable("database_export_log");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.ConnectionString).HasColumnName("connection_string").HasMaxLength(1000);
+            entity.Property(e => e.SqlQuery).HasColumnName("sql_query").IsRequired();
+            entity.Property(e => e.ExportMode).HasColumnName("export_mode").IsRequired().HasMaxLength(20);
+            entity.Property(e => e.BatchSize).HasColumnName("batch_size");
+            entity.Property(e => e.TotalRows).HasColumnName("total_rows");
+            entity.Property(e => e.ExportTime).HasColumnName("export_time").IsRequired();
+            entity.Property(e => e.FilePath).HasColumnName("file_path").HasMaxLength(1000);
+            entity.Property(e => e.FileIndex).HasColumnName("file_index");
+            entity.Property(e => e.FileCount).HasColumnName("file_count");
+            entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(20);
+            entity.Property(e => e.ErrorMessage).HasColumnName("error_message");
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+            entity.Ignore(e => e.StatusText);
+            entity.Ignore(e => e.DisplayExportTime);
+            entity.Ignore(e => e.DisplayCreatedAt);
+            entity.Ignore(e => e.Summary);
+            entity.Ignore(e => e.FileName);
+            entity.Ignore(e => e.FileDirectory);
+        });
+
+        // ===== DatabaseExportConfig → database_export_config 表 =====
+        modelBuilder.Entity<DatabaseExportConfig>(entity =>
+        {
+            entity.ToTable("database_export_config");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.ConfigName).HasColumnName("config_name").IsRequired().HasMaxLength(200);
+            entity.Property(e => e.ConnectionString).HasColumnName("connection_string").IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.Remark).HasColumnName("remark").HasMaxLength(500);
+            entity.Property(e => e.IsEnabled).HasColumnName("is_enabled");
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+            entity.Ignore(e => e.StatusText);
         });
    }
 
@@ -746,6 +811,71 @@ public class ArasToolkitDbContext : DbContext
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE(),
                         user_id NVARCHAR(100) NULL
                     );
+                END
+
+                -- ===== sql_template 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='sql_template')
+                BEGIN
+                    CREATE TABLE sql_template (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        template_name NVARCHAR(200) NOT NULL,
+                        sql_content NVARCHAR(MAX) NOT NULL,
+                        description NVARCHAR(500) NULL,
+                        user_id NVARCHAR(100) NULL,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+                ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='sql_template' AND COLUMN_NAME='creator_on')
+                BEGIN
+                    ALTER TABLE sql_template ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
+                END
+
+                -- ===== database_export_log 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='database_export_log')
+                BEGIN
+                    CREATE TABLE database_export_log (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        connection_string NVARCHAR(1000) NULL,
+                        sql_query NVARCHAR(MAX) NOT NULL,
+                        export_mode NVARCHAR(20) NOT NULL DEFAULT N'一次导出',
+                        batch_size INT NOT NULL DEFAULT 500,
+                        total_rows INT NOT NULL DEFAULT 0,
+                        export_time DATETIME2 NOT NULL DEFAULT GETDATE(),
+                        file_path NVARCHAR(1000) NULL,
+                        file_index INT NOT NULL DEFAULT 1,
+                        file_count INT NOT NULL DEFAULT 1,
+                        status NVARCHAR(20) NOT NULL DEFAULT 'Success',
+                        error_message NVARCHAR(MAX) NULL,
+                        user_id NVARCHAR(100) NOT NULL,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+                ELSE
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='database_export_log' AND COLUMN_NAME='creator_on')
+                        ALTER TABLE database_export_log ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='database_export_log' AND COLUMN_NAME='file_index')
+                        ALTER TABLE database_export_log ADD file_index INT NOT NULL DEFAULT 1;
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='database_export_log' AND COLUMN_NAME='file_count')
+                        ALTER TABLE database_export_log ADD file_count INT NOT NULL DEFAULT 1;
+                END
+
+                -- ===== database_export_config 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='database_export_config')
+                BEGIN
+                    CREATE TABLE database_export_config (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        user_id NVARCHAR(100) NOT NULL,
+                        config_name NVARCHAR(200) NOT NULL,
+                        connection_string NVARCHAR(1000) NOT NULL,
+                        remark NVARCHAR(500) NULL,
+                        is_enabled BIT NOT NULL DEFAULT 0,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+                ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='database_export_config' AND COLUMN_NAME='creator_on')
+                BEGIN
+                    ALTER TABLE database_export_config ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                 END
             ";
             await Database.ExecuteSqlRawAsync(sql);

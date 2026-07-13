@@ -218,7 +218,7 @@ public class AiDispatcherService : IAiDispatcherService
         var result = JsonSerializer.Deserialize<AgnesResponse>(responseBody);
         if (result?.Choices == null || result.Choices.Length == 0)
             throw new InvalidOperationException("AI 返回结果为空");
-        return result.Choices[0].Message.Content?.Trim()
+        return result.Choices[0].Message?.Content?.Trim()
                ?? throw new InvalidOperationException("AI 返回内容为空");
     }
 

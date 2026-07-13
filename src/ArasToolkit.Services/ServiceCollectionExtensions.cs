@@ -43,10 +43,7 @@ public static class ServiceCollectionExtensions
       services.AddSingleton<ArasConnectionPool>();
       services.AddSingleton<IArasConnectionPool>(sp => sp.GetRequiredService<ArasConnectionPool>());
 
-      // 注册Excel服务
-        services.AddTransient<IExcelService, ExcelService>();
-
-        // 注册更新日志服务（单例）
+      // 注册更新日志服务（单例）
         services.AddSingleton<IChangelogService, ChangelogService>();
 
         // 注册错误日志服务（单例）
@@ -93,6 +90,11 @@ public static class ServiceCollectionExtensions
 
         // 注册个人资料库服务（单例）
         services.AddSingleton<IKnowledgeService, KnowledgeService>();
+
+        // 注册数据库导出服务（单例）
+        services.AddSingleton<ISqlTemplateService, SqlTemplateService>();
+        services.AddSingleton<IDatabaseExportService, DatabaseExportService>();
+        services.AddSingleton<IDatabaseExportConfigService, DatabaseExportConfigService>();
 
         return services;
     }

@@ -36,7 +36,6 @@ public class DataImportViewModel : ObservableObject
     private double _importProgress;
     private string _progressText = string.Empty;
     private CancellationTokenSource? _cts;
-    private int _pauseOffset; // 暂停时的已处理行数偏移
     private int _maxConcurrency = 1; // 并发线程数（1=串行）
 
     public DataImportViewModel(

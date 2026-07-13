@@ -64,7 +64,9 @@ public class LoginService : ILoginService
                 tcs.SetException(new Exception($"CreateHttpServerConnection: {ex.Message}", ex));
             }
         });
+#pragma warning disable CA1416
         thread.SetApartmentState(ApartmentState.STA);
+#pragma warning restore CA1416
         thread.IsBackground = true;
         thread.Start();
         return tcs.Task;
