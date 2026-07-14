@@ -10,42 +10,7 @@ keywords: Aras,ArasToolkit,Innovator,登录,HttpServerConnection,ScalcMD5,Item,A
 
 ## 一、Aras 登录认证方式（R37 标准实现）
 
-``
-
-### 11.4 编码前强制备份流程 ⚠️ 每次编码前必须执行
-
-**目的**：每次编码前备份当前工作区，代码出错时可快速回滚到编码前状态。
-
-#### 编码前（每次必须执行）
-
-```bash
-git add -A
-git stash push -m "backup-before-TASK-XXX"
-git stash pop   # 立即恢复，stash 中保留快照
-```
-
-> 注意：若编码出错，通过 `git stash list` 查看备份，用 `git stash apply stash@{N}` 恢复。
-
-#### 编码后
-
-```bash
-git add -A
-git commit -m "功能描述: 具体变更内容"
-```
-
-#### 审查通过后推送
-
-```bash
-# 备份 master → develop
-git checkout develop
-git merge master
-git push origin develop
-
-# 推送 master（force push）
-git checkout master
-git push origin master --force
-```
-`csharp
+```csharp
 // ===== Aras 登录核心代码 =====
 // 文件位置: src/ArasToolkit.Services/Services/LoginService.cs
 
@@ -78,6 +43,8 @@ git push origin master --force
 // ✓ HttpConnection 通过 _connectionService.HttpConnection 获取
 ```
 
+---
+
 ## 二、项目架构（三层 + MVVM）
 
 ```
@@ -95,6 +62,8 @@ ArasToolkit.App        → WPF Views, ViewModels, Styles
 - 配置按功能细分: Config/AppSettings/, Config/Login/, Config/ErrorLogs/
 ```
 
+---
+
 ## 三、常用命令
 
 ```bash
@@ -103,6 +72,8 @@ dotnet build ArasToolkit.slnx            # 编译
 dotnet run --project src/ArasToolkit.App # 运行
 dotnet add src/ArasToolkit.App package <包名>  # 添加NuGet
 ```
+
+---
 
 ## 四、添加新功能步骤
 
@@ -128,6 +99,8 @@ dotnet add src/ArasToolkit.App package <包名>  # 添加NuGet
 9. 导航:       MainWindow.xaml.cs → NavigateToPage switch
 ```
 
+---
+
 ## 五、密码/配置规范
 
 ```
@@ -137,6 +110,8 @@ dotnet add src/ArasToolkit.App package <包名>  # 添加NuGet
 - 最后登录: Config/AppSettings/lastLogin.json
 - 错误日志: Config/ErrorLogs/errors.json（SemaphoreSlim 线程安全）
 ```
+
+---
 
 ## 六、当前主题配色
 
@@ -148,6 +123,8 @@ dotnet add src/ArasToolkit.App package <包名>  # 添加NuGet
 - 强调色: #6366F1   悬停: #4F46E5
 - 输入框: #F9FAFB 圆角 8px
 ```
+
+---
 
 ## 七、Aras API 常用参考
 
@@ -169,6 +146,8 @@ item.setAction("add");                            // 设置操作类型
 
 // 常用 ItemType: Part, Document, CAD, BOM, ECR, ECO, User, Identity
 ```
+
+---
 
 ## 八、仪表盘与菜单规范 ⚠️ 重要
 
@@ -468,7 +447,7 @@ await changelogService.AddEntryAsync(new Changelog
 
 > 此技能在打开 ArasToolkit 项目时自动加载。可根据实际开发经验持续更新。
 
-
+---
 
 ## 十一、Git 分支与推送策略 ⚠️ 必须遵守
 
@@ -508,204 +487,69 @@ git push origin master --force
 
 > 此技能在打开 ArasToolkit 项目时自动加载。可根据实际开发经验持续更新。
 
-
 ---
 
----
+## 十二、Codex 独立开发模式 ⚠️ 必须遵守
 
-## 十二、Codex 与 Claude Code 协作规范 ⚠️ 必须遵守
+### 12.1 开发模式说明
 
-### 12.1 角色分工
+**Codex 独立完成所有开发任务**，无需外部审查或协作。
 
-| AI 助手 | 职责 |
-|---------|------|
-| **Codex**（当前对话） | 代码编写、自动化管理、功能实装 |
-| **Claude Code** | 任务分析、方案输出到公共文件、代码审查、项目监听与状态监控、排版与文档格式化 |
+| 职责 | 执行者 |
+|------|--------|
+| 需求分析 | Codex |
+| 方案设计 | Codex |
+| 代码编写 | Codex |
+| 编译验证 | Codex |
+| 测试验证 | Codex |
+| 文档更新 | Codex |
 
-### 12.2 协作流程（迭代闭环）
-
-```
-Claude Code ──方案输出──→ tasks/TASK-NNN.md (status: pending)
-                              ↓
-                         Codex 编写代码
-                              ↓
-                         tasks/ 写入检查清单 (status: pending_review)
-                              ↓
-                     ┌── Claude Code 审查 ─────────┐
-                     │                              │
-                     │  审查结论:「需修改: ...」       │  审查结论:「通过」
-                     │                              │
-                     ↓                              ↓
-                  Codex 修正                      review_passed
-                  (status 改回 pending_review)       │
-                     │                              ↓
-                     └──→ 返回审查 ←──┘        Codex 读取结论:
-                                                  │ 「通过」→ 编译 → done/
-                                                  │ 「需修改」→ 继续修正循环
-                                                  ↓
-                                            Codex 编译验证
-                                                  │
-                                                  ↓
-                                            status: done
-                                                  │
-                                                  ↓
-                                           移入 tasks/done/
-```
-
-**各步骤说明：**
-
-| 步骤 | 执行者 | 输出 | status 变更 |
-|------|--------|------|-------------|
-| 1. 方案输出 | Claude Code | 分析/技术方案 → `tasks/TASK-NNN.md` | `pending` |
-| 2. 代码编写 | Codex | 编码、修改项目文件 | 不变 |
-| 3. 输出检查清单 | Codex | 检查清单写入同文件 | `pending` → `pending_review` |
-| 4. 代码审查 | Claude Code | 审查意见、通过/修改 | `pending_review` → `review_passed` |
-| 5. 代码修正 | Codex | 按审查意见修改代码，status 改回 `pending_review` | 等待再次审查 |
-| 6. 再次审查 | Claude Code | 确认修改已修复，写出审查结论 | 同步骤 4 |
-| 7. 编译验证 | Codex | `dotnet build` | `review_passed` → `done` → 移入 `done/` |
-| 8. 自动化监听 | 自动化任务 | 扫描任务 + 状态检查 | 持续运行 |
-
-### 12.3 任务文件生命周期（状态流转）
+### 12.2 开发工作流
 
 ```
-pending                 ← Claude Code 写完方案到 tasks/
-  ↓
-pending_review          ← Codex 写完代码 + 检查清单，等待审查
-  ↓
-review_passed           ← Claude Code 第一次审查通过
-  ↑↓ (可循环多次)
-pending_review          ← Codex 按审查意见修正后，再次等待审查
-  ↓
-done                    ← Codex 编译通过，任务完成
-                          （文件移入 tasks/done/）
+用户下达任务指令
+      ↓
+Codex 分析需求 + 设计方案
+      ↓
+Codex 编写代码
+      ↓
+Codex 编译验证 (dotnet build)
+      ↓
+Codex 运行测试（如有）
+      ↓
+Codex 写入更新日志
+      ↓
+Codex 提交代码 (git commit)
+      ↓
+任务完成
 ```
 
-**铁律：**
-- ✅ 新任务放 `tasks/` 根目录，`status: pending`
-- ✅ Codex 编码后将 status 改为 `pending_review`，写入检查清单
-- ✅ Claude Code 审查**必须**写出明确的审查结论，供 Codex 判断下一步
-- ✅ 审查结论为「通过」→ `review_passed`，Codex 执行编译归档
-- ✅ 审查结论为「需修改: ...」→ 保持 `review_passed`，Codex 按意见修改后 status 改回 `pending_review` 等待再次审查
-- ✅ 可以多次循环，直到审查通过
-- ✅ 审查通过后 Codex 编译，通过后 status 改为 `done`，移入 `tasks/done/`
-- ❌ 新任务不要直接放 `tasks/done/`
-- ❌ Codex 不要在审查通过前执行构建
-- ✅ 每次编码前必须执行 `git stash push -m "backup-before-TASK-NNN"` 备份工作区
-- ❌ 已完成审查报告可直接放 `tasks/done/`（如 TASK-006、TASK-007）
-- ❌ Claude Code 不要自行将文件移入 `tasks/done/`（归档由 Codex 统一执行）
+### 12.3 编码前备份流程 ⚠️ 每次必须执行
 
-`
-tasks/                                   ← Claude Code 放置新任务（status: pending）
-├── TASK-NNN.md  status: pending         ← Codex 读取并编码
-├── TASK-NNN.md  status: pending_review  ← Codex 写入检查清单，等审查
-├── TASK-NNN.md  status: review_passed   ← Claude Code 审查通过
-└── done/                                ← 编译验证通过后移入
-    └── TASK-NNN.md  status: done        ← Codex 完成编译
-`
-
-**生命周期状态流转：**
-`
-pending → (Claude Code写完方案)
-       → pending_review → (Codex写完代码+检查清单，等待审查)
-                       → review_passed → (Claude Code审查通过)
-                                       → done → (Codex编译通过，移入done/)
-`
-
-**铁律：**
-- ✅ 新任务文件**必须**放在 tasks/ 根目录，status 设为 pending
-- ✅ Codex 编码后**必须**将 status 改为 pending_review，写入检查清单
-- ✅ Claude Code 审查通过后**必须**将 status 改为 review_passed
-- ✅ Codex 收到 review_passed 后执行编译，通过后改为 done 并移入 tasks/done/
-- ❌ 新任务不要直接放入 tasks/done/（否则自动化无法识别）
-- ❌ 已经完成的审查报告可直接放 tasks/done/（如 TASK-005）
-- ❌ Codex 不要在审查通过前执行构建（避免提前编译导致审查流于形式）
-
-### 12.4 核心原则
-
-- 各自发挥所长，各司其职，不强求对方做不擅长的事
-- Claude Code 专注于「想清楚怎么说/怎么组织」，输出高质量的分析/方案/审查意见到公共文件
-- Codex 专注于「写代码把它做出来」，把方案变成可运行的实现
-- Codex 编码完成后必须输出检查任务清单，触发 Claude Code 审查环节
-- 不越界：Codex 不做深度分析与排版，Claude Code 不直接写代码
-
-### 12.4.1 文件编码规范 ⚠️ 必须遵守
-
-```
-所有 tasks/TASK-*.md 任务文件必须使用 UTF-8 编码，避免中文乱码导致 Codex 无法读取。
-
-铁律：
-- ✅ 所有任务文件（TASK-*.md）必须保存为 UTF-8 编码
-- ✅ 写入文件后立即用 Node.js 验证编码：
-
-  node -e "const fs=require('fs');const b=fs.readFileSync(process.argv[1]);const bom=b[0]===0xEF&&b[1]===0xBB&&b[2]===0xBF;const hasChinese=/[一-鿿]/.test(b.toString('utf8'));if(bom){console.log('OK:UTF-8+BOM');}else if(b.toString('utf8').indexOf('�')===-1&&hasChinese){console.log('OK:UTF-8');}else{console.log('FAIL:encoding');process.exit(1);}" tasks/TASK-NNN.md
-
-- ✅ 验证失败 → 删除文件并用 Write 工具重新写入
-- ❌ 禁止使用纯英文绕过编码问题
-- ❌ 禁止在乱码文件上编辑（Edit 工具会叠加损坏）
-```
-
-### 12.5 编码修复命令（快速）
+**目的**：每次编码前备份当前工作区，代码出错时可快速回滚到编码前状态。
 
 ```bash
-# 单个文件验证
-node -e "const fs=require('fs');const t=fs.readFileSync('tasks/TASK-NNN.md','utf8');fs.writeFileSync('tasks/TASK-NNN.md',t,'utf8');console.log('OK');"
-
-# 批量修复 tasks/ 目录所有文件
-node -e "const fs=require('fs'),path=require('path');const d='tasks';fs.readdirSync(d).filter(f=>f.endsWith('.md')).forEach(f=>{const p=path.join(d,f);const t=fs.readFileSync(p,'utf8');fs.writeFileSync(p,t,'utf8');console.log('OK:',f);});"
+git add -A
+git stash push -m "backup-before-TASK-XXX"
+git stash pop   # 立即恢复，stash 中保留快照
 ```
 
-## 12.5 自动化监听模式
+> 注意：若编码出错，通过 `git stash list` 查看备份，用 `git stash apply stash@{N}` 恢复。
 
-### 定时任务配置
+### 12.4 编码后提交
 
-| 项目 | 值 |
-|------|-----|
-| 任务ID | `codex-auto-review` |
-| 频率 | 每分钟（`* * * * *`） |
-| 状态 | ✅ 已启用 |
-| 存储路径 | `C:\Users\89190\.claude\scheduled-tasks\codex-auto-review\SKILL.md` |
-
-### 工作流
-
-```
-每分钟唤醒 → 扫描 tasks/TASK-*.md (status: pending_review)
-  │
-  ├─ 无 pending_review → 静默结束
-  │
-  └─ 有 pending_review → 对每个任务:
-       1. 读取任务全文，理解需求
-       2. git diff HEAD 了解代码变更
-       3. 按 CLAUDE.md 规范逐文件审查
-       4. dotnet build 验证编译
-       5. 写入审查结论到任务文件末尾
-       6. 更新 status: pending_review → review_passed
+```bash
+git add -A
+git commit -m "功能描述: 具体变更内容"
 ```
 
-### 审查结论格式
+### 12.5 核心原则
 
-**通过:**
-```
-## Claude Code 审查结论 (HH:MM)
-**结论: 通过** ✅
-- [简要说明]
-```
-
-**需修改:**
-```
-## Claude Code 审查结论 (HH:MM)
-**结论: 需修改** 🔴
-1. 文件 `path` — 问题 + 修复建议
-```
-
-### 分工边界
-
-| Claude Code | Codex |
-|-------------|-------|
-| 审查代码 | 编写代码 |
-| 写审查结论到任务文件 | 读审查结论并修正 |
-| 更新 status → review_passed | 编译通过 → status: done → 移入 done/ |
-| 不写代码、不移文件到 done/ | 不审查、不写方案文档 |
-
+- **自主完成**：Codex 独立完成从需求分析到代码提交的全流程
+- **质量保证**：每次提交前必须通过编译验证
+- **日志记录**：每个完整功能完成后写入更新日志
+- **备份优先**：编码前必须备份工作区
+- **直接执行**：收到任务指令后直接开始工作，无需额外确认
 
 ---
 
@@ -718,5 +562,3 @@ node -e "const fs=require('fs'),path=require('path');const d='tasks';fs.readdirS
 ---
 
 > 此技能在打开 ArasToolkit 项目时自动加载。可根据实际开发经验持续更新。
-
-
