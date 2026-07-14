@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -88,22 +88,26 @@ public partial class MainWindow : Window
         _mainVM.IsLoggedIn = true;
         _mainVM.RefreshVersion();
 
-        // 先自动连接 Aras，再导航到仪表盘（确保 DashboardViewModel 构造时能读到连接状态）
-        try
-        {
-            var arasLoginVM = App.Services.GetRequiredService<ArasLoginViewModel>();
-            await arasLoginVM.TryAutoConnectAsync();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] Aras自动连接异常: {ex.Message}");
-        }
-
+        // 先导航到仪表盘作为初始页面
         if (_mainVM.MenuItems.Count > 0)
         {
             _mainVM.SelectedMenuItem = _mainVM.MenuItems[0];
             NavigateToPage(_mainVM.MenuItems[0]);
         }
+
+        // 后台自动连接 Aras（不强制导航，避免干扰用户已手动切换的页面）
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var arasLoginVM = App.Services.GetRequiredService<ArasLoginViewModel>();
+                await arasLoginVM.TryAutoConnectAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] Aras自动连接异常: {ex.Message}");
+            }
+        });
     }
 
     /// <summary>

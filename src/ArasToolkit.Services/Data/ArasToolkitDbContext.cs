@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using ArasToolkit.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -79,7 +79,7 @@ public class ArasToolkitDbContext : DbContext
     {
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseSqlServer(GetConnectionString());
+            optionsBuilder.UseSqlServer(GetConnectionString(), o => o.EnableRetryOnFailure());
         }
     }
 
