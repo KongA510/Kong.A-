@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ArasToolkit.Services.Services;
 
 /// <summary>
-/// Task load analysis service - reads PersonalTask data, calls AI streaming analysis, saves results
+/// 任务负载分析服务 - 读取 PersonalTask 数据，调用 AI 流式分析，保存结果
 /// </summary>
 public class TaskLoadAnalysisService : ITaskLoadAnalysisService
 {
@@ -43,13 +43,13 @@ public class TaskLoadAnalysisService : ITaskLoadAnalysisService
             var modelName = model?.ModelName ?? "unknown";
 
             var fullResult = new StringBuilder();
-            var systemMessage = "You are a professional project management analyst. Analyze the provided task data and output a structured report in Chinese. The report must include these sections with headers: " +
+            var systemMessage = "你是一位专业的项目管理分析师。请分析提供的任务数据，输出结构化的中文报告。报告必须包含以下章节：" +
                 "## 一、任务排布分析 " +
                 "## 二、负载分析（每天标准工时8小时，超过6小时需预警，超过8小时标记超载） " +
                 "## 三、压力分析 " +
                 "## 四、风险分析 " +
                 "## 五、综合建议 " +
-                "Analyze step by step with data support. Output in Chinese.";
+                "请逐步分析，用数据支撑结论。输出中文。";
 
             await _aiDispatcher.ChatStreamAsync(
                 prompt,
@@ -108,7 +108,7 @@ public class TaskLoadAnalysisService : ITaskLoadAnalysisService
                 db.Set<TaskLoadAnalysisRecord>().Remove(record);
                 await db.SaveChangesAsync();
                 await _operationLogService.LogAsync("Delete", "TaskLoadAnalysisRecord", id,
-                    "Delete analysis record: " + record.DisplayDateRange);
+                    "删除分析记录: " + record.DisplayDateRange);
             }
         }
         catch (Exception ex)
@@ -149,29 +149,29 @@ public class TaskLoadAnalysisService : ITaskLoadAnalysisService
     private static string BuildAnalysisPrompt(List<PersonalTask> tasks, DateTime start, DateTime end)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Please analyze the following personal task load for the period: " + start.ToString("yyyy-MM-dd") + " to " + end.ToString("yyyy-MM-dd"));
-        sb.AppendLine("Total tasks: " + tasks.Count);
+        sb.AppendLine("请分析以下个人任务负载，时间段: " + start.ToString("yyyy-MM-dd") + " 至 " + end.ToString("yyyy-MM-dd"));
+        sb.AppendLine("任务总数: " + tasks.Count);
         sb.AppendLine();
-        sb.AppendLine("Task list (sorted by expected completion date):");
-        sb.AppendLine("| No | TaskName | Project | Status | StartDate | ExpectedDate | Progress | Remarks |");
+        sb.AppendLine("任务列表（按预期完成日期排序）:");
+        sb.AppendLine("|序号|任务名称|项目|状态|开始日期|预期日期|进度|备注|");
         sb.AppendLine("|---|---|---|---|---|---|---|---|");
         for (int i = 0; i < tasks.Count; i++)
         {
             var t = tasks[i];
-            var sd = t.StartDate?.ToString("yyyy-MM-dd") ?? "NotSet";
-            var ed = t.ExpectedDate?.ToString("yyyy-MM-dd") ?? "NotSet";
-            var rm = t.Remarks ?? "None";
+            var sd = t.StartDate?.ToString("yyyy-MM-dd") ?? "未设置";
+            var ed = t.ExpectedDate?.ToString("yyyy-MM-dd") ?? "未设置";
+            var rm = t.Remarks ?? "无";
             sb.AppendLine("| " + (i + 1) + " | " + t.TaskName + " | " + t.ProjectName + " | " + t.Status + " | " + sd + " | " + ed + " | " + t.CompletionPercent + "% | " + rm + " |");
         }
         sb.AppendLine();
-        sb.AppendLine("Analysis requirements:");
-        sb.AppendLine("1. Task arrangement: analyze distribution on timeline, identify clustering or gaps, dependencies and parallelism.");
-        sb.AppendLine("2. Load analysis: based on 8h/day standard, estimate per-task hours, calculate daily load. Mark >6h as warning, >8h as overload. Give daily load overview.");
-        sb.AppendLine("3. Stress analysis: evaluate overall stress level (Low/Medium/High/Extreme) based on task count, deadline urgency, completion rate. Identify peak stress periods.");
-        sb.AppendLine("4. Risk analysis: identify potential delays, resource conflicts, bottlenecks.");
-        sb.AppendLine("5. Recommendations: specific optimization suggestions including task rescheduling, priority adjustment, resource allocation.");
+        sb.AppendLine("分析要求:");
+        sb.AppendLine("1. 任务排布分析: 分析任务在时间线上的分布情况，识别任务聚集或空闲期，分析任务依赖和并行性。");
+        sb.AppendLine("2. 负载分析: 基于每天8小时标准工时，估算每个任务所需工时，计算每日负载。超过6小时标记预警，超过8小时标记超载。给出每日负载概览。");
+        sb.AppendLine("3. 压力分析: 基于任务数量、截止日期紧迫度、完成率等，评估整体压力等级（低/中/高/极高）。识别压力峰值期。");
+        sb.AppendLine("4. 风险分析: 识别可能延期的任务、资源冲突、瓶颈点。");
+        sb.AppendLine("5. 综合建议: 给出具体的优化建议，包括任务重新排布、优先级调整、资源分配等。");
         sb.AppendLine();
-        sb.AppendLine("Please analyze step by step with data support for each section. Output in Chinese.");
+        sb.AppendLine("请逐步分析，每个章节用数据支撑。输出中文。");
         return sb.ToString();
     }
 
@@ -181,6 +181,6 @@ public class TaskLoadAnalysisService : ITaskLoadAnalysisService
         db.Set<TaskLoadAnalysisRecord>().Add(record);
         await db.SaveChangesAsync();
         await _operationLogService.LogAsync("Create", "TaskLoadAnalysisRecord", record.Id,
-            "Create analysis record: " + record.DisplayDateRange + ", Tasks: " + record.TaskCount);
+            "创建分析记录: " + record.DisplayDateRange + ", 任务数: " + record.TaskCount);
     }
 }

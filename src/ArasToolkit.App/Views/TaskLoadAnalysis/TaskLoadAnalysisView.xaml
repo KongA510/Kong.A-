@@ -22,7 +22,7 @@
         <Border Grid.Row="0" Background="White" Padding="20,14" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="??" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Text="📊" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0" />
                     <TextBlock Text="任务负载分析" FontSize="20" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding StatusMessage}" FontSize="13"
@@ -40,10 +40,10 @@
                                VerticalAlignment="Center" Margin="0,0,6,0" />
                     <DatePicker SelectedDate="{Binding EndDate}" Width="130" FontSize="13"
                                 VerticalContentAlignment="Center" Margin="0,0,12,0" />
-                    <Button Content="?? 开始分析" Command="{Binding AnalyzeCommand}"
+                    <Button Content="🚀 开始分析" Command="{Binding AnalyzeCommand}"
                             Padding="16,7" Background="#6366F1" Foreground="White"
                             BorderThickness="0" Cursor="Hand" FontSize="13" FontWeight="SemiBold" />
-                    <Button Content="? 取消" Command="{Binding CancelCommand}"
+                    <Button Content="⏹ 取消" Command="{Binding CancelCommand}"
                             Padding="14,7" Background="#EF4444" Foreground="White"
                             BorderThickness="0" Cursor="Hand" FontSize="13" Margin="8,0,0,0"
                             Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}" />
@@ -51,7 +51,7 @@
             </Grid>
         </Border>
 
-        <!-- Row 1: 主体区域（左侧分析输出 + 右侧历史记录） -->
+        <!-- Row 1: 主体区域 -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -67,13 +67,11 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <!-- 输出区标题 -->
                     <Border Grid.Row="0" Padding="16,10" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1">
                         <TextBlock Text="分析报告" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimaryBrush}" />
                     </Border>
 
-                    <!-- 流式输出内容 -->
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20,16">
                         <TextBlock Text="{Binding AnalysisContent}"
                                    FontSize="14" LineHeight="24"
@@ -82,7 +80,6 @@
                                    FontFamily="Microsoft YaHei UI" />
                     </ScrollViewer>
 
-                    <!-- 空状态提示 -->
                     <TextBlock Grid.Row="1"
                                Text="选择日期范围后点击「开始分析」，AI 将逐步输出任务负载分析报告"
                                FontSize="14" Foreground="#9CA3AF"
@@ -101,19 +98,17 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <!-- 历史标题 -->
                     <Border Grid.Row="0" Padding="14,10" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1">
                         <Grid>
-                            <TextBlock Text="?? 分析历史" FontSize="14" FontWeight="SemiBold"
+                            <TextBlock Text="📜 分析历史" FontSize="14" FontWeight="SemiBold"
                                        Foreground="{StaticResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" />
-                            <Button Content="??" HorizontalAlignment="Right" FontSize="14"
+                            <Button Content="🔄" HorizontalAlignment="Right" FontSize="14"
                                     Background="Transparent" BorderThickness="0" Cursor="Hand"
                                     Command="{Binding RefreshHistoryCommand}" ToolTip="刷新" />
                         </Grid>
                     </Border>
 
-                    <!-- 历史列表 -->
                     <ListBox Grid.Row="1" ItemsSource="{Binding HistoryRecords}"
                              SelectedItem="{Binding SelectedRecord}"
                              BorderThickness="0" Background="Transparent"
@@ -141,7 +136,7 @@
                                             <TextBlock Text="{Binding TaskCount, StringFormat='任务数: {0}'}"
                                                        FontSize="11" Foreground="#6366F1"
                                                        VerticalAlignment="Center" Margin="12,0,0,0" />
-                                            <Button Content="??" FontSize="12" Background="Transparent"
+                                            <Button Content="🗑" FontSize="12" Background="Transparent"
                                                     BorderThickness="0" Cursor="Hand" Margin="8,0,0,0"
                                                     Command="{Binding DataContext.DeleteRecordCommand,
                                                         RelativeSource={RelativeSource AncestorType=ListBox}}"
@@ -153,16 +148,15 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <!-- 分页 -->
                     <Border Grid.Row="2" Padding="10,8" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Button Content="?" Command="{Binding PrevHistoryPageCommand}"
+                            <Button Content="‹" Command="{Binding PrevHistoryPageCommand}"
                                     Width="28" Height="28" Background="Transparent"
                                     BorderBrush="#D1D5DB" BorderThickness="1" Cursor="Hand" FontSize="12" />
                             <TextBlock Text="{Binding HistoryPage, StringFormat=' {0} '}" FontSize="13"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        VerticalAlignment="Center" Margin="8,0" />
-                            <Button Content="?" Command="{Binding NextHistoryPageCommand}"
+                            <Button Content="›" Command="{Binding NextHistoryPageCommand}"
                                     Width="28" Height="28" Background="Transparent"
                                     BorderBrush="#D1D5DB" BorderThickness="1" Cursor="Hand" FontSize="12" />
                         </StackPanel>
