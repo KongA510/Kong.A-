@@ -5,7 +5,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using ArasToolkit.App.ViewModels;
+using ArasToolkit.App.ViewModels.Translation;
 using ArasToolkit.App.Views;
+using ArasToolkit.App.Views.Translation;
 using ArasToolkit.App.Views.Placeholder;
 using ArasToolkit.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -122,9 +124,9 @@ public partial class MainWindow : Window
                 "仪表盘" => new DashboardView { DataContext = App.Services.GetRequiredService<DashboardViewModel>() },
                 "文本翻译" => new TextTranslationView { DataContext = App.Services.GetRequiredService<TextTranslationViewModel>() },
                 "翻译历史" => new TranslationHistoryView { DataContext = App.Services.GetRequiredService<TextTranslationViewModel>() },
-                "字段翻译" => CreatePlaceholder("字段翻译", "Aras字段翻译工具 - 功能开发中，敬请期待..."),
-                "表单翻译" => CreatePlaceholder("表单翻译", "Aras表单翻译工具 - 功能开发中，敬请期待..."),
-                "窗体翻译" => CreatePlaceholder("窗体翻译", "Aras窗体翻译工具 - 功能开发中，敬请期待..."),
+                "字段翻译" => new FieldTranslationView { DataContext = App.Services.GetRequiredService<FieldTranslationViewModel>() },
+                "表单翻译" => new FieldTranslationView { DataContext = App.Services.GetRequiredService<FieldTranslationViewModel>() },
+                "窗体翻译" => new PropertyTranslationView { DataContext = App.Services.GetRequiredService<PropertyTranslationViewModel>() },
                 "窗体配置" => CreatePlaceholder("窗体配置", "Aras窗体配置工具 - 功能开发中，敬请期待..."),
                 "对象类配置" => new ObjectClassConfigView { DataContext = App.Services.GetRequiredService<ObjectClassConfigViewModel>() },
                 "List配置" => new ListConfigView { DataContext = App.Services.GetRequiredService<ListConfigViewModel>() },
@@ -256,3 +258,5 @@ public partial class MainWindow : Window
     }
         #endregion
     }
+
+

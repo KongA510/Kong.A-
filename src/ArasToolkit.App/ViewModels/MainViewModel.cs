@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using ArasToolkit.Core.Extensions;
@@ -93,9 +93,9 @@ public class MainViewModel : ObservableObject
         };
         sysTranslation.Children.Add(new MenuItemInfo { Name = "文本翻译", Icon = "Translate", CardIcon = "📝", Description = "AI 驱动的 Excel 批量翻译工具" });
         sysTranslation.Children.Add(new MenuItemInfo { Name = "翻译历史", Icon = "History", CardIcon = "📜", Description = "历史翻译记录查询" });
-        sysTranslation.Children.Add(new MenuItemInfo { Name = "字段翻译", Icon = "FormTextbox", CardIcon = "🔤", Description = "Aras字段翻译工具", IsPlaceholder = true });
-        sysTranslation.Children.Add(new MenuItemInfo { Name = "表单翻译", Icon = "FormTextbox", CardIcon = "📝", Description = "Aras表单翻译工具", IsPlaceholder = true });
-        sysTranslation.Children.Add(new MenuItemInfo { Name = "窗体翻译", Icon = "WindowMaximize", CardIcon = "🪟", Description = "Aras窗体翻译工具", IsPlaceholder = true });
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "字段翻译", Icon = "FormTextbox", CardIcon = "🔤", Description = "Aras窗体字段翻译工具" });
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "表单翻译", Icon = "FormTextbox", CardIcon = "📝", Description = "Aras表单翻译工具" });
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "窗体翻译", Icon = "WindowMaximize", CardIcon = "🪟", Description = "Aras对象类属性翻译工具" });
         MenuItems.Add(sysTranslation);
 
         // ===== 二级菜单：系统配置（窗体 / 对象类 / 属性 / List / 权限） =====
@@ -148,3 +148,4 @@ public class MainViewModel : ObservableObject
         CurrentView = loginVM;
     }
 }
+

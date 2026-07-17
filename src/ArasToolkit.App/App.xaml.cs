@@ -1,5 +1,7 @@
-using System.Windows;
+﻿using System.Windows;
 using ArasToolkit.App.ViewModels;
+using ArasToolkit.App.ViewModels.Translation;
+using ArasToolkit.App.Views.Translation;
 using ArasToolkit.App.Views;
 using ArasToolkit.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,6 +57,8 @@ public partial class App : Application
         services.AddTransient<TodoViewModel>();
         services.AddTransient<ChartViewModel>();
         services.AddTransient<TextTranslationViewModel>();
+        services.AddTransient<FieldTranslationViewModel>();
+        services.AddTransient<PropertyTranslationViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<ArasLoginViewModel>();
         services.AddTransient<TranslationApiKeyViewModel>();
@@ -86,6 +90,8 @@ public partial class App : Application
         services.AddTransient<TodoView>();
         services.AddTransient<ChartView>();
         services.AddTransient<TextTranslationView>();
+        services.AddTransient<FieldTranslationView>();
+        services.AddTransient<PropertyTranslationView>();
         services.AddTransient<TranslationHistoryView>();
         services.AddTransient<ObjectClassConfigView>();
         services.AddTransient<ListConfigView>();
@@ -112,4 +118,5 @@ public partial class App : Application
         base.OnExit(e);
     }
 }
+
 

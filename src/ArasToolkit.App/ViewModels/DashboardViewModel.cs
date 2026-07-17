@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using ArasToolkit.Core.Extensions;
@@ -84,9 +84,9 @@ public class DashboardViewModel : ObservableObject
     public ObservableCollection<QuickAction> AllFeatures { get; } = new()
     {
         new() { Name = "文本翻译", Description = "AI 驱动的 Excel 批量翻译工具", Icon = "📝" },
-        new() { Name = "字段翻译", Description = "Aras字段翻译工具", Icon = "🔤" },
+        new() { Name = "字段翻译", Description = "Aras窗体字段翻译工具", Icon = "🔤" },
         new() { Name = "表单翻译", Description = "Aras表单翻译工具", Icon = "📝" },
-        new() { Name = "窗体翻译", Description = "Aras窗体翻译工具", Icon = "🪟" },
+        new() { Name = "窗体翻译", Description = "Aras对象类属性翻译工具", Icon = "🪟" },
         new() { Name = "窗体配置", Description = "Aras窗体配置工具", Icon = "⚙️" },
         new() { Name = "对象类配置", Description = "批量创建Aras对象类和关系类", Icon = "📦" },
         new() { Name = "List配置", Description = "批量创建Aras List主档和菜单项", Icon = "📋" },
@@ -154,3 +154,4 @@ public class QuickAction
     public string Description { get; set; } = string.Empty;
     public string Icon { get; set; } = string.Empty;
 }
+

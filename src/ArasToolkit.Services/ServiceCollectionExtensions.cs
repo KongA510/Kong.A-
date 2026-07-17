@@ -96,6 +96,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDatabaseExportService, DatabaseExportService>();
         services.AddSingleton<IDatabaseExportConfigService, DatabaseExportConfigService>();
 
+        // 注册字段翻译服务（单例）
+        services.AddSingleton<IFieldTranslationService, FieldTranslationService>();
+
+        // 注册属性翻译服务（单例）
+        services.AddSingleton<IPropertyTranslationService, PropertyTranslationService>();
+
         return services;
     }
 }

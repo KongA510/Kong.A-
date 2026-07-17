@@ -64,6 +64,12 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>数据库导出配置表</summary>
     public DbSet<DatabaseExportConfig> DatabaseExportConfigs => Set<DatabaseExportConfig>();
 
+    /// <summary>翻译任务表</summary>
+    public DbSet<TranslationTask> TranslationTasks => Set<TranslationTask>();
+
+    /// <summary>翻译记录表</summary>
+    public DbSet<TranslationRecord> TranslationRecords => Set<TranslationRecord>();
+
     /// <summary>缓存的连接字符串（避免重复读取文件）</summary>
     private static string? _cachedConnectionString;
 
@@ -877,7 +883,42 @@ public class ArasToolkitDbContext : DbContext
                 BEGIN
                     ALTER TABLE database_export_config ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                 END
-            ";
+            
+                -- ===== translation_task 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='translation_task')
+                BEGIN
+                    CREATE TABLE translation_task (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        task_name NVARCHAR(200) NOT NULL,
+                        query_mode NVARCHAR(50) NULL,
+                        query_condition NVARCHAR(1000) NULL,
+                        source_language NVARCHAR(50) NULL,
+                        target_languages NVARCHAR(200) NULL,
+                        total_fields INT NOT NULL DEFAULT 0,
+                        translated_fields INT NOT NULL DEFAULT 0,
+                        progress_text NVARCHAR(100) NULL,
+                        status NVARCHAR(50) NOT NULL DEFAULT 'Pending',
+                        output_file_path NVARCHAR(1000) NULL,
+                        user_id NVARCHAR(100) NULL,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+
+                -- ===== translation_record 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='translation_record')
+                BEGIN
+                    CREATE TABLE translation_record (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        task_id NVARCHAR(12) NOT NULL,
+                        field_id NVARCHAR(50) NULL,
+                        field_name NVARCHAR(200) NULL,
+                        original_label NVARCHAR(500) NULL,
+                        translated_label NVARCHAR(500) NULL,
+                        target_language NVARCHAR(50) NULL,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+";
             await Database.ExecuteSqlRawAsync(sql);
         }
         catch (Exception ex)
@@ -886,3 +927,5 @@ public class ArasToolkitDbContext : DbContext
         }
     }
 }
+
+
