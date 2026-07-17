@@ -102,6 +102,9 @@ public static class ServiceCollectionExtensions
         // 注册属性翻译服务（单例）
         services.AddSingleton<IPropertyTranslationService, PropertyTranslationService>();
 
+        // 注册任务负载分析服务（单例）
+        services.AddSingleton<ITaskLoadAnalysisService, TaskLoadAnalysisService>();
+
         return services;
     }
 }

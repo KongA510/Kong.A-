@@ -9,6 +9,7 @@ using ArasToolkit.App.ViewModels.Translation;
 using ArasToolkit.App.Views;
 using ArasToolkit.App.Views.Translation;
 using ArasToolkit.App.Views.Placeholder;
+using ArasToolkit.App.Views.TaskLoadAnalysis;
 using ArasToolkit.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -141,8 +142,9 @@ public partial class MainWindow : Window
                 "数据报表" => new ChartView { DataContext = App.Services.GetRequiredService<ChartViewModel>() },
                 "个人任务记录" => new TodoView { DataContext = App.Services.GetRequiredService<TodoViewModel>() },
                 "我的资料" => new FileExplorerView { DataContext = App.Services.GetRequiredService<FileExplorerViewModel>() },
-                "个人资料库" => new KnowledgeBaseView { DataContext = App.Services.GetRequiredService<KnowledgeViewModel>() },
-                "设置" => CreateSettingsMenu(),
+               "个人资料库" => new KnowledgeBaseView { DataContext = App.Services.GetRequiredService<KnowledgeViewModel>() },
+                "任务负载分析" => new TaskLoadAnalysisView { DataContext = App.Services.GetRequiredService<TaskLoadAnalysisViewModel>() },
+               "设置" => CreateSettingsMenu(),
                 "设置-资料文件夹地址" => CreateSettingsView("datafolder"),
                 "设置-AI模型配置" => new TranslationApiKeyView(App.Services.GetRequiredService<TranslationApiKeyViewModel>()),
                 "设置-数据库检查" => CreateSettingsView("database"),

@@ -138,9 +138,12 @@ public class MainViewModel : ObservableObject
         // ===== 我的资料 =====
         MenuItems.Add(new MenuItemInfo { Name = "我的资料", Icon = "Folder", CardIcon = "📁", Description = "文件资源管理器" });
 
-        // ===== 个人资料库 =====
-        MenuItems.Add(new MenuItemInfo { Name = "个人资料库", Icon = "BookOpen", CardIcon = "📚", Description = "个人知识库与笔记管理" });
-    }
+       // ===== 个人资料库 =====
+       MenuItems.Add(new MenuItemInfo { Name = "个人资料库", Icon = "BookOpen", CardIcon = "📚", Description = "个人知识库与笔记管理" });
+
+        // ===== 任务负载分析 =====
+        MenuItems.Add(new MenuItemInfo { Name = "任务负载分析", Icon = "ChartBar", CardIcon = "📈", Description = "AI 分析任务压力与负载" });
+   }
 
     public void ShowLogin()
     {
