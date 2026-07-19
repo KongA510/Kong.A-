@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
@@ -61,12 +61,19 @@ public class TaskLoadAnalysisService : ITaskLoadAnalysisService
                 new ChatOptions { SystemMessage = systemMessage, Temperature = 0.7 },
                 cancellationToken);
 
+            var resultText = fullResult.ToString();
+            if (string.IsNullOrWhiteSpace(resultText))
+            {
+                await _errorLogService.LogErrorAsync("TaskLoadAnalysis-Analyze", "AI流式分析返回空结果，SSE解析可能失败", ErrorLog.LevelP0);
+                throw new InvalidOperationException("AI 分析未返回任何内容，请检查 AI 配置或查看错误日志");
+            }
+
             var record = new TaskLoadAnalysisRecord
             {
                 StartDate = startDate,
                 EndDate = endDate,
                 TaskCount = tasks.Count,
-                AnalysisResult = fullResult.ToString(),
+                AnalysisResult = resultText,
                 ModelName = modelName,
                 UserId = CurrentUserContext.Current?.Username,
                 CreatorOn = DateTime.Now
@@ -104,7 +111,7 @@ public class TaskLoadAnalysisService : ITaskLoadAnalysisService
             await using var db = await _dbFactory.CreateDbContextAsync();
             var record = await db.Set<TaskLoadAnalysisRecord>().FindAsync(id);
             if (record != null)
-            {
+             {
                 db.Set<TaskLoadAnalysisRecord>().Remove(record);
                 await db.SaveChangesAsync();
                 await _operationLogService.LogAsync("Delete", "TaskLoadAnalysisRecord", id,

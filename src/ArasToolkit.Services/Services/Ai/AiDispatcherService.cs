@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -99,22 +99,22 @@ public class AiDispatcherService : IAiDispatcherService
         response.EnsureSuccessStatusCode();
 
         using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var reader = new StreamReader(stream, Encoding.UTF8);
-        string? line;
-        while ((line = await reader.ReadLineAsync(cancellationToken)) != null)
-        {
-            if (!line.StartsWith("data: ") || line.Length < 7) continue;
-            var data = line[6..];
-            if (data == "[DONE]") break;
-            try
-            {
-                var chunk = JsonSerializer.Deserialize<StreamChunk>(data);
-                var delta = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
-                if (!string.IsNullOrEmpty(delta))
-                    onChunk(delta);
-            }
-            catch { /* 单行解析异常跳过 */ }
-        }
+       using var reader = new StreamReader(stream, Encoding.UTF8);
+       string? line;
+       while ((line = await reader.ReadLineAsync(cancellationToken)) != null)
+       {
+           if (!line.StartsWith("data: ") || line.Length < 7) continue;
+           var data = line[6..];
+           if (data == "[DONE]") break;
+           try
+           {
+               var chunk = JsonSerializer.Deserialize<StreamChunk>(data);
+               var delta = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
+               if (!string.IsNullOrEmpty(delta))
+                   onChunk(delta);
+           }
+           catch (Exception ex) { await _errorLogService.LogErrorAsync("AI流式-SSE解析失败", "原始数据: " + data + ", 错误: " + ex.Message, ErrorLog.LevelP1, ex.StackTrace); }
+       }
     }
 
     /// <inheritdoc />
