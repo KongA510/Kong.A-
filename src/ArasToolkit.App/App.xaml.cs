@@ -1,7 +1,8 @@
-ï»¿using System.Windows;
+using System.Windows;
 using ArasToolkit.App.ViewModels;
 using ArasToolkit.App.ViewModels.Translation;
 using ArasToolkit.App.Views.Translation;
+using ArasToolkit.App.Views.TaskLoadAnalysis;
 using ArasToolkit.App.Views;
 using ArasToolkit.App.Views.TaskLoadAnalysis;
 using ArasToolkit.Services;
@@ -17,16 +18,16 @@ public partial class App : Application
     private ServiceProvider? _serviceProvider;
 
     /// <summary>
-    /// å…¨å±€æœåŠ¡æä¾›å™¨
+    /// È«¾Ö·şÎñÌá¹©Æ÷
     /// </summary>
     public static ServiceProvider Services => 
-        ((App)Current)._serviceProvider ?? throw new InvalidOperationException("æœåŠ¡å°šæœªåˆå§‹åŒ–");
+        ((App)Current)._serviceProvider ?? throw new InvalidOperationException("·şÎñÉĞÎ´³õÊ¼»¯");
 
     public App()
     {
         ConfigureServices();
 
-        // æ·»åŠ  R37lib å­ç›®å½•åˆ°ç¨‹åºé›†æ¢æµ‹è·¯å¾„
+        // Ìí¼Ó R37lib ×ÓÄ¿Â¼µ½³ÌĞò¼¯Ì½²âÂ·¾¶
         AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
         {
             var asmName = new System.Reflection.AssemblyName(args.Name).Name;
@@ -38,16 +39,16 @@ public partial class App : Application
         };    }
 
     /// <summary>
-    /// é…ç½®ä¾èµ–æ³¨å…¥å®¹å™¨
+    /// ÅäÖÃÒÀÀµ×¢ÈëÈİÆ÷
     /// </summary>
     private void ConfigureServices()
     {
         var services = new ServiceCollection();
 
-        // æ³¨å†ŒæœåŠ¡å±‚
+        // ×¢²á·şÎñ²ã
         services.AddArasToolkitServices();
 
-        // æ³¨å†ŒViewModels
+        // ×¢²áViewModels
         services.AddSingleton<MainViewModel>();
         services.AddTransient<AppLoginViewModel>();
         services.AddTransient<LoginViewModel>();
@@ -77,10 +78,12 @@ public partial class App : Application
         services.AddTransient<ArasLoginWindow>();
         services.AddTransient<TranslationApiKeyWindow>();
         services.AddTransient<DataImportView>();
+        services.AddTransient<TaskLoadAnalysisViewModel>();
+        services.AddTransient<TaskLoadAnalysisView>();
         services.AddTransient<ConfigSelectWindow>();
         services.AddTransient<TextPromptWindow>();
 
-        // æ³¨å†ŒViews
+        // ×¢²áViews
         services.AddTransient<MainWindow>();
         services.AddTransient<AppLoginView>();
         services.AddTransient<LoginView>();
