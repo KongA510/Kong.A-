@@ -70,8 +70,6 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>翻译记录表</summary>
     public DbSet<TranslationRecord> TranslationRecords => Set<TranslationRecord>();
 
-    /// <summary>任务负载分析记录表</summary>
-    public DbSet<TaskLoadAnalysisRecord> TaskLoadAnalysisRecords => Set<TaskLoadAnalysisRecord>();
 
     /// <summary>缓存的连接字符串（避免重复读取文件）</summary>
     private static string? _cachedConnectionString;
@@ -437,24 +435,6 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.IsEnabled).HasColumnName("is_enabled");
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
             entity.Ignore(e => e.StatusText);
-        });
-        // TaskLoadAnalysisRecord -> task_load_analysis_record 表
-        modelBuilder.Entity<TaskLoadAnalysisRecord>(entity =>
-        {
-            entity.ToTable("task_load_analysis_record");
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
-            entity.Property(e => e.StartDate).HasColumnName("start_date");
-            entity.Property(e => e.EndDate).HasColumnName("end_date");
-            entity.Property(e => e.TaskCount).HasColumnName("task_count");
-            entity.Property(e => e.AnalysisResult).HasColumnName("analysis_result");
-            entity.Property(e => e.ModelName).HasColumnName("model_name").HasMaxLength(200);
-            entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(100);
-            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
-
-            entity.Ignore(e => e.DisplayDateRange);
-            entity.Ignore(e => e.DisplayCreatedOn);
-            entity.Ignore(e => e.Preview);
         });
     }
 

@@ -3,7 +3,6 @@ using ArasToolkit.App.ViewModels;
 using ArasToolkit.App.ViewModels.Translation;
 using ArasToolkit.App.Views.Translation;
 using ArasToolkit.App.Views;
-using ArasToolkit.App.Views.TaskLoadAnalysis;
 using ArasToolkit.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -103,8 +102,6 @@ public partial class App : Application
         services.AddTransient<KnowledgeBaseView>();
         services.AddTransient<DatabaseExportView>();
         services.AddTransient<DatabaseExportConfigView>();
-        services.AddTransient<TaskLoadAnalysisView>();
-        services.AddTransient<TaskLoadAnalysisViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
     }
