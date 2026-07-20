@@ -1,4 +1,4 @@
----
+﻿---
 name: aras
 description: Aras Innovator 开发工具箱技能 — 提供 Aras 登录认证、API 调用、项目架构规范及常用开发技巧。在打开 ArasToolkit 项目或进行 Aras 相关开发时自动调用。
 keywords: Aras,ArasToolkit,Innovator,登录,HttpServerConnection,ScalcMD5,Item,AML,applyItem,工具箱
@@ -67,7 +67,7 @@ ArasToolkit.App        → WPF Views, ViewModels, Styles
 ## 三、常用命令
 
 ```bash
-cd "d:\博威\项目\ICS\个人工具箱"
+cd "D:\git仓库\个人工具箱"
 dotnet build ArasToolkit.slnx            # 编译
 dotnet run --project src/ArasToolkit.App # 运行
 dotnet add src/ArasToolkit.App package <包名>  # 添加NuGet
@@ -451,6 +451,15 @@ await changelogService.AddEntryAsync(new Changelog
 
 ## 十一、Git 分支与推送策略 ⚠️ 必须遵守
 
+### 11.0 远程仓库
+
+```
+GitHub 仓库: https://github.com/KongA510/Kong.A-.git
+SSH 地址:    git@github.com:KongA510/Kong.A-.git
+账户:        891907643@qq.com
+认证方式:    Personal Access Token (PAT)
+代理配置:    Clash Verge 系统代理 127.0.0.1:7897（代理模式需设为「规则」或「全局」）
+```
 ### 11.1 分支结构
 
 ```
