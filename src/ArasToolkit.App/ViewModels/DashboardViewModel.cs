@@ -102,7 +102,6 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "个人任务记录", Description = "个人待办任务管理与追踪", Icon = "✅" },
         new() { Name = "我的资料", Description = "文件资源管理器", Icon = "📁" },
        new() { Name = "个人资料库", Description = "个人知识库与笔记管理", Icon = "📚" },
-        new() { Name = "任务负载分析", Description = "AI 分析任务压力与负载", Icon = "📈" },
    };
 
     public ICommand RefreshCommand { get; }
