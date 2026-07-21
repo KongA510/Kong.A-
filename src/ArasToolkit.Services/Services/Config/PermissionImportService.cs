@@ -427,11 +427,6 @@ public class PermissionImportService : IPermissionImportService
         {
             return $"<AML>" +
                    $"  <Item type='Permission' action='add'>" +
-                   $"      <source_id>" +
-                   $"          <Item type='ItemType' action='get' select='id'>" +
-                   $"              <name>{itemTypeName}</name>" +
-                   $"          </Item>" +
-                   $"      </source_id>" +
                    $"      <name>{permName}</name>" +
                    $"  </Item>" +
                    $"</AML>";
@@ -439,12 +434,7 @@ public class PermissionImportService : IPermissionImportService
 
         // 覆盖模式: 必须带 where 精确匹配
         return $"<AML>" +
-               $"  <Item type='Permission' action='merge' where=\"Permission.name='{permName}' and Permission.source_id='{sourceId}'\">" +
-               $"      <source_id>" +
-               $"          <Item type='ItemType' action='get' select='id'>" +
-               $"              <name>{itemTypeName}</name>" +
-               $"          </Item>" +
-               $"      </source_id>" +
+               $"  <Item type='Permission' action='merge' where=\"Permission.name='{permName}'\">" +
                $"      <name>{permName}</name>" +
                $"  </Item>" +
                $"</AML>";
@@ -466,18 +456,18 @@ public class PermissionImportService : IPermissionImportService
     private static string BuildAccessAml(Dictionary<int, string> row, string importMode,
         string permId, string roleId)
     {
-        var canAdd = row.GetValueOrDefault(3, "");        // 允许创建
-        var canGet = row.GetValueOrDefault(4, "");        // 允许读取
-        var canUpdate = row.GetValueOrDefault(5, "");     // 允许更新
-        var canDelete = row.GetValueOrDefault(6, "");     // 允许删除
+        var canAdd = row.GetValueOrDefault(3, "0");        // 允许查询
+        var canGet = row.GetValueOrDefault(4, "0");        // 允许读取
+        var canUpdate = row.GetValueOrDefault(5, "0");     // 允许更新
+        var canDelete = row.GetValueOrDefault(6, "0");     // 允许删除
 
         if (importMode == "新增")
         {
             return $"<AML>" +
                    $"  <Item type='Access' action='add'>" +
                    $"      <source_id>{permId}</source_id>" +
-                   $"      <role_id>{roleId}</role_id>" +
-                   $"      <can_add>{canAdd}</can_add>" +
+                   $"      <related_id>{roleId}</related_id>" +
+                   $"      <can_discover>{canAdd}</can_discover>" +
                    $"      <can_get>{canGet}</can_get>" +
                    $"      <can_update>{canUpdate}</can_update>" +
                    $"      <can_delete>{canDelete}</can_delete>" +
@@ -485,11 +475,11 @@ public class PermissionImportService : IPermissionImportService
                    $"</AML>";
         }
 
-        // 覆盖模式: 必须带 where 精确匹配（source_id + role_id 唯一确定一条 Access）
+        // 覆盖模式: 必须带 where 精确匹配（source_id + role_id 唯一确定一条 Access） 
         return $"<AML>" +
-               $"  <Item type='Access' action='merge' where=\"Access.source_id='{permId}' and Access.role_id='{roleId}'\">" +
+               $"  <Item type='Access' action='merge' where=\"Access.source_id='{permId}' and Access.related_id='{roleId}'\">" +
                $"      <source_id>{permId}</source_id>" +
-               $"      <role_id>{roleId}</role_id>" +
+               $"      <related_id>{roleId}</related_id>" +
                $"      <can_add>{canAdd}</can_add>" +
                $"      <can_get>{canGet}</can_get>" +
                $"      <can_update>{canUpdate}</can_update>" +
@@ -540,7 +530,9 @@ public class PermissionImportService : IPermissionImportService
         if (string.IsNullOrWhiteSpace(identityName)) return "";
 
         var queryAml = "<AML>" +
-                       $"  <Item type='Identity' action='get' where=\"Identity.name='{identityName}'\" select='id'/>" +
+                       $"  <Item type='Identity' action='get'  select='id' >" +
+                       $"       <name>{identityName}</name>" +
+                       $"  </Item>" +
                        "</AML>";
         var result = innovator.applyAML(queryAml);
         if (result.isError() || result.getItemCount() == 0) return "";
