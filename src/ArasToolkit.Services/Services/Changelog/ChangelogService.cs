@@ -204,6 +204,22 @@ public class ChangelogService : IChangelogService
                 Description = "修复待办项目加载失败（description列NULL导致EF Core报Data is Null）",
                 Author = "开发团队"
             },
-        };
+                    new()
+            {
+                Version = "1.0.2",
+                ReleaseDate = new DateTime(2026, 7, 22),
+                Type = "优化",
+                Description = "权限配置导入重构：导出模板改为双Sheet（权限配置+详细权限），导入顺序先Sheet1再Sheet2",
+                Author = "开发团队"
+            },
+            new()
+            {
+                Version = "1.0.2",
+                ReleaseDate = new DateTime(2026, 7, 22),
+                Type = "优化",
+                Description = "权限配置覆盖模式AML带where精确匹配，Sheet2(Access)缓存PermissionID和RoleID减少重复查询",
+                Author = "开发团队"
+            },
+};
     }
 }

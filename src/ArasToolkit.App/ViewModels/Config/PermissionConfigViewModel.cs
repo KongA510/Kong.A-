@@ -275,8 +275,8 @@ public class PermissionConfigViewModel : ObservableObject
             if (LastResult.IsSuccess)
             {
                 StatusMessage = LastResult.HasFailures
-                    ? $"导入完成（部分失败）: 权限{LastResult.Sheet1Count}/{LastResult.Sheet1Total}"
-                    : $"导入成功: 权限{LastResult.Sheet1Count}条";
+                    ? $"导入完成（部分失败）: 权限配置{LastResult.Sheet1Count}/{LastResult.Sheet1Total}, 详细权限{LastResult.Sheet2Count}/{LastResult.Sheet2Total}"
+                    : $"导入成功: 权限配置{LastResult.Sheet1Count}条, 详细权限{LastResult.Sheet2Count}条";
             }
             else
             {

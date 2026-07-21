@@ -327,7 +327,8 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(20);
             entity.Property(e => e.ErrorLog).HasColumnName("error_log");
             entity.Property(e => e.Sheet1Count).HasColumnName("sheet1_count");
-            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+             entity.Property(e => e.Sheet2Count).HasColumnName("sheet2_count");
+           entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
 
             entity.Ignore(e => e.DisplayImportTime);
             entity.Ignore(e => e.DisplayCreatedAt);
@@ -774,9 +775,13 @@ public class ArasToolkitDbContext : DbContext
                         status NVARCHAR(20) NOT NULL DEFAULT 'Success',
                         error_log NVARCHAR(MAX) NULL,
                         sheet1_count INT NOT NULL DEFAULT 0,
-                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                        sheet2_count INT NOT NULL DEFAULT 0,
+                       creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
                 END
+
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='permission_import_log' AND COLUMN_NAME='sheet2_count')
+                    ALTER TABLE permission_import_log ADD sheet2_count INT NOT NULL DEFAULT 0;
 
                 -- ===== lifecycle_import_log ±í =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='lifecycle_import_log')
