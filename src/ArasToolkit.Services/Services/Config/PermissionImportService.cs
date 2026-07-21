@@ -17,17 +17,21 @@ namespace ArasToolkit.Services.Services;
 /// 权限配置导入服务 — Excel模板生成 + 批量汇入Aras
 ///
 /// 导入流程:
-/// 1. 读取 Excel 文件（Sheet「权限配置」）
+/// 1. 读取 Excel 文件（Sheet1「权限配置」→ Sheet2「详细权限」）
 /// 2. 逐行构造 AML 语句，通过 Aras API 执行
 /// 3. 记录详细日志到本地文件 + 操作日志到数据库
 ///
 /// 模板说明:
-/// Sheet「权限配置」10列:
-///   对象类 | 权限名称 | 权限标签 | 访问级别 | 所属角色 |
-///   适用身份 | 允许创建 | 允许读取 | 允许更新 | 允许删除
+/// Sheet1「权限配置」2列:
+///   权限配置名称 | 权限名称
+///
+/// Sheet2「详细权限」6列:
+///   权限名称 | 所属角色 | 允许创建 | 允许读取 | 允许更新 | 允许删除
+///
+/// 导入顺序: 先 Sheet1（权限配置），再 Sheet2（详细权限）
 ///
 /// 注意:
-/// - 具体 AML 逻辑由调用方自行维护，本 Service 提供 AML 占位符注入点
+/// - 具体 AML 逻辑由调用方自行维护，本 Service 提供 AML 占位方法
 /// - 使用单线程串行执行，确保 Aras 数据一致性
 /// - 支持 CancellationToken 取消 + IProgress&lt;ImportProgressInfo&gt; 进度报告
 /// </summary>
@@ -56,28 +60,37 @@ public class PermissionImportService : IPermissionImportService
     // ==================== 模板生成 ====================
 
     /// <summary>
-    /// 生成 Excel 模板文件（1个Sheet：权限配置，10列，含加粗表头+自适应列宽）
+    /// 生成 Excel 模板文件（2个Sheet，含加粗表头、自适应列宽）
+    /// Sheet1「权限配置」: 权限配置名称 | 权限名称
+    /// Sheet2「详细权限」: 权限名称 | 所属角色 | 允许创建 | 允许读取 | 允许更新 | 允许删除
     /// </summary>
     public byte[] GenerateTemplate()
     {
         using var package = new ExcelPackage();
 
-        var ws = package.Workbook.Worksheets.Add("权限配置");
-        var headers = new[]
+        // Sheet1: 权限配置
+        var ws1 = package.Workbook.Worksheets.Add("权限配置");
+        var headers1 = new[]
         {
-            "对象类",          // Col 1  → AML source_id（父 ItemType 名称）
-            "权限名称",        // Col 2  → AML <name>
-            "权限标签",        // Col 3  → AML <label>（简体中文）
-            "访问级别",        // Col 4  → AML <access_level> (0-World/1-Authorized/2-Private)
-            "所属角色",        // Col 5  → AML <role_id>（Identity name）
-            "适用身份",        // Col 6  → AML <identity_id>（Identity name）
-            "允许创建",        // Col 7  → AML <can_add> (0/1)
-            "允许读取",        // Col 8  → AML <can_get> (0/1)
-            "允许更新",        // Col 9  → AML <can_update> (0/1)
-            "允许删除"         // Col 10 → AML <can_delete> (0/1)
+            "权限配置名称",    // Col 1 → AML source_id（ItemType 名称）
+            "权限名称"         // Col 2 → AML <name>
         };
-        WriteHeaders(ws, headers);
-        ws.Cells[1, 1, 1, headers.Length].AutoFitColumns(8, 25);
+        WriteHeaders(ws1, headers1);
+        ws1.Cells[1, 1, 1, headers1.Length].AutoFitColumns(8, 25);
+
+        // Sheet2: 详细权限
+        var ws2 = package.Workbook.Worksheets.Add("详细权限");
+        var headers2 = new[]
+        {
+            "权限名称",        // Col 1 → 关联 Sheet1 的权限名称
+            "所属角色",        // Col 2 → AML <role_id>（Identity name）
+            "允许创建",        // Col 3 → AML <can_add> (0/1)
+            "允许读取",        // Col 4 → AML <can_get> (0/1)
+            "允许更新",        // Col 5 → AML <can_update> (0/1)
+            "允许删除"         // Col 6 → AML <can_delete> (0/1)
+        };
+        WriteHeaders(ws2, headers2);
+        ws2.Cells[1, 1, 1, headers2.Length].AutoFitColumns(8, 25);
 
         return package.GetAsByteArray();
     }
@@ -85,7 +98,7 @@ public class PermissionImportService : IPermissionImportService
     // ==================== 导入执行 ====================
 
     /// <summary>
-    /// 执行权限导入汇入到 Aras 系统
+    /// 执行权限导入到 Aras 系统（先 Sheet1 权限配置，再 Sheet2 详细权限）
     /// </summary>
     public async Task<PermissionImportResult> ImportAsync(
         string filePath,
@@ -140,7 +153,7 @@ public class PermissionImportService : IPermissionImportService
                 ItemName = "正在连接 Aras..."
             });
 
-            // 5. 读取 Excel 数据
+            // 5. 读取 Excel 数据（两个 Sheet）
             progress?.Report(new ImportProgressInfo
             {
                 Phase = "读取Excel",
@@ -149,90 +162,142 @@ public class PermissionImportService : IPermissionImportService
             });
 
             using var package = new ExcelPackage(new FileInfo(filePath));
-            var rows = ReadSheetRows(package, "权限配置", 10);
+            var sheet1Rows = ReadSheetRows(package, "权限配置", 2);
+            var sheet2Rows = ReadSheetRows(package, "详细权限", 6);
 
-            result.Sheet1Total = rows.Count;
+            result.Sheet1Total = sheet1Rows.Count;
+            result.Sheet2Total = sheet2Rows.Count;
+            var overallTotal = sheet1Rows.Count + sheet2Rows.Count;
 
-            await writer.WriteLineAsync($"权限配置: {rows.Count} 行").ConfigureAwait(false);
+            await writer.WriteLineAsync($"Sheet1 权限配置: {sheet1Rows.Count} 行").ConfigureAwait(false);
+            await writer.WriteLineAsync($"Sheet2 详细权限: {sheet2Rows.Count} 行").ConfigureAwait(false);
 
-            // 6. 处理 Sheet: 权限配置
-            int success = 0;
-            var itemTypeIdCache = new Dictionary<string, string>();
-            for (int i = 0; i < rows.Count; i++)
+            // ========== 6. 处理 Sheet1: 权限配置 ==========
+            await writer.WriteLineAsync("--- Sheet1: 权限配置 ---").ConfigureAwait(false);
+            int sheet1Success = 0;
+
+            for (int i = 0; i < sheet1Rows.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var row = rows[i];
-                var itemName = row.GetValueOrDefault(2, "");            // 权限名称（Col 2）
-                var overallIdx = i + 1;
+                var row = sheet1Rows[i];
+                var itemName = row.GetValueOrDefault(2, "");  // 权限名称（Col 2）
 
                 progress?.Report(new ImportProgressInfo
                 {
-                    Phase = $"权限{importMode}",
+                    Phase = $"权限配置{importMode}",
                     Current = i + 1,
-                    PhaseTotal = rows.Count,
-                    OverallCurrent = overallIdx,
-                    OverallTotal = rows.Count,
+                    PhaseTotal = sheet1Rows.Count,
+                    OverallCurrent = i + 1,
+                    OverallTotal = overallTotal,
                     ItemName = itemName,
                     ErrorCount = result.FailedDetails.Count
                 });
 
                 try
                 {
-                    // 覆盖模式: 预解析 source_id（ItemType GUID），用于复合 where 匹配
-                    string sourceId = "";
-                    if (importMode == "覆盖")
-                    {
-                        var sourceName = row.GetValueOrDefault(1, "");     // 对象类
-                        sourceId = ResolveItemTypeId(innovator, sourceName, itemTypeIdCache);
-                    }
-
-                    var aml = BuildPermissionAml(row, importMode, sourceId);
+                    var aml = BuildSheet1Aml(row, importMode);
                     var amlResult = innovator.applyAML(aml);
 
                     if (amlResult.isError())
                     {
-                        var failMsg = $"[行{i + 2}] {itemName} — Aras错误: {amlResult.getErrorString()}";
+                        var failMsg = $"[Sheet1 行{i + 2}] {itemName} → Aras报错: {amlResult.getErrorString()}";
                         await writer.WriteLineAsync(failMsg).ConfigureAwait(false);
                         result.FailedDetails.Add(failMsg);
                     }
                     else
                     {
-                        success++;
+                        sheet1Success++;
                     }
                 }
                 catch (OperationCanceledException)
                 {
-                    await writer.WriteLineAsync($"[取消] 用户在第 {i + 1}/{rows.Count} 条处取消导入")
+                    await writer.WriteLineAsync($"[取消] 用户在第 {i + 1}/{sheet1Rows.Count} 行取消操作")
                         .ConfigureAwait(false);
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    var failMsg = $"[行{i + 2}] {itemName} — 异常: {ex.Message}";
+                    var failMsg = $"[Sheet1 行{i + 2}] {itemName} → 异常: {ex.Message}";
                     await writer.WriteLineAsync(failMsg).ConfigureAwait(false);
                     result.FailedDetails.Add(failMsg);
                 }
             }
 
-            result.Sheet1Count = success;
-            await writer.WriteLineAsync($"成功: {success}/{rows.Count}").ConfigureAwait(false);
+            result.Sheet1Count = sheet1Success;
+            await writer.WriteLineAsync($"Sheet1 完成: {sheet1Success}/{sheet1Rows.Count}").ConfigureAwait(false);
 
-            // 7. 保存导入成功记录到数据库
+            // ========== 7. 处理 Sheet2: 详细权限 ==========
+            await writer.WriteLineAsync("--- Sheet2: 详细权限 ---").ConfigureAwait(false);
+            int sheet2Success = 0;
+
+            for (int i = 0; i < sheet2Rows.Count; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var row = sheet2Rows[i];
+                var itemName = row.GetValueOrDefault(1, "");  // 权限名称（Col 1）
+
+                progress?.Report(new ImportProgressInfo
+                {
+                    Phase = $"详细权限{importMode}",
+                    Current = i + 1,
+                    PhaseTotal = sheet2Rows.Count,
+                    OverallCurrent = sheet1Rows.Count + i + 1,
+                    OverallTotal = overallTotal,
+                    ItemName = itemName,
+                    ErrorCount = result.FailedDetails.Count
+                });
+
+                try
+                {
+                    var aml = BuildSheet2Aml(row, importMode);
+                    var amlResult = innovator.applyAML(aml);
+
+                    if (amlResult.isError())
+                    {
+                        var failMsg = $"[Sheet2 行{i + 2}] {itemName} → Aras报错: {amlResult.getErrorString()}";
+                        await writer.WriteLineAsync(failMsg).ConfigureAwait(false);
+                        result.FailedDetails.Add(failMsg);
+                    }
+                    else
+                    {
+                        sheet2Success++;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    await writer.WriteLineAsync($"[取消] 用户在第 {i + 1}/{sheet2Rows.Count} 行取消操作")
+                        .ConfigureAwait(false);
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    var failMsg = $"[Sheet2 行{i + 2}] {itemName} → 异常: {ex.Message}";
+                    await writer.WriteLineAsync(failMsg).ConfigureAwait(false);
+                    result.FailedDetails.Add(failMsg);
+                }
+            }
+
+            result.Sheet2Count = sheet2Success;
+            await writer.WriteLineAsync($"Sheet2 完成: {sheet2Success}/{sheet2Rows.Count}").ConfigureAwait(false);
+
+            // 8. 保存导入成功记录到数据库
             var log = new PermissionImportLog
             {
                 UserId = CurrentUserContext.CurrentUserId ?? "system",
                 ImportTime = DateTime.Now,
                 ImportFile = relativePath,
                 Status = PermissionImportLog.StatusSuccess,
-                Sheet1Count = success,
+                Sheet1Count = sheet1Success,
+                Sheet2Count = sheet2Success,
                 CreatorOn = DateTime.Now
             };
             await SaveLogAsync(log).ConfigureAwait(false);
 
-            // 记录敏感操作日志
+            // 记录操作日志
             await _operationLogService.LogAsync("Import", "PermissionImportLog", log.Id,
-                $"权限配置导入: {success}条").ConfigureAwait(false);
+                $"权限配置导入: 配置{sheet1Success}条, 详细权限{sheet2Success}条").ConfigureAwait(false);
 
             result.IsSuccess = true;
             await writer.WriteLineAsync("===== 导入完成 =====").ConfigureAwait(false);
@@ -240,11 +305,11 @@ public class PermissionImportService : IPermissionImportService
             progress?.Report(new ImportProgressInfo
             {
                 Phase = "完成",
-                Current = rows.Count,
-                PhaseTotal = rows.Count,
-                OverallCurrent = rows.Count,
-                OverallTotal = rows.Count,
-                ItemName = $"权限配置{success}条"
+                Current = overallTotal,
+                PhaseTotal = overallTotal,
+                OverallCurrent = overallTotal,
+                OverallTotal = overallTotal,
+                ItemName = $"权限配置{sheet1Success}条, 详细权限{sheet2Success}条"
             });
         }
         catch (OperationCanceledException)
@@ -252,7 +317,7 @@ public class PermissionImportService : IPermissionImportService
             result.IsSuccess = false;
             result.ErrorMessage = "导入已被用户取消";
             await writer.WriteLineAsync("[取消] 导入已被用户取消").ConfigureAwait(false);
-            await TrySaveFailedLogAsync(relativePath, "用户取消导入", result).ConfigureAwait(false);
+            await TrySaveFailedLogAsync(relativePath, "用户取消操作", result).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -269,6 +334,8 @@ public class PermissionImportService : IPermissionImportService
         {
             await writer.WriteLineAsync($"结束时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}").ConfigureAwait(false);
             await writer.WriteLineAsync($"权限配置: {result.Sheet1Count}/{result.Sheet1Total}")
+                .ConfigureAwait(false);
+            await writer.WriteLineAsync($"详细权限: {result.Sheet2Count}/{result.Sheet2Total}")
                 .ConfigureAwait(false);
             await writer.WriteLineAsync("===== 日志结束 =====").ConfigureAwait(false);
             writer.Close();
@@ -304,122 +371,76 @@ public class PermissionImportService : IPermissionImportService
         return await db.PermissionImportLogs.FindAsync(id).ConfigureAwait(false);
     }
 
-    // ==================== AML 构建（占位符 — 调用方自行维护） ====================
+    // ==================== AML 构造（占位方法 — 由调用方自行维护） ====================
 
     /// <summary>
-    /// 构建权限（Permission）的 AML 语句
+    /// 构造 Sheet1「权限配置」的 AML 语句
     ///
-    /// 新增模式: action='add' — 创建全新权限
-    /// 覆盖模式: action='merge' — 按名称匹配，存在则更新
+    /// 列映射（用户可根据需要修改 GetValueOrDefault 的列号）:
+    /// Col 1 (idx 1): 权限配置名称 → source_id（ItemType name）
+    /// Col 2 (idx 2): 权限名称 → &lt;name&gt;
     ///
-    /// TODO: 自行维护 AML 映射逻辑
-    /// 列映射（用户可见列号 → GetValueOrDefault 索引）:
-    /// Col 1 (idx 1):  对象类 → source_id 的 ItemType name
-    /// Col 2 (idx 2):  权限名称 → <name>
-    /// Col 3 (idx 3):  权限标签 → <label>（简体中文）
-    /// Col 4 (idx 4):  访问级别 → <access_level>
-    /// Col 5 (idx 5):  所属角色 → <role_id>（Identity name）
-    /// Col 6 (idx 6):  适用身份 → <identity_id>（Identity name）
-    /// Col 7 (idx 7):  允许创建 → <can_add>
-    /// Col 8 (idx 8):  允许读取 → <can_get>
-    /// Col 9 (idx 9):  允许更新 → <can_update>
-    /// Col 10 (idx 10): 允许删除 → <can_delete>
+    /// TODO: 由调用方自行维护此 AML 语句
     /// </summary>
-    private static string BuildPermissionAml(Dictionary<int, string> row, string importMode,
-        string sourceId = "")
+    private static string BuildSheet1Aml(Dictionary<int, string> row, string importMode)
     {
-        var sourceName = row.GetValueOrDefault(1, "");       // 对象类
-        var permName = row.GetValueOrDefault(2, "");          // 权限名称
-        var label = row.GetValueOrDefault(3, "");             // 权限标签
-        var accessLevel = row.GetValueOrDefault(4, "");       // 访问级别
-        var roleName = row.GetValueOrDefault(5, "");          // 所属角色
-        var identityName = row.GetValueOrDefault(6, "");      // 适用身份
-        var canAdd = row.GetValueOrDefault(7, "");            // 允许创建
-        var canGet = row.GetValueOrDefault(8, "");            // 允许读取
-        var canUpdate = row.GetValueOrDefault(9, "");         // 允许更新
-        var canDelete = row.GetValueOrDefault(10, "");        // 允许删除
+        var sourceName = row.GetValueOrDefault(1, "");   // 权限配置名称
+        var permName = row.GetValueOrDefault(2, "");      // 权限名称
 
-        if (importMode == "新增")
-        {
-            return $"<AML>" +
-                   $"  <Item type='Permission' action='add'>" +
-                   $"      <source_id>" +
-                   $"          <Item type='ItemType' action='get' select='id'>" +
-                   $"              <name>{sourceName}</name>" +
-                   $"          </Item>" +
-                   $"      </source_id>" +
-                   $"      <name>{permName}</name>" +
-                   $"      <label>{label}</label>" +
-                   $"      <access_level>{accessLevel}</access_level>" +
-                   $"      <role_id>" +
-                   $"          <Item type='Identity' action='get' select='id'>" +
-                   $"              <name>{roleName}</name>" +
-                   $"          </Item>" +
-                   $"      </role_id>" +
-                   $"      <identity_id>" +
-                   $"          <Item type='Identity' action='get' select='id'>" +
-                   $"              <name>{identityName}</name>" +
-                   $"          </Item>" +
-                   $"      </identity_id>" +
-                   $"      <can_add>{canAdd}</can_add>" +
-                   $"      <can_get>{canGet}</can_get>" +
-                   $"      <can_update>{canUpdate}</can_update>" +
-                   $"      <can_delete>{canDelete}</can_delete>" +
-                   $"  </Item>" +
-                   $"</AML>";
-        }
+        var action = importMode == "新增" ? "add" : "merge";
 
-        // 覆盖模式: where 使用 source_id + name 复合唯一键（参照生命周期汇入覆盖模式）
+        // TODO: 调用方自行维护此 AML 语句
         return $"<AML>" +
-               $"  <Item type='Permission' action='merge' where=\"source_id='{sourceId}' and Permission.name='{permName}'\">" +
+               $"  <Item type='Permission' action='{action}'>" +
                $"      <source_id>" +
                $"          <Item type='ItemType' action='get' select='id'>" +
                $"              <name>{sourceName}</name>" +
                $"          </Item>" +
                $"      </source_id>" +
                $"      <name>{permName}</name>" +
-               $"      <label>{label}</label>" +
-               $"      <access_level>{accessLevel}</access_level>" +
+               $"  </Item>" +
+               $"</AML>";
+    }
+
+    /// <summary>
+    /// 构造 Sheet2「详细权限」的 AML 语句
+    ///
+    /// 列映射（用户可根据需要修改 GetValueOrDefault 的列号）:
+    /// Col 1 (idx 1): 权限名称 → 关联 Sheet1 的权限名称
+    /// Col 2 (idx 2): 所属角色 → &lt;role_id&gt;（Identity name）
+    /// Col 3 (idx 3): 允许创建 → &lt;can_add&gt; (0/1)
+    /// Col 4 (idx 4): 允许读取 → &lt;can_get&gt; (0/1)
+    /// Col 5 (idx 5): 允许更新 → &lt;can_update&gt; (0/1)
+    /// Col 6 (idx 6): 允许删除 → &lt;can_delete&gt; (0/1)
+    ///
+    /// TODO: 由调用方自行维护此 AML 语句
+    /// </summary>
+    private static string BuildSheet2Aml(Dictionary<int, string> row, string importMode)
+    {
+        var permName = row.GetValueOrDefault(1, "");      // 权限名称
+        var roleName = row.GetValueOrDefault(2, "");      // 所属角色
+        var canAdd = row.GetValueOrDefault(3, "");        // 允许创建
+        var canGet = row.GetValueOrDefault(4, "");        // 允许读取
+        var canUpdate = row.GetValueOrDefault(5, "");     // 允许更新
+        var canDelete = row.GetValueOrDefault(6, "");     // 允许删除
+
+        var action = importMode == "新增" ? "add" : "merge";
+
+        // TODO: 调用方自行维护此 AML 语句
+        return $"<AML>" +
+               $"  <Item type='Permission' action='{action}'>" +
+               $"      <name>{permName}</name>" +
                $"      <role_id>" +
                $"          <Item type='Identity' action='get' select='id'>" +
                $"              <name>{roleName}</name>" +
                $"          </Item>" +
                $"      </role_id>" +
-               $"      <identity_id>" +
-               $"          <Item type='Identity' action='get' select='id'>" +
-               $"              <name>{identityName}</name>" +
-               $"          </Item>" +
-               $"      </identity_id>" +
                $"      <can_add>{canAdd}</can_add>" +
                $"      <can_get>{canGet}</can_get>" +
                $"      <can_update>{canUpdate}</can_update>" +
                $"      <can_delete>{canDelete}</can_delete>" +
                $"  </Item>" +
                $"</AML>";
-    }
-
-    // ==================== ID 解析（缓存池 — 同名只查一次 Aras） ====================
-
-    /// <summary>
-    /// 按 ItemType 名称查询其 GUID（带缓存）。空名称返回空字符串。
-    /// </summary>
-    private static string ResolveItemTypeId(dynamic innovator, string itemTypeName,
-        Dictionary<string, string> cache)
-    {
-        if (string.IsNullOrWhiteSpace(itemTypeName)) return "";
-
-        if (!cache.TryGetValue(itemTypeName, out var id))
-        {
-            var queryAml = "<AML>" +
-                           $"  <Item type='ItemType' action='get' where=\"ItemType.name='{itemTypeName}'\" select='id'/>" +
-                           "</AML>";
-            var result = innovator.applyAML(queryAml);
-            id = (!result.isError() && result.getItemCount() > 0)
-                ? result.getItemByIndex(0).getID()
-                : "";
-            cache[itemTypeName] = id;
-        }
-        return id;
     }
 
     // ==================== 私有辅助方法 ====================
@@ -482,13 +503,14 @@ public class PermissionImportService : IPermissionImportService
                 Status = PermissionImportLog.StatusFailed,
                 ErrorLog = errorDetail,
                 Sheet1Count = result.Sheet1Count,
+                Sheet2Count = result.Sheet2Count,
                 CreatorOn = DateTime.Now
             };
             await SaveLogAsync(log).ConfigureAwait(false);
         }
         catch
         {
-            // 日志保存失败不阻塞主流程
+            // 日志保存失败不阻断主流程
         }
     }
 }
