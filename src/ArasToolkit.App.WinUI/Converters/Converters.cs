@@ -126,3 +126,60 @@ public class NotNullToBoolConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotImplementedException();
 }
+
+
+/// <summary>更新日志类型（新增/修复/优化/移除）→ 画笔。参数 "bg" 返回 10% 透明背景，否则返回前景色。</summary>
+public class LogTypeToBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var type = value?.ToString() ?? "";
+        var color = type switch
+        {
+            "新增" => Color.FromArgb(255, 16, 185, 129),
+            "修复" => Color.FromArgb(255, 245, 158, 11),
+            "优化" => Color.FromArgb(255, 59, 130, 246),
+            "移除" => Color.FromArgb(255, 239, 68, 68),
+            _ => Color.FromArgb(255, 107, 114, 128)
+        };
+        if (parameter?.ToString() == "bg")
+            return new SolidColorBrush(Color.FromArgb(26, color.R, color.G, color.B));
+        return new SolidColorBrush(color);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
+}
+
+/// <summary>Aras 连接状态文本 → 状态画笔（已连接=成功绿，其它=临界红）。</summary>
+public class ConnectionStatusToBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var connected = value?.ToString() == "已连接";
+        return connected
+            ? new SolidColorBrush(Color.FromArgb(255, 16, 185, 129))
+            : new SolidColorBrush(Color.FromArgb(255, 239, 68, 68));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
+}
+
+
+/// <summary>通用字符串格式化转换器 — ConverterParameter 为复合格式串（如 'v{0}'），等价于 WPF 的 StringFormat。</summary>
+public class StringFormatConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        if (parameter is string fmt && !string.IsNullOrEmpty(fmt))
+        {
+            try { return string.Format(fmt, value ?? ""); }
+            catch { return value?.ToString() ?? ""; }
+        }
+        return value?.ToString() ?? "";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
+}

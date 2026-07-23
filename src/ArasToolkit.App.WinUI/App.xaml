@@ -17,6 +17,9 @@
             <converters:StringToColorBrushConverter x:Key="StringToColorBrush" />
             <converters:StatusToColorConverter x:Key="StatusToColor" />
             <converters:NotNullToBoolConverter x:Key="NotNullToBool" />
+            <converters:LogTypeToBrushConverter x:Key="LogTypeToBrush" />
+            <converters:ConnectionStatusToBrushConverter x:Key="ConnectionStatusToBrush" />
+            <converters:StringFormatConverter x:Key="StringFormat" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -2,6 +2,7 @@ using System;
 using Microsoft.UI.Xaml;
 using ArasToolkit.App.WinUI.Services;
 using ArasToolkit.App.WinUI.ViewModels;
+using ArasToolkit.App.WinUI.Views;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,9 +56,16 @@ public partial class App : Application
         // 应用登录 ViewModel（单例，MainWindow 与 AppLoginPage 共享实例）
         services.AddSingleton<ViewModels.AppLoginViewModel>();
 
-        // 功能 ViewModel 将随各阶段视图迁移逐步注册
+        // 功能 ViewModel（阶段4-1：简单展示视图）
+        services.AddTransient<DashboardViewModel>();
+        services.AddTransient<ChangelogViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
+
+        // 导航路由表（菜单名 → 页面类型）。未注册菜单回退 PlaceholderPage。
+        var nav = _serviceProvider.GetRequiredService<NavigationService>();
+        nav.Register("仪表盘", typeof(DashboardPage));
+        nav.Register("更新日志", typeof(ChangelogPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
