@@ -1,0 +1,161 @@
+<Page
+    x:Class="ArasToolkit.App.WinUI.Views.TranslationApiKeyPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,28" Spacing="12">
+
+            <!-- 返回 + 标题 -->
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <Button Content="← 返回" Click="BackButton_Click"
+                        Style="{ThemeResource PrimaryButton}" Height="32" Padding="12,0"
+                        VerticalAlignment="Center" />
+                <StackPanel>
+                    <TextBlock Text="🤖 AI 模型配置管理" FontSize="26" FontWeight="Bold"
+                               Foreground="{ThemeResource TextPrimaryBrush}" />
+                    <TextBlock Text="管理多个 AI 模型的 API Key，支持启用/切换" FontSize="14"
+                               Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,4,0,0" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- 新增按钮 -->
+            <Button Content="＋ 新增" Command="{Binding ToggleFormCommand}"
+                    Style="{ThemeResource AccentButton}" Height="30" Padding="14,0" />
+
+            <!-- 新增/编辑表单 -->
+            <Border Style="{ThemeResource SimpleCard}" Padding="16,14"
+                    Visibility="{Binding IsFormVisible, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="{Binding FormTitle}" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TextPrimaryBrush}" />
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="75" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="75" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="模型名称" FontSize="12"
+                                   Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Text="{Binding NewModelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{ThemeResource DarkTextBox}" FontSize="12" />
+                        <TextBlock Grid.Column="2" Text="模型标识符" FontSize="12"
+                                   Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="3" Text="{Binding NewModelIdentifier, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{ThemeResource DarkTextBox}" FontSize="12" />
+                    </Grid>
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="75" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="API 地址" FontSize="12"
+                                   Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Text="{Binding NewApiBaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{ThemeResource DarkTextBox}" FontSize="12" />
+                    </Grid>
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="75" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="API Key" FontSize="12"
+                                   Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Text="{Binding NewApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{ThemeResource DarkTextBox}" FontSize="12" />
+                    </Grid>
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="75" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="额外参数 JSON" FontSize="12"
+                                   Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Top" Margin="0,6,0,0" />
+                        <TextBox Grid.Column="1" Text="{Binding NewExtraParams, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{ThemeResource DarkTextBox}" FontSize="12"
+                                 AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                        <Button Content="保存" Command="{Binding SaveCommand}"
+                                Style="{ThemeResource AccentButton}" Height="30" Padding="14,0" />
+                        <Button Content="取消" Command="{Binding CancelEditCommand}"
+                                Style="{ThemeResource PrimaryButton}" Height="30" Padding="14,0" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- 模型列表 -->
+            <ItemsRepeater ItemsSource="{Binding Models}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Spacing="10" />
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{ThemeResource SimpleCard}" Padding="16,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Spacing="4">
+                                    <Grid>
+                                        <TextBlock FontSize="14" FontWeight="SemiBold"
+                                                   Foreground="{ThemeResource TextPrimaryBrush}"
+                                                   Text="{Binding ModelName}" VerticalAlignment="Center" />
+                                        <Grid HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <Border Background="#10B981" CornerRadius="10" Padding="8,2"
+                                                    Visibility="{Binding IsEnabled, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="White" VerticalAlignment="Center" />
+                                            </Border>
+                                            <Border Background="Transparent" CornerRadius="10" Padding="8,2"
+                                                    BorderBrush="{ThemeResource TextSecondaryBrush}" BorderThickness="1"
+                                                    Visibility="{Binding IsEnabled, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+                                                <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                            </Border>
+                                        </Grid>
+                                    </Grid>
+                                    <TextBlock FontSize="11">
+                                        <Run Text="模型: " Foreground="{ThemeResource TextSecondaryBrush}" />
+                                        <Run Text="{Binding ModelIdentifier}" Foreground="{ThemeResource AccentBrush}" />
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding ApiBaseUrl}" FontSize="11"
+                                               Foreground="{ThemeResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}">
+                                        <Run Text="创建: " /><Run Text="{Binding CreatorOn, Converter={StaticResource DateTimeFormat}, ConverterParameter='yyyy-MM-dd HH:mm'}" />
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                                    <Button Content="启用" Click="EnableButton_Click" Tag="{Binding}"
+                                            Style="{ThemeResource AccentButton}" Height="28" Padding="14,0" />
+                                    <Button Content="编辑" Click="EditButton_Click" Tag="{Binding}"
+                                            Style="{ThemeResource PrimaryButton}" Height="28" Padding="14,0" />
+                                    <Button Content="删除" Click="DeleteButton_Click" Tag="{Binding}"
+                                            Height="28" Padding="14,0" Background="#EF4444" Foreground="White" BorderThickness="0" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+
+            <!-- 状态栏 -->
+            <Border BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#EF4444" FontSize="12" TextWrapping="Wrap"
+                               Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibility}}" />
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="12" TextWrapping="Wrap"
+                               Visibility="{Binding StatusMessage, Converter={StaticResource StringToVisibility}}" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>
