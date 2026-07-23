@@ -1,6 +1,7 @@
 using System;
 using ArasToolkit.App.WinUI.Services;
 using ArasToolkit.App.WinUI.ViewModels;
+using ArasToolkit.App.WinUI.Views;
 using ArasToolkit.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
@@ -10,45 +11,57 @@ using Microsoft.UI.Xaml.Media;
 namespace ArasToolkit.App.WinUI;
 
 /// <summary>
-/// 主窗口（WinUI 3）— NavigationView 侧边导航 + Frame 内容区 + 状态栏。
+/// 主窗口（WinUI 3）— 登录层 / NavigationView 侧边导航 + Frame 内容区 + 状态栏。
 /// </summary>
 public sealed partial class MainWindow : Window
 {
     private readonly MainViewModel _mainVM;
     private readonly NavigationService _navService;
+    private readonly AppLoginViewModel _appLoginVM;
 
     public MainWindow()
     {
-        this.InitializeComponent();
-
         _mainVM = App.Services.GetRequiredService<MainViewModel>();
         _navService = App.Services.GetRequiredService<NavigationService>();
+        _appLoginVM = App.Services.GetRequiredService<AppLoginViewModel>();
 
-        // 窗口尺寸（与 WPF 版一致 1280x720）
+        this.InitializeComponent();
+
+        // 根容器 DataContext 供 {Binding IsLoggedIn} 使用
+        RootGrid.DataContext = _mainVM;
+
         TryResize(1280, 720);
-
-        // 状态栏版本号
         VersionText.Text = _mainVM.VersionText;
 
-        // 构建导航菜单
+        // 主界面导航
         BuildNavItems();
-
-        // 注册内容 Frame 到导航服务
         _navService.SetFrame(ContentFrame);
 
-        // 初始导航到仪表盘
-        if (NavView.MenuItems.Count > 0)
-            NavView.SelectedItem = NavView.MenuItems[0];
-        _navService.Navigate("仪表盘");
+        // 登录层
+        _appLoginVM.LoginSucceeded += OnLoginSucceeded;
+        LoginFrame.Navigate(typeof(AppLoginPage), _appLoginVM);
     }
 
-    /// <summary>按 MainViewModel.MenuItems 构建 NavigationView 项（支持二级层级）。</summary>
+    /// <summary>登录成功 → 切换到主界面并导航到仪表盘（切回 UI 线程）。</summary>
+    private void OnLoginSucceeded()
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            _mainVM.IsLoggedIn = true;
+            _mainVM.RefreshVersion();
+            VersionText.Text = _mainVM.VersionText;
+
+            if (NavView.MenuItems.Count > 0)
+                NavView.SelectedItem = NavView.MenuItems[0];
+            _navService.Navigate("仪表盘");
+        });
+    }
+
     private void BuildNavItems()
     {
         foreach (var item in _mainVM.MenuItems)
             NavView.MenuItems.Add(CreateNavItem(item));
 
-        // 设置入口置于底部 Footer
         NavView.FooterMenuItems.Add(new NavigationViewItem
         {
             Content = "设置",

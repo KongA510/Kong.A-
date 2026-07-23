@@ -4,20 +4,26 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="个人工具箱">
 
-    <Grid Background="{ThemeResource SystemBaseBrush}">
+    <Grid x:Name="RootGrid" Background="{ThemeResource SystemBaseBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- 主体：左侧导航 + 右侧内容 Frame -->
+        <!-- 登录层（未登录时显示） -->
+        <Frame x:Name="LoginFrame"
+               Grid.Row="0"
+               Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
+
+        <!-- 主界面层（登录后显示）：左侧导航 + 右侧内容 Frame -->
         <NavigationView x:Name="NavView"
                         Grid.Row="0"
                         IsBackButtonVisible="Collapsed"
                         IsSettingsVisible="False"
                         PaneDisplayMode="Left"
                         OpenPaneLength="240"
-                        ItemInvoked="NavView_ItemInvoked">
+                        ItemInvoked="NavView_ItemInvoked"
+                        Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}}">
             <Frame x:Name="ContentFrame" />
         </NavigationView>
 

@@ -52,6 +52,8 @@ public partial class App : Application
 
         // 主窗口 ViewModel（单例）
         services.AddSingleton<MainViewModel>();
+        // 应用登录 ViewModel（单例，MainWindow 与 AppLoginPage 共享实例）
+        services.AddSingleton<ViewModels.AppLoginViewModel>();
 
         // 功能 ViewModel 将随各阶段视图迁移逐步注册
 
