@@ -63,6 +63,10 @@ public partial class App : Application
         services.AddTransient<OperationLogViewModel>();
         services.AddTransient<TodoViewModel>();
         services.AddTransient<ObjectClassConfigViewModel>();
+        services.AddTransient<ListConfigViewModel>();
+        services.AddTransient<PropertyConfigViewModel>();
+        services.AddTransient<PermissionConfigViewModel>();
+        services.AddTransient<LifecycleConfigViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -74,6 +78,10 @@ public partial class App : Application
         nav.Register("敏感操作日志", typeof(OperationLogPage));
         nav.Register("个人任务记录", typeof(TodoPage));
         nav.Register("对象类配置", typeof(ObjectClassConfigPage));
+        nav.Register("List配置", typeof(ListConfigPage));
+        nav.Register("属性配置", typeof(PropertyConfigPage));
+        nav.Register("权限配置", typeof(PermissionConfigPage));
+        nav.Register("生命周期配置", typeof(LifecycleConfigPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
