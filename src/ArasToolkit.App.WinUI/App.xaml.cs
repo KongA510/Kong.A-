@@ -67,6 +67,8 @@ public partial class App : Application
         services.AddTransient<PropertyConfigViewModel>();
         services.AddTransient<PermissionConfigViewModel>();
         services.AddTransient<LifecycleConfigViewModel>();
+        services.AddTransient<FieldTranslationViewModel>();
+        services.AddTransient<PropertyTranslationViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -82,6 +84,9 @@ public partial class App : Application
         nav.Register("属性配置", typeof(PropertyConfigPage));
         nav.Register("权限配置", typeof(PermissionConfigPage));
         nav.Register("生命周期配置", typeof(LifecycleConfigPage));
+        nav.Register("字段翻译", typeof(FieldTranslationPage));
+        nav.Register("表单翻译", typeof(FieldTranslationPage));
+        nav.Register("窗体翻译", typeof(PropertyTranslationPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
