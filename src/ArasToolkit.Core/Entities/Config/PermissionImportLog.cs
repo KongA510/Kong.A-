@@ -48,6 +48,10 @@ public class PermissionImportLog
     [Column("sheet1_count")]
     public int Sheet1Count { get; set; }
 
+    /// <summary>Sheet2 详细权限成功导入数量</summary>
+    [Column("sheet2_count")]
+    public int Sheet2Count { get; set; }
+
     /// <summary>记录创建时间</summary>
     [Column("creator_on")]
     public DateTime CreatorOn { get; set; } = DateTime.Now;
@@ -72,5 +76,5 @@ public class PermissionImportLog
 
     /// <summary>统计摘要</summary>
     [NotMapped]
-    public string Summary => $"权限配置 {Sheet1Count} 条";
+    public string Summary => $"权限配置 {Sheet1Count} 条, 详细权限 {Sheet2Count} 条";
 }
