@@ -73,6 +73,7 @@ public partial class App : Application
         services.AddTransient<DatabaseExportViewModel>();
         services.AddTransient<DatabaseExportConfigViewModel>();
         services.AddTransient<TranslationApiKeyViewModel>();
+        services.AddTransient<DataImportViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -96,6 +97,7 @@ public partial class App : Application
         nav.Register("数据库导出", typeof(DatabaseExportPage));
         nav.Register("设置-数据库导出", typeof(DatabaseExportConfigPage));
         nav.Register("设置-AI模型配置", typeof(TranslationApiKeyPage));
+        nav.Register("数据汇入", typeof(DataImportPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
