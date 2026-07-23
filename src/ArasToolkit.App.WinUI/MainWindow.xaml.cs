@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using ArasToolkit.App.WinUI.Services;
 using ArasToolkit.App.WinUI.ViewModels;
 using ArasToolkit.App.WinUI.Views;
@@ -55,6 +56,20 @@ public sealed partial class MainWindow : Window
                 NavView.SelectedItem = NavView.MenuItems[0];
             _navService.Navigate("仪表盘");
         });
+
+        // 后台自动连接 Aras（不强制导航，避免干扰用户已手动切换的页面）
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var arasLoginVM = App.Services.GetRequiredService<ArasLoginViewModel>();
+                await arasLoginVM.TryAutoConnectAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] Aras自动连接异常: {ex.Message}");
+            }
+        });
     }
 
     /// <summary>退出登录 → 切回登录界面并重置导航选中态。</summary>
@@ -70,6 +85,13 @@ public sealed partial class MainWindow : Window
     {
         foreach (var item in _mainVM.MenuItems)
             NavView.MenuItems.Add(CreateNavItem(item));
+
+        NavView.FooterMenuItems.Add(new NavigationViewItem
+        {
+            Content = "Aras连接",
+            Tag = "Aras连接",
+            Icon = new SymbolIcon(Symbol.Link)
+        });
 
         NavView.FooterMenuItems.Add(new NavigationViewItem
         {
