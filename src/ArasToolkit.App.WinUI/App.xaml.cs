@@ -76,6 +76,7 @@ public partial class App : Application
         services.AddTransient<DataImportViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<FileExplorerViewModel>();
+        services.AddTransient<ChartViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -106,6 +107,7 @@ public partial class App : Application
         nav.Register("设置-数据库连接字符串", typeof(SettingsPage));
         nav.Register("设置-退出登录", typeof(SettingsPage));
         nav.Register("我的资料", typeof(FileExplorerPage));
+        nav.Register("数据报表", typeof(ChartPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
