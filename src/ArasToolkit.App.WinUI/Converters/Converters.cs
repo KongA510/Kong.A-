@@ -183,3 +183,61 @@ public class StringFormatConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotImplementedException();
 }
+
+
+/// <summary>DateTime / DateTimeOffset → 格式化字符串（ConverterParameter 为 .NET 日期格式串，如 yyyy-MM-dd HH:mm:ss）。</summary>
+public class DateTimeFormatConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var fmt = parameter as string;
+        if (value is DateTime dt)
+            return string.IsNullOrEmpty(fmt) ? dt.ToString("yyyy-MM-dd HH:mm:ss") : dt.ToString(fmt);
+        if (value is DateTimeOffset dto)
+            return string.IsNullOrEmpty(fmt) ? dto.ToString("yyyy-MM-dd HH:mm:ss") : dto.ToString(fmt);
+        return value?.ToString() ?? "";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
+}
+
+/// <summary>错误日志级别 → 前景画笔（P0-致命=红，P1-普通=琥珀）。</summary>
+public class ErrorLevelToBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var level = value?.ToString() ?? "";
+        var color = level switch
+        {
+            "P0-致命" => Color.FromArgb(255, 220, 38, 38),
+            "P1-普通" => Color.FromArgb(255, 217, 119, 6),
+            _ => Color.FromArgb(255, 107, 114, 128)
+        };
+        return new SolidColorBrush(color);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
+}
+
+/// <summary>操作类型 → 前景画笔（Create=绿 / Update=蓝 / Delete=红 / Import=琥珀）。</summary>
+public class OperationTypeToBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var type = value?.ToString() ?? "";
+        var color = type switch
+        {
+            "Create" => Color.FromArgb(255, 16, 185, 129),
+            "Update" => Color.FromArgb(255, 59, 130, 246),
+            "Delete" => Color.FromArgb(255, 239, 68, 68),
+            "Import" => Color.FromArgb(255, 245, 158, 11),
+            _ => Color.FromArgb(255, 107, 114, 128)
+        };
+        return new SolidColorBrush(color);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
+}

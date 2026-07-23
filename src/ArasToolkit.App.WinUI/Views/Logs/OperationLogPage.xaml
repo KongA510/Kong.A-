@@ -1,0 +1,124 @@
+<Page
+    x:Class="ArasToolkit.App.WinUI.Views.OperationLogPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="32,28" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="敏感操作日志" FontSize="26" FontWeight="Bold"
+                           Foreground="{ThemeResource TextPrimaryBrush}" />
+                <TextBlock Text="业务操作审计轨迹记录" FontSize="14"
+                           Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,4,0,0" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="刷新" Command="{Binding RefreshCommand}"
+                    Style="{ThemeResource PrimaryButton}" Height="36" VerticalAlignment="Bottom" />
+        </Grid>
+
+        <!-- 筛选栏 -->
+        <Border Grid.Row="1" Style="{ThemeResource CardStyle}" Padding="16,12">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock Text="操作类型:" VerticalAlignment="Center"
+                           Foreground="{ThemeResource TextSecondaryBrush}" FontSize="13" />
+                <ComboBox ItemsSource="{Binding OperationTypeOptions}"
+                          SelectedItem="{Binding FilterOperationType, Mode=TwoWay}"
+                          Style="{ThemeResource DarkComboBox}" Width="140" />
+                <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center"
+                           Foreground="{ThemeResource TextSecondaryBrush}" FontSize="12" Margin="8,0,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!-- 表格 -->
+        <Border Grid.Row="2" Style="{ThemeResource SimpleCard}" Padding="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- 表头 -->
+                <Border Grid.Row="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,11">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="100" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="16" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="操作类型" Style="{ThemeResource TableHeaderText}" />
+                        <TextBlock Grid.Column="1" Text="实体类型" Style="{ThemeResource TableHeaderText}" />
+                        <TextBlock Grid.Column="2" Text="实体ID" Style="{ThemeResource TableHeaderText}" />
+                        <TextBlock Grid.Column="3" Text="描述" Style="{ThemeResource TableHeaderText}" />
+                        <TextBlock Grid.Column="4" Text="操作时间" Style="{ThemeResource TableHeaderText}" />
+                        <TextBlock Grid.Column="5" Text="操作用户" Style="{ThemeResource TableHeaderText}" />
+                    </Grid>
+                </Border>
+
+                <!-- 表体 -->
+                <ListView Grid.Row="1" ItemsSource="{Binding Entries}"
+                          Style="{ThemeResource TableListView}"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="16,11" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="120" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding OperationType}" Style="{ThemeResource TableCellText}"
+                                               Foreground="{Binding OperationType, Converter={StaticResource OperationTypeToBrush}}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding EntityType}" Style="{ThemeResource TableCellText}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding EntityId}" Style="{ThemeResource TableCellText}" />
+                                    <TextBlock Grid.Column="3" Text="{Binding Description}" Style="{ThemeResource TableCellText}" />
+                                    <TextBlock Grid.Column="4" Style="{ThemeResource TableCellText}"
+                                               Text="{Binding OperateTime, Converter={StaticResource DateTimeFormat}, ConverterParameter='yyyy-MM-dd HH:mm:ss'}" />
+                                    <TextBlock Grid.Column="5" Text="{Binding UserName}" Style="{ThemeResource TableCellText}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+        </Border>
+
+        <!-- 分页栏 -->
+        <Border Grid.Row="3" Style="{ThemeResource CardStyle}" Padding="12,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding PageInfo}" VerticalAlignment="Center"
+                           Foreground="{ThemeResource TextSecondaryBrush}" FontSize="12" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                    <Button Content="⏮" Command="{Binding FirstPageCommand}" Style="{ThemeResource PagingButton}" />
+                    <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{ThemeResource PagingButton}" />
+                    <Button Content="▶" Command="{Binding NextPageCommand}" Style="{ThemeResource PagingButton}" />
+                    <Button Content="⏭" Command="{Binding LastPageCommand}" Style="{ThemeResource PagingButton}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

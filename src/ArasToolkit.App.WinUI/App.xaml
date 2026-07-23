@@ -20,6 +20,9 @@
             <converters:LogTypeToBrushConverter x:Key="LogTypeToBrush" />
             <converters:ConnectionStatusToBrushConverter x:Key="ConnectionStatusToBrush" />
             <converters:StringFormatConverter x:Key="StringFormat" />
+            <converters:DateTimeFormatConverter x:Key="DateTimeFormat" />
+            <converters:ErrorLevelToBrushConverter x:Key="ErrorLevelToBrush" />
+            <converters:OperationTypeToBrushConverter x:Key="OperationTypeToBrush" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

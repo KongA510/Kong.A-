@@ -59,6 +59,8 @@ public partial class App : Application
         // 功能 ViewModel（阶段4-1：简单展示视图）
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<ChangelogViewModel>();
+        services.AddTransient<ErrorLogViewModel>();
+        services.AddTransient<OperationLogViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -66,6 +68,8 @@ public partial class App : Application
         var nav = _serviceProvider.GetRequiredService<NavigationService>();
         nav.Register("仪表盘", typeof(DashboardPage));
         nav.Register("更新日志", typeof(ChangelogPage));
+        nav.Register("错误日志", typeof(ErrorLogPage));
+        nav.Register("敏感操作日志", typeof(OperationLogPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
