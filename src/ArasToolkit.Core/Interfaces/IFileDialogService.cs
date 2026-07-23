@@ -8,6 +8,9 @@ public interface IFileDialogService
     /// <summary>选择单个文件，返回完整路径（取消返回 null）。extensions 形如 ".xlsx" ".csv"。</summary>
     Task<string?> PickOpenFileAsync(string title = "", params string[] extensions);
 
+    /// <summary>选择多个文件，返回完整路径列表（取消返回空列表）。extensions 形如 ".xlsx"。</summary>
+    Task<System.Collections.Generic.IReadOnlyList<string>> PickOpenFilesAsync(string title = "", params string[] extensions);
+
     /// <summary>选择保存路径，返回完整路径（取消返回 null）。</summary>
     Task<string?> PickSaveFileAsync(string defaultFileName = "", params string[] extensions);
 

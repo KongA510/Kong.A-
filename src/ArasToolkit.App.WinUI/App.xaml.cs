@@ -75,6 +75,7 @@ public partial class App : Application
         services.AddTransient<TranslationApiKeyViewModel>();
         services.AddTransient<DataImportViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<FileExplorerViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -104,6 +105,7 @@ public partial class App : Application
         nav.Register("设置-数据库检查", typeof(SettingsPage));
         nav.Register("设置-数据库连接字符串", typeof(SettingsPage));
         nav.Register("设置-退出登录", typeof(SettingsPage));
+        nav.Register("我的资料", typeof(FileExplorerPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)

@@ -33,6 +33,23 @@ public class FileDialogService : IFileDialogService
         return file?.Path;
     }
 
+    public async Task<System.Collections.Generic.IReadOnlyList<string>> PickOpenFilesAsync(string title = "", params string[] extensions)
+    {
+        var picker = new FileOpenPicker
+        {
+            SuggestedStartLocation = PickerLocationId.Desktop,
+            ViewMode = PickerViewMode.List
+        };
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, GetHwnd());
+        if (extensions == null || extensions.Length == 0)
+            picker.FileTypeFilter.Add("*");
+        else
+            foreach (var ext in extensions)
+                picker.FileTypeFilter.Add(ext.StartsWith(".") ? ext : "." + ext);
+        var files = await picker.PickMultipleFilesAsync();
+        return files.Where(f => f != null).Select(f => f.Path).ToList();
+    }
+
     public async Task<string?> PickSaveFileAsync(string defaultFileName = "", params string[] extensions)
     {
         var picker = new FileSavePicker
