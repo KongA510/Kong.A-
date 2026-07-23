@@ -40,3 +40,11 @@ Thumbs.db
 ## Codex / Claude
 .claude/
 .codex/
+
+## Sensitive / credentials (NEVER push to remote)
+AGENTS.md
+**/DBSeeting.json
+**/Config/Login/
+**/Config/AppSettings/
+**/Config/ErrorLogs/
+*.token
