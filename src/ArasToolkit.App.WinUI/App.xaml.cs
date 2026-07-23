@@ -61,6 +61,7 @@ public partial class App : Application
         services.AddTransient<ChangelogViewModel>();
         services.AddTransient<ErrorLogViewModel>();
         services.AddTransient<OperationLogViewModel>();
+        services.AddTransient<TodoViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -70,6 +71,7 @@ public partial class App : Application
         nav.Register("更新日志", typeof(ChangelogPage));
         nav.Register("错误日志", typeof(ErrorLogPage));
         nav.Register("敏感操作日志", typeof(OperationLogPage));
+        nav.Register("个人任务记录", typeof(TodoPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)

@@ -241,3 +241,45 @@ public class OperationTypeToBrushConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotImplementedException();
 }
+
+
+/// <summary>完成度百分比 → 进度画笔（&lt;31 红 / 31-60 琥珀 / 61-99 橙 / &gt;=100 绿）。</summary>
+public class ProgressToColorConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        int percent = value switch
+        {
+            double d => (int)d,
+            int i => i,
+            long l => (int)l,
+            string s when int.TryParse(s, out var p) => p,
+            _ => 0
+        };
+        Color color;
+        if (percent >= 100) color = Color.FromArgb(255, 16, 185, 129);
+        else if (percent >= 61) color = Color.FromArgb(255, 249, 115, 22);
+        else if (percent >= 31) color = Color.FromArgb(255, 245, 158, 11);
+        else color = Color.FromArgb(255, 239, 68, 68);
+        return new SolidColorBrush(color);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
+}
+
+/// <summary>可空 DateTime ↔ DateTimeOffset（WinUI DatePicker.SelectedDate 为 DateTimeOffset?，双向转换）。</summary>
+public class DateTimeOffsetConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        if (value is DateTime dt) return new DateTimeOffset(dt);
+        return null!;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+    {
+        if (value is DateTimeOffset dto) return dto.DateTime;
+        return null!;
+    }
+}

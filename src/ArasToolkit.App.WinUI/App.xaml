@@ -23,6 +23,8 @@
             <converters:DateTimeFormatConverter x:Key="DateTimeFormat" />
             <converters:ErrorLevelToBrushConverter x:Key="ErrorLevelToBrush" />
             <converters:OperationTypeToBrushConverter x:Key="OperationTypeToBrush" />
+            <converters:ProgressToColorConverter x:Key="ProgressToColor" />
+            <converters:DateTimeOffsetConverter x:Key="DateTimeOffset" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
