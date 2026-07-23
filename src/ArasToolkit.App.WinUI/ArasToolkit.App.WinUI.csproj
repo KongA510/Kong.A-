@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>ArasToolkit.App.WinUI</RootNamespace>
+    <AssemblyName>ArasToolkit.App.WinUI</AssemblyName>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <NuGetAudit>false</NuGetAudit>
+    <!-- NETSDK1206：框架依赖(unpackaged)模式下 win10-* 原生资产由已安装的 Windows App Runtime 提供，
+         无需复制到输出，警告为良性，予以抑制。 -->
+    <NoWarn>$(NoWarn);NETSDK1206</NoWarn>
+    <!-- 修复 NETSDK1083：.NET 8 精简 RID 图不识别 WindowsAppSDK 注入的 win10-* RID -->
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <!-- 本环境无 Windows SDK / makepri.exe / Appx MSBuild 任务程序集，无法生成 resources.pri。
+         本应用资源均为 XAML ResourceDictionary(编译为 XBF)、emoji 图标与内联颜色，无 .resw/缩放图片资产，
+         关闭 PRI 生成不影响资源加载；框架 PRI 仍随引用复制机制输出。 -->
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+    <!-- 关闭 MRT 核心工具链：阻止 MrtCore.PriGen.targets / MrtCore.References.targets 导入，
+         二者依赖本机不存在的 Appx MSBuild 任务程序集(Microsoft.Build.AppxPackage.dll / Pri.Tasks.dll)。
+         MrtCore.targets 中该属性带 =='' 保护，预设 false 可被尊重。框架 PRI 仍随标准引用复制输出。 -->
+    <EnableCoreMrtTooling>false</EnableCoreMrtTooling>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ArasToolkit.Core\ArasToolkit.Core.csproj" />
+    <ProjectReference Include="..\ArasToolkit.Services\ArasToolkit.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240802000" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.756" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="app.ico" />
+    <Content Include="app.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- 构建时将 R37lib 全部 DLL 复制到输出目录的 R37lib 子目录（IOM.dll 运行时依赖，App 通过 AssemblyResolve 探测） -->
+  <Target Name="CopyR37Libs" AfterTargets="Build">
+    <ItemGroup>
+      <R37Dlls Include="..\R37lib\*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(R37Dlls)" DestinationFolder="$(OutputPath)R37lib" SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- 构建时将 DBSeeting.json 复制到输出目录（EF Core 连接字符串） -->
+  <Target Name="CopyConfigFiles" AfterTargets="Build">
+    <ItemGroup>
+      <ConfigFiles Include="..\ArasToolkit.Core\DBSeeting.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ConfigFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>
