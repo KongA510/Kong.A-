@@ -57,6 +57,15 @@ public sealed partial class MainWindow : Window
         });
     }
 
+    /// <summary>退出登录 → 切回登录界面并重置导航选中态。</summary>
+    public void ResetToLogin()
+    {
+        _mainVM.IsLoggedIn = false;
+        _mainVM.SelectedMenuItem = null;
+        NavView.SelectedItem = null;
+        LoginFrame.Navigate(typeof(AppLoginPage), _appLoginVM);
+    }
+
     private void BuildNavItems()
     {
         foreach (var item in _mainVM.MenuItems)
