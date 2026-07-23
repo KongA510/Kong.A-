@@ -1,0 +1,57 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===== 控件样式：沿用 WPF 版键名，基于 WinUI 原生 Fluent 控件，便于视图平迁 ===== -->
+    <!-- 注意：ThemeShadow 不能写在 Style Setter 里（XamlCompiler 限制），需要阴影的卡片请在元素上直接设置 Shadow+Translation。 -->
+
+    <!-- 标准按钮 -->
+    <Style x:Key="FluentButton" TargetType="Button">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="20,8" />
+        <Setter Property="CornerRadius" Value="{ThemeResource AppControlCornerRadius}" />
+    </Style>
+
+    <!-- 强调按钮（复用 WinUI 内置 AccentButtonStyle） -->
+    <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="20,8" />
+        <Setter Property="CornerRadius" Value="{ThemeResource AppControlCornerRadius}" />
+    </Style>
+
+    <!-- 主按钮 = 强调按钮（向后兼容别名） -->
+    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource AccentButton}" />
+
+    <!-- 文本框 / 密码框 / 下拉框 / 复选框 / 进度条 -->
+    <Style x:Key="DarkTextBox" TargetType="TextBox">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="CornerRadius" Value="{ThemeResource AppControlCornerRadius}" />
+    </Style>
+    <Style x:Key="DarkPasswordBox" TargetType="PasswordBox">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="CornerRadius" Value="{ThemeResource AppControlCornerRadius}" />
+    </Style>
+    <Style x:Key="DarkComboBox" TargetType="ComboBox">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="CornerRadius" Value="{ThemeResource AppControlCornerRadius}" />
+    </Style>
+    <Style x:Key="DarkCheckBox" TargetType="CheckBox">
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style x:Key="DarkProgressBar" TargetType="ProgressBar">
+        <Setter Property="MinHeight" Value="4" />
+    </Style>
+
+    <!-- ===== 卡片 ===== -->
+    <Style x:Key="SimpleCard" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{ThemeResource CardCornerRadius}" />
+        <Setter Property="Padding" Value="20,16" />
+    </Style>
+    <Style x:Key="CardStyle" TargetType="Border" BasedOn="{StaticResource SimpleCard}" />
+    <!-- 提升卡片：与 SimpleCard 同款；如需阴影在元素上直接加 <Border.Shadow><ThemeShadow/></Border.Shadow> 与 Translation -->
+    <Style x:Key="ElevatedCard" TargetType="Border" BasedOn="{StaticResource SimpleCard}" />
+
+</ResourceDictionary>

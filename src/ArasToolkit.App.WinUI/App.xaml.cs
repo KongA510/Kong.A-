@@ -1,22 +1,66 @@
+using System;
 using Microsoft.UI.Xaml;
+using ArasToolkit.App.WinUI.Services;
+using ArasToolkit.App.WinUI.ViewModels;
+using ArasToolkit.Core.Interfaces;
+using ArasToolkit.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ArasToolkit.App.WinUI;
 
 /// <summary>
-/// 应用程序入口（WinUI 3）。阶段1：最小启动外壳，DI 与全局资源在阶段2接入。
+/// 应用程序入口（WinUI 3）。负责依赖注入容器、R37lib 程序集探测与主窗口启动。
 /// </summary>
 public partial class App : Application
 {
+    private ServiceProvider? _serviceProvider;
+
+    /// <summary>全局服务提供器。</summary>
+    public static ServiceProvider Services =>
+        ((App)Current)._serviceProvider ?? throw new InvalidOperationException("服务尚未初始化");
+
+    /// <summary>全局主窗口引用（供对话框/文件服务获取 XamlRoot / HWND）。</summary>
+    public static Window? MainWindow { get; set; }
+
     public App()
     {
         this.InitializeComponent();
+        ConfigureServices();
+
+        // R37lib 子目录程序集探测（IOM.dll 运行时依赖）
+        AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+        {
+            var asmName = new System.Reflection.AssemblyName(args.Name).Name;
+            var probePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "R37lib", asmName + ".dll");
+            return System.IO.File.Exists(probePath) ? System.Reflection.Assembly.LoadFrom(probePath) : null;
+        };
+    }
+
+    private void ConfigureServices()
+    {
+        var services = new ServiceCollection();
+
+        // 服务层（EF Core / EPPlus / Aras IOM / 各业务服务）
+        services.AddArasToolkitServices();
+
+        // 对话框 / 文件对话框服务
+        services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<IFileDialogService, FileDialogService>();
+
+        // 导航服务
+        services.AddSingleton<NavigationService>();
+
+        // 主窗口 ViewModel（单例）
+        services.AddSingleton<MainViewModel>();
+
+        // 功能 ViewModel 将随各阶段视图迁移逐步注册
+
+        _serviceProvider = services.BuildServiceProvider();
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow();
-        _window.Activate();
+        MainWindow = new MainWindow();
+        MainWindow.Activate();
     }
-
-    private Window? _window;
 }
