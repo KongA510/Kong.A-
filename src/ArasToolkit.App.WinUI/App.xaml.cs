@@ -69,6 +69,7 @@ public partial class App : Application
         services.AddTransient<LifecycleConfigViewModel>();
         services.AddTransient<FieldTranslationViewModel>();
         services.AddTransient<PropertyTranslationViewModel>();
+        services.AddTransient<TextTranslationViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -87,6 +88,8 @@ public partial class App : Application
         nav.Register("字段翻译", typeof(FieldTranslationPage));
         nav.Register("表单翻译", typeof(FieldTranslationPage));
         nav.Register("窗体翻译", typeof(PropertyTranslationPage));
+        nav.Register("文本翻译", typeof(TextTranslationPage));
+        nav.Register("翻译历史", typeof(TranslationHistoryPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
