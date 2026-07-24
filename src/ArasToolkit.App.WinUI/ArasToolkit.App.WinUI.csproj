@@ -19,13 +19,8 @@
     <NoWarn>$(NoWarn);NETSDK1206</NoWarn>
     <!-- 修复 NETSDK1083：.NET 8 精简 RID 图不识别 WindowsAppSDK 注入的 win10-* RID -->
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-    <!-- 本环境无 Windows SDK / makepri.exe / Appx MSBuild 任务程序集，无法生成 resources.pri。
-         本应用资源均为 XAML ResourceDictionary(编译为 XBF)、emoji 图标与内联颜色，无 .resw/缩放图片资产，
-         关闭 PRI 生成不影响资源加载；框架 PRI 仍随引用复制机制输出。 -->
+    <!-- 本机无 AppxPackage MSBuild 任务 DLL，禁用内建 PRI 生成；改用 post-build makepri 目标 -->
     <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
-    <!-- 关闭 MRT 核心工具链：阻止 MrtCore.PriGen.targets / MrtCore.References.targets 导入，
-         二者依赖本机不存在的 Appx MSBuild 任务程序集(Microsoft.Build.AppxPackage.dll / Pri.Tasks.dll)。
-         MrtCore.targets 中该属性带 =='' 保护，预设 false 可被尊重。框架 PRI 仍随标准引用复制输出。 -->
     <EnableCoreMrtTooling>false</EnableCoreMrtTooling>
   </PropertyGroup>
 
@@ -36,8 +31,8 @@
 
   <ItemGroup>
     <PackageReference Include="LiveChartsCore.SkiaSharpView.WinUI" Version="2.0.0-rc4.5.5" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240802000" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.756" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.260224002" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.8249" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
   </ItemGroup>

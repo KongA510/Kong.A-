@@ -28,6 +28,9 @@ public partial class App : Application
         this.InitializeComponent();
         ConfigureServices();
 
+        this.UnhandledException += (s, e) =>
+            System.Diagnostics.Debug.WriteLine($"[WinUI Unhandled] {e.Exception}");
+
         // R37lib 子目录程序集探测（IOM.dll 运行时依赖）
         AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
         {
