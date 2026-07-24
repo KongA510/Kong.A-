@@ -112,10 +112,10 @@
                 <TextBlock Grid.Column="0" Text="{Binding PageInfo}" VerticalAlignment="Center"
                            Foreground="{ThemeResource TextSecondaryBrush}" FontSize="12" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-                    <Button Content="⏮" Command="{Binding FirstPageCommand}" Style="{ThemeResource PagingButton}" />
-                    <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{ThemeResource PagingButton}" />
-                    <Button Content="▶" Command="{Binding NextPageCommand}" Style="{ThemeResource PagingButton}" />
-                    <Button Content="⏭" Command="{Binding LastPageCommand}" Style="{ThemeResource PagingButton}" />
+                    <Button Content="&#xE892;" FontFamily="Segoe Fluent Icons" Command="{Binding FirstPageCommand}" Style="{ThemeResource PagingButton}" />
+                    <Button Content="&#xE76B;" FontFamily="Segoe Fluent Icons" Command="{Binding PrevPageCommand}" Style="{ThemeResource PagingButton}" />
+                    <Button Content="&#xE76C;" FontFamily="Segoe Fluent Icons" Command="{Binding NextPageCommand}" Style="{ThemeResource PagingButton}" />
+                    <Button Content="&#xE893;" FontFamily="Segoe Fluent Icons" Command="{Binding LastPageCommand}" Style="{ThemeResource PagingButton}" />
                 </StackPanel>
             </Grid>
         </Border>

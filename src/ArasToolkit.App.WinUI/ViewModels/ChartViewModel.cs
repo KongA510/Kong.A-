@@ -88,11 +88,11 @@ public class ChartViewModel : ObservableObject
 
             CurrentChartData = data;
             BuildBarChart(data);
-            StatusMessage = $"✓ {data.Title} — 共 {data.DataPoints.Sum(d => d.Value)} 条记录";
+            StatusMessage = $"{data.Title} — 共 {data.DataPoints.Sum(d => d.Value)} 条记录";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"✗ 加载失败: {ex.Message}";
+            StatusMessage = $"加载失败: {ex.Message}";
             await _errorLogService.LogErrorAsync("Chart-加载图表", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }

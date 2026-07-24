@@ -13,7 +13,7 @@
 
         <!-- 标题栏 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="📊 数据报表" FontSize="26" FontWeight="Bold"
+            <TextBlock Text="数据报表" FontSize="26" FontWeight="Bold"
                        Foreground="{ThemeResource TextPrimaryBrush}" />
             <TextBlock Text="待办任务数据统计分析与可视化" FontSize="13"
                        Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,6,0,0" />
@@ -46,7 +46,7 @@
                            FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
 
                 <!-- 刷新按钮 -->
-                <Button Grid.Column="3" Content="🔄 刷新" Command="{Binding RefreshCommand}"
+                <Button Grid.Column="3" Content="刷新" Command="{Binding RefreshCommand}"
                         Style="{ThemeResource PrimaryButton}" Height="32" FontSize="12" Padding="16,6" />
             </Grid>
         </Border>
@@ -64,7 +64,7 @@
                         Background="#33000000" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
                     <Border Background="#6366F1" CornerRadius="8" Padding="24,12"
                             HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="⏳ 加载中..." FontSize="14" Foreground="White" />
+                        <TextBlock Text="加载中..." FontSize="14" Foreground="White" />
                     </Border>
                 </Border>
             </Grid>

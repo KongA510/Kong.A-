@@ -8,7 +8,7 @@
 
             <!-- 返回 + 标题 -->
             <StackPanel Orientation="Horizontal" Spacing="16">
-                <Button Content="← 返回" Click="BackButton_Click"
+                <Button Content="返回" Click="BackButton_Click"
                         Style="{ThemeResource PrimaryButton}" Height="32" Padding="12,0"
                         VerticalAlignment="Center" />
                 <TextBlock x:Name="PageTitle" Text="设置" FontSize="26" FontWeight="Bold"
@@ -18,7 +18,7 @@
             <!-- 资料文件夹 -->
             <Border x:Name="DataFolderPanel" Visibility="Collapsed" Style="{ThemeResource SimpleCard}" Padding="24,20">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="📁 资料文件夹地址" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" />
+                    <TextBlock Text="资料文件夹地址" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" />
                     <TextBlock Text="设置个人资料文件的存储位置" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" />
                     <TextBlock Text="{Binding DataFolderPath}" FontSize="13" Foreground="{ThemeResource TextPrimaryBrush}"
                                TextTrimming="CharacterEllipsis" Margin="0,4,0,0" />
@@ -30,7 +30,7 @@
             <!-- 数据库检查 -->
             <Border x:Name="DatabasePanel" Visibility="Collapsed" Style="{ThemeResource SimpleCard}" Padding="24,20">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="🔍 数据库检查" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" />
+                    <TextBlock Text="数据库检查" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" />
                     <TextBlock Text="检查数据库表结构完整性，同步缺失字段" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" />
                     <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0">
                         <Button Content="执行检查" Command="{Binding CheckDatabaseCommand}"
@@ -44,7 +44,7 @@
             <!-- 数据库连接字符串 -->
             <Border x:Name="ConnectionPanel" Visibility="Collapsed" Style="{ThemeResource SimpleCard}" Padding="24,20">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="🗄️ 数据库连接字符串" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" />
+                    <TextBlock Text="数据库连接字符串" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" />
                     <TextBlock Text="配置应用数据库连接，保存后即时生效" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" />
                     <TextBox Text="{Binding ConnectionString, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80" FontSize="12" Padding="10,8"
@@ -61,7 +61,7 @@
             <!-- 退出登录 -->
             <Border x:Name="LogoutPanel" Visibility="Collapsed" Style="{ThemeResource SimpleCard}" Padding="24,20">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="🚪 退出登录" FontSize="16" FontWeight="SemiBold" Foreground="#EF4444" />
+                    <TextBlock Text="退出登录" FontSize="16" FontWeight="SemiBold" Foreground="#EF4444" />
                     <TextBlock Text="退出当前登录，返回登录界面" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" />
                     <Button Content="确认退出" Command="{Binding LogoutCommand}"
                             Padding="16,8" FontSize="13" HorizontalAlignment="Left" Margin="0,8,0,0"

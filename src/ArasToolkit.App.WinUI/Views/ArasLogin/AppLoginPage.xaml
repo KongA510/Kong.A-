@@ -10,7 +10,7 @@
                 Padding="36,32">
             <StackPanel>
                 <!-- 标题 -->
-                <TextBlock Text="🧰" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                <TextBlock Text="&#xE7C0;" FontFamily="Segoe Fluent Icons" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,8" />
                 <TextBlock Text="个人工具箱"
                            FontSize="28" FontWeight="Bold"
                            Foreground="{ThemeResource TextPrimaryBrush}"

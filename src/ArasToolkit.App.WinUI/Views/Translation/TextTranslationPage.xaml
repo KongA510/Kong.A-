@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
         <StackPanel>
-            <TextBlock Text="📝 文本翻译" FontSize="24" FontWeight="Bold" Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,0,0,4" />
+            <TextBlock Text="文本翻译" FontSize="24" FontWeight="Bold" Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,0,0,4" />
             <TextBlock Text="AI 驱动的 Excel 批量翻译工具" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,0,0,20" />
 
             <Border Style="{ThemeResource SimpleCard}" Padding="20,16" Margin="0,0,0,16">
@@ -16,10 +16,10 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="📁 源文件" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="0" Text="源文件" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
                         <TextBox Grid.Column="1" Text="{Binding SourceFilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Style="{ThemeResource DarkTextBox}" IsReadOnly="True" VerticalAlignment="Center" />
                         <Button Grid.Column="2" Content="浏览..." Command="{Binding BrowseSourceCommand}" Style="{ThemeResource PrimaryButton}" Padding="16,5" />
-                        <Button Grid.Column="3" Content="🚀 开始翻译" Command="{Binding TranslateCommand}" Style="{ThemeResource PrimaryButton}" Padding="20,6" FontSize="14" FontWeight="SemiBold" MinWidth="140" IsEnabled="{Binding IsTranslating, Converter={StaticResource InverseBool}}" />
+                        <Button Grid.Column="3" Content="开始翻译" Command="{Binding TranslateCommand}" Style="{ThemeResource PrimaryButton}" Padding="20,6" FontSize="14" FontWeight="SemiBold" MinWidth="140" IsEnabled="{Binding IsTranslating, Converter={StaticResource InverseBool}}" />
                     </Grid>
 
                     <Grid Margin="0,0,0,12" ColumnSpacing="8">
@@ -35,7 +35,7 @@
                             <TextBlock Text="源语言:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
                             <ComboBox ItemsSource="{Binding SourceLanguages}" SelectedItem="{Binding SelectedSourceLanguage, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}" Width="120" />
                         </StackPanel>
-                        <Button Grid.Column="3" Content="📥 下载模板" Command="{Binding DownloadTemplateCommand}" Padding="14,5" FontSize="12" Background="Transparent" Foreground="{ThemeResource TextSecondaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" />
+                        <Button Grid.Column="3" Content="下载模板" Command="{Binding DownloadTemplateCommand}" Padding="14,5" FontSize="12" Background="Transparent" Foreground="{ThemeResource TextSecondaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" />
                     </Grid>
 
                     <StackPanel Visibility="{Binding IsSourceCustomMode, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,12">
@@ -45,7 +45,7 @@
                                 <ColumnDefinition Width="200" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="📊 Sheet:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="0" Text="Sheet:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
                             <ComboBox Grid.Column="1" ItemsSource="{Binding SheetNames}" SelectedItem="{Binding SelectedSheetName, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}" />
                             <TextBlock Grid.Column="2" Text="（选完 Sheet 自动加载列）" FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
                         </Grid>
@@ -59,15 +59,15 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="140" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="📥 数据列:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="0" Text="数据列:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
                             <ComboBox Grid.Column="1" ItemsSource="{Binding SourceColumns}" SelectedItem="{Binding SelectedSourceColumn, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}">
                                 <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
                             </ComboBox>
-                            <TextBlock Grid.Column="2" Text="📤 翻译列:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                            <TextBlock Grid.Column="2" Text="翻译列:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="12,0,0,0" />
                             <ComboBox Grid.Column="3" ItemsSource="{Binding TargetColumns}" SelectedItem="{Binding SelectedTargetColumn, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}">
                                 <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
                             </ComboBox>
-                            <TextBlock Grid.Column="4" Text="🎯 目标语言:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                            <TextBlock Grid.Column="4" Text="目标语言:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="12,0,0,0" />
                             <ComboBox Grid.Column="5" ItemsSource="{Binding TargetLanguages}" SelectedItem="{Binding SelectedTargetLanguage, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}" />
                         </Grid>
 
@@ -78,8 +78,8 @@
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <Grid Grid.Row="0" Margin="0,0,0,6">
-                                    <TextBlock Text="📋 源文本预览" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                                    <Button HorizontalAlignment="Right" Content="📋 复制" Command="{Binding CopySourceTextCommand}" Padding="10,3" FontSize="11" Background="Transparent" Foreground="#6366F1" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" IsEnabled="{Binding HasSourceTextPreview}" />
+                                    <TextBlock Text="源文本预览" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    <Button HorizontalAlignment="Right" Content="复制" Command="{Binding CopySourceTextCommand}" Padding="10,3" FontSize="11" Background="Transparent" Foreground="#6366F1" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" IsEnabled="{Binding HasSourceTextPreview}" />
                                 </Grid>
                                 <TextBox Grid.Row="1" Text="{Binding SourceTextPreview, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" MaxHeight="150" FontSize="12" BorderThickness="0" />
                             </Grid>
@@ -95,7 +95,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="⏳" FontSize="14" Margin="0,0,8,0" />
+                                        <TextBlock Text="&#xE916;" FontFamily="Segoe Fluent Icons" FontSize="14" Margin="0,0,8,0" />
                                         <TextBlock Text="{Binding ProgressText}" FontSize="13" Foreground="#166534" VerticalAlignment="Center" FontWeight="SemiBold" />
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="22,2,0,0">
@@ -104,7 +104,7 @@
                                         <TextBlock Text="%" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" />
                                     </StackPanel>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="✕ 取消" Command="{Binding CancelCommand}" Height="30" Padding="12,0" Background="#EF4444" Foreground="White" BorderThickness="0" VerticalAlignment="Center" />
+                                <Button Grid.Column="1" Content="取消" Command="{Binding CancelCommand}" Height="30" Padding="12,0" Background="#EF4444" Foreground="White" BorderThickness="0" VerticalAlignment="Center" />
                             </Grid>
                         </Border>
                         <ProgressBar IsIndeterminate="{Binding IsProgressIndeterminate, Mode=OneWay}" Value="{Binding ProgressPercentage, Mode=OneWay}" Minimum="0" Maximum="100" Height="4" />
@@ -118,7 +118,7 @@
                 <StackPanel>
                     <Grid Margin="0,0,0,12">
                         <TextBlock Text="翻译历史" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" />
-                        <Button Content="🔄 刷新" Command="{Binding RefreshHistoryCommand}" HorizontalAlignment="Right" Padding="12,6" Background="Transparent" Foreground="{ThemeResource TextPrimaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" FontSize="12" />
+                        <Button Content="刷新" Command="{Binding RefreshHistoryCommand}" HorizontalAlignment="Right" Padding="12,6" Background="Transparent" Foreground="{ThemeResource TextPrimaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" FontSize="12" />
                     </Grid>
                     <Border BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,9" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
                         <Grid ColumnSpacing="12">

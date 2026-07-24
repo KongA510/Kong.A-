@@ -30,7 +30,7 @@
                                 BorderThickness="1"
                                 CornerRadius="{ThemeResource CardCornerRadius}">
                             <StackPanel>
-                                <TextBlock Text="{Binding Icon}" FontSize="28" Margin="0,0,0,10"
+                                <TextBlock Text="{Binding Icon}" FontFamily="Segoe Fluent Icons" FontSize="28" Margin="0,0,0,10"
                                            Foreground="{ThemeResource AccentBrush}" />
                                 <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
                                            Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,0,0,4" />
