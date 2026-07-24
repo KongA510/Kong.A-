@@ -654,8 +654,7 @@ src/ArasToolkit.App.WinUI/
 KnowledgeViewModel(697行)深度耦合 WPF FlowDocument/RichTextBox/XamlReader.Parse，
 内容以序列化的 FlowDocument XAML 存入共享数据库。WinUI 3 无 FlowDocument（用RichEditBox/RTF）。
 这不是简单的UI替换，而是影响共享数据库与WPF应用的数据格式不兼容问题。
-当前WinUI版未注册该页（回退PlaceholderPage）。迁移方案需用户决策:
-  (A) RichEditBox/RTF + 渐进式数据迁移
-  (B) 纯文本/Markdown 降级（有损）
-  (C) 保持延迟/仅WPF可用
-切勿在未确认前静默破坏数据。
+【已决策：方案 C】保持延迟 — 个人资料库仅在 WPF 版（ArasToolkit.App）中提供，WinUI 版不迁移。
+WinUI 版该入口保留在菜单/仪表盘中，点击显示明确说明占位页（PlaceholderPage 已对"个人资料库"特殊处理：📚图标 + WPF-only 说明）。
+共享数据库中的 FlowDocument 数据未做任何改动，WPF 版功能完全不受影响。
+备选方案（如未来需要再迁移）: (A) RichEditBox/RTF + 渐进式数据迁移；(B) 纯文本/Markdown 降级（有损）。

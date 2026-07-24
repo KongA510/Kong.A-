@@ -7,7 +7,7 @@
         <Border Style="{ThemeResource SimpleCard}"
                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-                <TextBlock Text="🚧" FontSize="48" HorizontalAlignment="Center" />
+                <TextBlock x:Name="IconText" Text="🚧" FontSize="48" HorizontalAlignment="Center" />
                 <TextBlock x:Name="TitleText"
                            FontSize="24" FontWeight="Bold"
                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"
