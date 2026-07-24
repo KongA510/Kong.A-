@@ -1,0 +1,45 @@
+<Window
+    x:Class="ArasToolkit.App.WinUI.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="个人工具箱">
+
+    <Grid x:Name="RootGrid" Background="{ThemeResource SystemBaseBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 登录层（未登录时显示） -->
+        <Frame x:Name="LoginFrame"
+               Grid.Row="0"
+               Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
+
+        <!-- 主界面层（登录后显示）：左侧导航 + 右侧内容 Frame -->
+        <NavigationView x:Name="NavView"
+                        Grid.Row="0"
+                        IsBackButtonVisible="Collapsed"
+                        IsSettingsVisible="False"
+                        PaneDisplayMode="Left"
+                        OpenPaneLength="240"
+                        ItemInvoked="NavView_ItemInvoked"
+                        Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}}">
+            <Frame x:Name="ContentFrame" />
+        </NavigationView>
+
+        <!-- 状态栏 -->
+        <Border Grid.Row="1"
+                Background="{ThemeResource SystemFillColorNeutralBrush}"
+                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="16,4">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="VersionText" FontSize="11"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock Text=" | .NET 8.0 · WinUI 3" FontSize="11"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Margin="12,0,0,0" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

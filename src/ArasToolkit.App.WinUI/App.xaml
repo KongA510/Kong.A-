@@ -1,0 +1,30 @@
+<Application
+    x:Class="ArasToolkit.App.WinUI.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:ArasToolkit.App.WinUI.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ms-appx:///Styles/Theme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- 全局转换器 -->
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+            <converters:StringToVisibilityConverter x:Key="StringToVisibility" />
+            <converters:InverseBoolConverter x:Key="InverseBool" />
+            <converters:StringToColorConverter x:Key="StringToColor" />
+            <converters:StringToColorBrushConverter x:Key="StringToColorBrush" />
+            <converters:StatusToColorConverter x:Key="StatusToColor" />
+            <converters:NotNullToBoolConverter x:Key="NotNullToBool" />
+            <converters:LogTypeToBrushConverter x:Key="LogTypeToBrush" />
+            <converters:ConnectionStatusToBrushConverter x:Key="ConnectionStatusToBrush" />
+            <converters:StringFormatConverter x:Key="StringFormat" />
+            <converters:DateTimeFormatConverter x:Key="DateTimeFormat" />
+            <converters:ErrorLevelToBrushConverter x:Key="ErrorLevelToBrush" />
+            <converters:OperationTypeToBrushConverter x:Key="OperationTypeToBrush" />
+            <converters:ProgressToColorConverter x:Key="ProgressToColor" />
+            <converters:DateTimeOffsetConverter x:Key="DateTimeOffset" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

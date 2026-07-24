@@ -1,0 +1,408 @@
+<Page
+    x:Class="ArasToolkit.App.WinUI.Views.TodoPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Name="Root">
+
+    <Page.Resources>
+        <Style x:Key="TaskCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="10" />
+        </Style>
+        <Style x:Key="IconBtn" TargetType="Button">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <!-- ===== 主内容 ===== -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Row 0: 顶栏 -->
+            <Border Grid.Row="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    Padding="20,14" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="个人任务" FontSize="20" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding DueTodayHint}" FontSize="13" Foreground="#EF4444"
+                                   VerticalAlignment="Center" Margin="12,0,0,0" />
+                        <TextBlock Text="{Binding UpcomingDueHint}" FontSize="13" Foreground="#F59E0B"
+                                   VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                        <Button Content="新增" Command="{Binding AddCommand}" Padding="14,6"
+                                Background="#6366F1" Foreground="White" BorderThickness="0" FontSize="13" />
+                        <Button Content="📥 导入Excel" Command="{Binding ImportExcelCommand}" Padding="14,6"
+                                Background="#10B981" Foreground="White" BorderThickness="0" FontSize="13" />
+                        <Button Content="📄 下载模板" Command="{Binding ExportTemplateCommand}" Padding="14,6"
+                                Background="#8B5CF6" Foreground="White" BorderThickness="0" FontSize="13" />
+                        <Button Command="{Binding BatchDeleteCommand}" Padding="14,6"
+                                Background="#EF4444" Foreground="White" BorderThickness="0" FontSize="13">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="删除选中(" />
+                                <TextBlock Text="{Binding SelectedCount}" />
+                                <TextBlock Text=")" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Row 1: 搜索/过滤栏 -->
+            <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    Padding="20,10" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <!-- 搜索框 -->
+                    <Border Background="#F9FAFB" CornerRadius="6" Padding="8,6"
+                            BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" Height="36" Width="280">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="🔍" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <TextBox Grid.Column="1" Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}"
+                                     BorderThickness="0" Background="Transparent" VerticalAlignment="Center" FontSize="13" Padding="0" />
+                            <Button Grid.Column="2" Style="{ThemeResource IconBtn}" Command="{Binding SearchCommand}" Margin="4,0,0,0">
+                                <TextBlock Text="🔍" FontSize="13" />
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- 完成日期筛选 -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+                        <TextBlock Text="完成日期" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <DatePicker SelectedDate="{Binding FilterCompletionDate, Mode=TwoWay, Converter={StaticResource DateTimeOffset}}" Width="150" />
+                        <Button Style="{ThemeResource IconBtn}" Command="{Binding ClearCompletionDateCommand}"
+                                Visibility="{Binding HasCompletionDateFilter, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="✕" FontSize="10" Foreground="#EF4444" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- 到期日期筛选 -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+                        <TextBlock Text="到期日期" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <DatePicker SelectedDate="{Binding FilterDueDate, Mode=TwoWay, Converter={StaticResource DateTimeOffset}}" Width="150" />
+                        <Button Style="{ThemeResource IconBtn}" Command="{Binding ClearDueDateCommand}"
+                                Visibility="{Binding HasDueDateFilter, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="✕" FontSize="10" Foreground="#EF4444" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- 项目名称筛选 -->
+                    <ComboBox ItemsSource="{Binding ProjectNameOptions}" SelectedItem="{Binding FilterProjectName, Mode=TwoWay}"
+                              Width="140" Style="{ThemeResource DarkComboBox}" />
+                    <!-- 状态筛选 -->
+                    <ComboBox ItemsSource="{Binding StatusOptions}" SelectedItem="{Binding FilterStatus, Mode=TwoWay}"
+                              Width="110" Style="{ThemeResource DarkComboBox}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Row 2: 卡片列表 -->
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Background="#F8F9FB">
+                <ItemsRepeater ItemsSource="{Binding Entries}" Margin="20,14,20,14">
+                    <ItemsRepeater.Layout>
+                        <UniformGridLayout MinItemWidth="300" MinItemHeight="170"
+                                           MinColumnSpacing="8" MinRowSpacing="8"
+                                           ItemsStretch="Fill" MaximumRowsOrColumns="3" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{ThemeResource TaskCardStyle}" Tag="{Binding}"
+                                    PointerPressed="Card_PointerPressed">
+                                <Grid RowSpacing="4">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Row 0: 复选框 + 任务名称 -->
+                                    <Grid Grid.Row="0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                  VerticalAlignment="Center" Margin="0,0,6,0" MinWidth="0"
+                                                  Checked="CardCheckBox_Changed" Unchecked="CardCheckBox_Changed" />
+                                        <TextBlock Grid.Column="1" Text="{Binding TaskName}" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{ThemeResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+
+                                    <!-- Row 1: 项目名称(左) + 状态(右) -->
+                                    <Grid Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding ProjectName}" FontSize="11"
+                                                   Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <Border Grid.Column="1" CornerRadius="8" Padding="8,2" VerticalAlignment="Center"
+                                                Background="{Binding Status, Converter={StaticResource StatusToColor}}">
+                                            <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="SemiBold" Foreground="White" />
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Row 2: 进度条 + 百分比 -->
+                                    <Grid Grid.Row="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ProgressBar Grid.Column="0" Value="{Binding CompletionPercent}" Height="4"
+                                                     Minimum="0" Maximum="100" Background="#F3F4F6" VerticalAlignment="Center"
+                                                     Foreground="{Binding CompletionPercent, Converter={StaticResource ProgressToColor}}" />
+                                        <TextBlock Grid.Column="1" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" Margin="8,0,0,0"
+                                                   Text="{Binding CompletionPercent, Converter={StaticResource StringFormat}, ConverterParameter='{}{0}%'}" />
+                                    </Grid>
+
+                                    <!-- Row 3: 说明 -->
+                                    <TextBlock Grid.Row="3" Text="{Binding Description}" FontSize="11"
+                                               Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap"
+                                               MaxHeight="30" TextTrimming="CharacterEllipsis"
+                                               Visibility="{Binding Description, Converter={StaticResource StringToVisibility}}" />
+
+                                    <!-- Row 4: 备注 -->
+                                    <TextBlock Grid.Row="4" Text="{Binding Remarks}" FontSize="11"
+                                               Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap"
+                                               MaxHeight="30" TextTrimming="CharacterEllipsis"
+                                               Visibility="{Binding Remarks, Converter={StaticResource StringToVisibility}}" />
+
+                                    <!-- Row 5: 到期时间(左) + 创建人(中) + 编辑/删除(右) -->
+                                    <Grid Grid.Row="5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                            <TextBlock Text="{Binding DisplayDate}" FontSize="11" Foreground="#EF4444" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding DisplayCompletionDate}" FontSize="11" Foreground="#10B981"
+                                                       VerticalAlignment="Center" Margin="6,0,0,0"
+                                                       Visibility="{Binding HasCompletionDate, Converter={StaticResource BoolToVisibility}}" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" FontSize="10" Foreground="#9CA3AF" VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right" Margin="0,0,8,0"
+                                                   Text="{Binding CreatedBy, Converter={StaticResource StringFormat}, ConverterParameter='由 {0}'}"
+                                                   Visibility="{Binding CreatedBy, Converter={StaticResource StringToVisibility}}" />
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                            <Button Style="{ThemeResource IconBtn}" Tag="{Binding}" Click="EditButton_Click">
+                                                <TextBlock Text="✏" FontSize="12" />
+                                            </Button>
+                                            <Button Style="{ThemeResource IconBtn}" Tag="{Binding}" Click="DeleteButton_Click" Margin="4,0,0,0">
+                                                <TextBlock Text="🗑" FontSize="12" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </ScrollViewer>
+
+            <!-- Row 3: 分页 -->
+            <Border Grid.Row="3" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    Padding="20,8" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,1,0,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4">
+                    <Button Content="⏮" Command="{Binding FirstPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
+                    <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding PageInfo}" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" Margin="12,0,12,0" />
+                    <Button Content="▶" Command="{Binding NextPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
+                    <Button Content="⏭" Command="{Binding LastPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ===== 详情弹窗 ===== -->
+        <Border Visibility="{Binding IsDetailOpen, Converter={StaticResource BoolToVisibility}}"
+                Background="#99000000" PointerPressed="DetailPopupBg_PointerPressed">
+            <Border Width="480" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1"
+                    PointerPressed="SwallowPointerPressed">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <TextBlock Text="任务详情" FontSize="18" FontWeight="Bold" Foreground="{ThemeResource TextPrimaryBrush}" />
+                        <Button Content="✕" HorizontalAlignment="Right" Style="{ThemeResource IconBtn}"
+                                Width="30" Height="30" FontSize="16" Command="{Binding CloseDetailCommand}" />
+                    </Grid>
+
+                    <TextBlock Text="{Binding DetailItem.TaskName}" FontSize="16" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,0,0,6" />
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" CornerRadius="10" Padding="8,2" VerticalAlignment="Center"
+                                Background="{Binding DetailItem.Status, Converter={StaticResource StatusToColor}}">
+                            <TextBlock Text="{Binding DetailItem.Status}" FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="{Binding DetailItem.ProjectName}" FontSize="13"
+                                   Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                   Visibility="{Binding DetailItem.ProjectName, Converter={StaticResource StringToVisibility}}" />
+                    </Grid>
+
+                    <TextBlock Text="{Binding DetailItem.Description}" FontSize="13"
+                               Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Visibility="{Binding DetailItem.Description, Converter={StaticResource StringToVisibility}}" />
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ProgressBar Grid.Column="0" Value="{Binding DetailItem.CompletionPercent}" Height="4"
+                                     Minimum="0" Maximum="100" Background="#F3F4F6" VerticalAlignment="Center"
+                                     Foreground="{Binding DetailItem.CompletionPercent, Converter={StaticResource ProgressToColor}}" />
+                        <TextBlock Grid.Column="1" FontSize="15" FontWeight="Bold" Foreground="{ThemeResource AccentBrush}" Margin="10,0,0,0"
+                                   Text="{Binding DetailItem.CompletionPercent, Converter={StaticResource StringFormat}, ConverterParameter='{}{0}%'}" />
+                    </Grid>
+
+                    <Border Background="#F9FAFB" CornerRadius="6" Padding="12,10" Margin="0,6,0,0">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="到期日" FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}" />
+                                <TextBlock Text="{Binding DetailItem.DisplayDate}" FontSize="13" Foreground="#EF4444" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="完成时间" FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}"
+                                           Visibility="{Binding DetailItem.HasCompletionDate, Converter={StaticResource BoolToVisibility}}" />
+                                <TextBlock Text="{Binding DetailItem.DisplayCompletionDate}" FontSize="13" Foreground="#10B981"
+                                           Visibility="{Binding DetailItem.HasCompletionDate, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="创建日期" FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}" />
+                                <TextBlock Text="{Binding DetailItem.DisplayCreatedDate}" FontSize="13" Foreground="{ThemeResource TextPrimaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Text="{Binding DetailItem.Remarks}" FontSize="13"
+                               Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Visibility="{Binding DetailItem.Remarks, Converter={StaticResource StringToVisibility}}" />
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0" Spacing="8">
+                        <Button Content="关闭" Command="{Binding CloseDetailCommand}" Padding="16,6"
+                                Background="#6B7280" Foreground="White" BorderThickness="0" FontSize="13" />
+                        <Button Content="编辑" Tag="{Binding DetailItem}" Click="DetailEditButton_Click" Padding="16,6"
+                                Background="#6366F1" Foreground="White" BorderThickness="0" FontSize="13" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ===== 编辑弹窗 ===== -->
+        <Border Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}}" Background="#99000000">
+            <Border Width="520" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="640">
+                    <StackPanel>
+                        <TextBlock Text="{Binding EditDialogTitle}" FontSize="18" FontWeight="Bold"
+                                   Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,0,0,16" />
+
+                        <TextBlock Text="任务名称 *" Style="{ThemeResource FieldLabel}" />
+                        <TextBox Text="{Binding EditingItem.TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{ThemeResource DarkTextBox}" Margin="0,0,0,12" />
+
+                        <TextBlock Text="项目名称" Style="{ThemeResource FieldLabel}" />
+                        <TextBox Text="{Binding EditingItem.ProjectName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{ThemeResource DarkTextBox}" Margin="0,0,0,12" />
+
+                        <TextBlock Text="说明" Style="{ThemeResource FieldLabel}" />
+                        <TextBox Text="{Binding EditingItem.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{ThemeResource DarkTextBox}" Margin="0,0,0,12" Height="70"
+                                 TextWrapping="Wrap" AcceptsReturn="True" />
+
+                        <TextBlock Text="备注" Style="{ThemeResource FieldLabel}" />
+                        <TextBox Text="{Binding EditingItem.Remarks, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{ThemeResource DarkTextBox}" Margin="0,0,0,12" />
+
+                        <TextBlock Text="到期日" Style="{ThemeResource FieldLabel}" />
+                        <DatePicker SelectedDate="{Binding EditingItem.ExpectedDate, Mode=TwoWay, Converter={StaticResource DateTimeOffset}}"
+                                    HorizontalAlignment="Stretch" Margin="0,0,0,12" />
+
+                        <TextBlock Text="开始日期" Style="{ThemeResource FieldLabel}" />
+                        <DatePicker SelectedDate="{Binding EditingItem.StartDate, Mode=TwoWay, Converter={StaticResource DateTimeOffset}}"
+                                    HorizontalAlignment="Stretch" Margin="0,0,0,12" />
+
+                        <TextBlock Text="完成时间" Style="{ThemeResource FieldLabel}" />
+                        <DatePicker SelectedDate="{Binding EditingItem.CompletionDate, Mode=TwoWay, Converter={StaticResource DateTimeOffset}}"
+                                    HorizontalAlignment="Stretch" Margin="0,0,0,12" />
+
+                        <Grid ColumnSpacing="12" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="状态" Style="{ThemeResource FieldLabel}" />
+                                <ComboBox ItemsSource="{Binding EditStatusOptions}"
+                                          SelectedItem="{Binding EditingItem.Status, Mode=TwoWay}"
+                                          Style="{ThemeResource DarkComboBox}" HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="完成度(%)" Style="{ThemeResource FieldLabel}" />
+                                <TextBox Text="{Binding EditingItem.CompletionPercent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{ThemeResource DarkTextBox}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                            <Button Content="取消" Command="{Binding CancelCommand}" Padding="16,6"
+                                    Background="#6B7280" Foreground="White" BorderThickness="0" FontSize="13" />
+                            <Button Content="保存" Command="{Binding SaveCommand}" Padding="16,6"
+                                    Background="#6366F1" Foreground="White" BorderThickness="0" FontSize="13" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Border>
+
+        <!-- ===== 加载中 ===== -->
+        <Border Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"
+                Background="#33000000" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+            <Border Background="#6366F1" CornerRadius="8" Padding="24,12"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="加载中..." FontSize="14" Foreground="White" />
+            </Border>
+        </Border>
+    </Grid>
+</Page>

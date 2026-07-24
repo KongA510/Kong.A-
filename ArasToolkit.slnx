@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ArasToolkit.App/ArasToolkit.App.csproj" />
+    <Project Path="src/ArasToolkit.App.WinUI/ArasToolkit.App.WinUI.csproj" />
     <Project Path="src/ArasToolkit.Core/ArasToolkit.Core.csproj" />
     <Project Path="src/ArasToolkit.Services/ArasToolkit.Services.csproj" />
   </Folder>

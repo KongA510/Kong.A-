@@ -50,7 +50,8 @@ keywords: Aras,ArasToolkit,Innovator,登录,HttpServerConnection,ScalcMD5,Item,A
 ```
 ArasToolkit.Core       → Entities, Models, Interfaces, Extensions  (无UI依赖)
 ArasToolkit.Services   → 业务逻辑实现, 配置管理, Data(DbContext)
-ArasToolkit.App        → WPF Views, ViewModels, Styles
+ArasToolkit.App        → WPF Views, ViewModels, Styles（旧版UI，保留）
+ArasToolkit.App.WinUI  → WinUI 3 Views, ViewModels, Styles（新版主力UI，功能与WPF一致）
 
 设计原则:
 - 所有方法使用接口，高内聚低耦合
@@ -68,9 +69,14 @@ ArasToolkit.App        → WPF Views, ViewModels, Styles
 
 ```bash
 cd "D:\git仓库\个人工具箱"
-dotnet build ArasToolkit.slnx            # 编译
-dotnet run --project src/ArasToolkit.App # 运行
-dotnet add src/ArasToolkit.App package <包名>  # 添加NuGet
+# WPF（旧版）
+dotnet build src/ArasToolkit.App/ArasToolkit.App.csproj             # 编译WPF
+dotnet run --project src/ArasToolkit.App                             # 运行WPF
+# WinUI 3（新版主力）
+dotnet build src/ArasToolkit.App.WinUI/ArasToolkit.App.WinUI.csproj # 编译WinUI
+dotnet run --project src/ArasToolkit.App.WinUI                       # 运行WinUI
+dotnet add src/ArasToolkit.App.WinUI package <包名>                 # 添加NuGet(WinUI)
+# 注：部分SDK不支持 dotnet build ArasToolkit.slnx（报MSB4068），请改用上方单项目命令
 ```
 
 ---
@@ -571,3 +577,84 @@ git commit -m "功能描述: 具体变更内容"
 ---
 
 > 此技能在打开 ArasToolkit 项目时自动加载。可根据实际开发经验持续更新。
+
+---
+
+## 十四、WinUI 3 迁移规范 ⚠️ 重要
+
+### 14.1 迁移概述
+
+```
+项目已在保证功能不变的前提下迁移到 WinUI 3（Windows App SDK）。
+- 旧版 WPF:  src/ArasToolkit.App        （保留，仍可编译运行）
+- 新版 WinUI: src/ArasToolkit.App.WinUI  （主力，功能与WPF一致）
+- Core / Services 两层完全共享，未做破坏性改动
+- 安全标签: wpf-pristine-before-winui = 迁移前的WPF原始状态
+```
+
+### 14.2 WinUI 项目结构
+
+```
+src/ArasToolkit.App.WinUI/
+  App.xaml/.cs            → DI容器 + 导航路由表(NavigationService.Register)
+  MainWindow.xaml/.cs     → 登录层 + NavigationView侧边导航 + Frame内容区
+  Styles/Colors.xaml      → 主题画刷(TextPrimaryBrush/AccentBrush/BorderBrush...)
+  Styles/Controls.xaml    → 控件样式(CardStyle/PrimaryButton/DarkTextBox/TableListView...)
+  Converters/Converters.cs→ 转换器(BoolToVisibility/StringFormat/DateTimeOffset...)
+  Services/               → NavigationService / DialogService / FileDialogService
+  ViewModels/             → 从WPF拷贝(扁平命名空间 ArasToolkit.App.WinUI.ViewModels)
+  Views/<模块>/XxxPage.xaml+.cs → 页面(命名空间统一 ArasToolkit.App.WinUI.Views)
+```
+
+### 14.3 已确立的WinUI模式（必须遵循）
+
+```
+- 页面取VM: 构造函数 DataContext = App.Services.GetRequiredService<XxxViewModel>();
+  VM在App.xaml.cs注册为Transient；用 {Binding}（非x:Bind）。
+- 导航: App.xaml.cs 中 NavigationService.Register("中文菜单名", typeof(XxxPage));
+  未注册菜单回退 PlaceholderPage；模式页通过 e.Parameter 读取mode(见SettingsPage)。
+- 列表项按钮绑定父VM命令: 不用ElementName/RelativeSource，用 Tag="{Binding}"+Click事件，
+  代码后台 if (sender is Button { Tag: XxxEntity item }) Vm?.SomeCommand.Execute(item);
+- 对话框: WPF MessageBox → IDialogService.AlertAsync(title,msg)/ConfirmAsync/PromptAsync
+- 文件: OpenFileDialog → IFileDialogService.PickOpenFileAsync/PickOpenFilesAsync(多选)/
+  PickSaveFileAsync/PickFolderAsync
+- 原生表格(无WinUI DataGrid): 表头Grid + ListView(Style=TableListView) 共享ColumnDefinition；
+  或 ItemsRepeater + StackLayout(纵向卡片列表)。
+- 卡片网格: GridView(IsItemClickEnabled, SelectionMode=None, ItemClick事件)。
+```
+
+### 14.4 XamlCompiler 静默崩溃陷阱（WindowsAppSDK 1.5，exit 1 无报错）
+
+```
+以下XAML写法会让XamlCompiler静默崩溃（构建exit 1但无错误信息），务必规避:
+1. DataTemplate 内 <Run Text="{Binding ...}"/> → 改用多个独立 TextBlock 横向StackPanel。
+2. ListView.ItemTemplate 内嵌套 ItemsControl（模板套模板）→ 改在代码后台渲染。
+3. {Binding ..., StringFormat='...'} → 用 StringFormatConverter(key=StringFormat)+ConverterParameter。
+4. UniformGridLayout 在个别上下文会崩 → 优先 StackLayout；卡片网格用 GridView。
+构建后必须验证XBF已生成:
+  Get-ChildItem -Recurse -Path src/ArasToolkit.App.WinUI/obj -Filter <Page>.xbf
+（静默崩溃时不会生成 .xbf）
+```
+
+### 14.5 其它WinUI API差异
+
+```
+- new Thickness(a,b) 二参构造不存在(WPF专有) → 用一参 Thickness(uniform) 或四参。
+- ComboBox 无 DisplayMemberPath → 用 <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>。
+- DatePicker.SelectedDate 是 DateTimeOffset? → 用 DateTimeOffsetConverter(key=DateTimeOffset)。
+- 无 WrapPanel → 用横向 StackPanel(Spacing)。
+- 图表用 LiveCharts2(LiveChartsCore.SkiaSharpView.WinUI 2.0.0-rc4.5.5):
+  坐标轴标题用 Axis.Name（string），该版本无 Axis.Title 属性。
+- Process.Start(new ProcessStartInfo{FileName=path,UseShellExecute=true}) 可用于打开文件/文件夹。
+```
+
+### 14.6 已知遗留：个人资料库（KnowledgeBase）⚠️ 待决策
+
+```
+KnowledgeViewModel(697行)深度耦合 WPF FlowDocument/RichTextBox/XamlReader.Parse，
+内容以序列化的 FlowDocument XAML 存入共享数据库。WinUI 3 无 FlowDocument（用RichEditBox/RTF）。
+这不是简单的UI替换，而是影响共享数据库与WPF应用的数据格式不兼容问题。
+【已决策：方案 C】保持延迟 — 个人资料库仅在 WPF 版（ArasToolkit.App）中提供，WinUI 版不迁移。
+WinUI 版该入口保留在菜单/仪表盘中，点击显示明确说明占位页（PlaceholderPage 已对"个人资料库"特殊处理：📚图标 + WPF-only 说明）。
+共享数据库中的 FlowDocument 数据未做任何改动，WPF 版功能完全不受影响。
+备选方案（如未来需要再迁移）: (A) RichEditBox/RTF + 渐进式数据迁移；(B) 纯文本/Markdown 降级（有损）。

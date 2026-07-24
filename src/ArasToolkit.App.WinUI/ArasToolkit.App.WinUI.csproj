@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>ArasToolkit.App.WinUI</RootNamespace>
+    <AssemblyName>ArasToolkit.App.WinUI</AssemblyName>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <NuGetAudit>false</NuGetAudit>
+    <!-- NETSDK1206：框架依赖(unpackaged)模式下 win10-* 原生资产由已安装的 Windows App Runtime 提供，
+         无需复制到输出，警告为良性，予以抑制。 -->
+    <NoWarn>$(NoWarn);NETSDK1206</NoWarn>
+    <!-- 修复 NETSDK1083：.NET 8 精简 RID 图不识别 WindowsAppSDK 注入的 win10-* RID -->
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <!-- 本机无 AppxPackage MSBuild 任务 DLL，禁用内建 PRI 生成；改用 post-build makepri 目标 -->
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+    <EnableCoreMrtTooling>false</EnableCoreMrtTooling>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ArasToolkit.Core\ArasToolkit.Core.csproj" />
+    <ProjectReference Include="..\ArasToolkit.Services\ArasToolkit.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.WinUI" Version="2.0.0-rc4.5.5" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.260224002" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.8249" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="app.ico" />
+    <Content Include="app.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- 构建时将 R37lib 全部 DLL 复制到输出目录的 R37lib 子目录（IOM.dll 运行时依赖，App 通过 AssemblyResolve 探测） -->
+  <Target Name="CopyR37Libs" AfterTargets="Build">
+    <ItemGroup>
+      <R37Dlls Include="..\R37lib\*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(R37Dlls)" DestinationFolder="$(OutputPath)R37lib" SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- 构建时将 DBSeeting.json 复制到输出目录（EF Core 连接字符串） -->
+  <Target Name="CopyConfigFiles" AfterTargets="Build">
+    <ItemGroup>
+      <ConfigFiles Include="..\ArasToolkit.Core\DBSeeting.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ConfigFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>
