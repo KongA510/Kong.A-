@@ -53,9 +53,9 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                         <Button Content="新增" Command="{Binding AddCommand}" Padding="14,6"
                                 Background="#6366F1" Foreground="White" BorderThickness="0" FontSize="13" />
-                        <Button Content="📥 导入Excel" Command="{Binding ImportExcelCommand}" Padding="14,6"
+                        <Button Content="导入Excel" Command="{Binding ImportExcelCommand}" Padding="14,6"
                                 Background="#10B981" Foreground="White" BorderThickness="0" FontSize="13" />
-                        <Button Content="📄 下载模板" Command="{Binding ExportTemplateCommand}" Padding="14,6"
+                        <Button Content="下载模板" Command="{Binding ExportTemplateCommand}" Padding="14,6"
                                 Background="#8B5CF6" Foreground="White" BorderThickness="0" FontSize="13" />
                         <Button Command="{Binding BatchDeleteCommand}" Padding="14,6"
                                 Background="#EF4444" Foreground="White" BorderThickness="0" FontSize="13">
@@ -82,11 +82,11 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="🔍" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe Fluent Icons" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
                             <TextBox Grid.Column="1" Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}"
                                      BorderThickness="0" Background="Transparent" VerticalAlignment="Center" FontSize="13" Padding="0" />
                             <Button Grid.Column="2" Style="{ThemeResource IconBtn}" Command="{Binding SearchCommand}" Margin="4,0,0,0">
-                                <TextBlock Text="🔍" FontSize="13" />
+                                <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons" FontSize="13" />
                             </Button>
                         </Grid>
                     </Border>
@@ -97,7 +97,7 @@
                         <DatePicker SelectedDate="{Binding FilterCompletionDate, Mode=TwoWay, Converter={StaticResource DateTimeOffset}}" Width="150" />
                         <Button Style="{ThemeResource IconBtn}" Command="{Binding ClearCompletionDateCommand}"
                                 Visibility="{Binding HasCompletionDateFilter, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Text="✕" FontSize="10" Foreground="#EF4444" />
+                            <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons" FontSize="10" Foreground="#EF4444" />
                         </Button>
                     </StackPanel>
 
@@ -107,7 +107,7 @@
                         <DatePicker SelectedDate="{Binding FilterDueDate, Mode=TwoWay, Converter={StaticResource DateTimeOffset}}" Width="150" />
                         <Button Style="{ThemeResource IconBtn}" Command="{Binding ClearDueDateCommand}"
                                 Visibility="{Binding HasDueDateFilter, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Text="✕" FontSize="10" Foreground="#EF4444" />
+                            <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons" FontSize="10" Foreground="#EF4444" />
                         </Button>
                     </StackPanel>
 
@@ -215,10 +215,10 @@
                                                    Visibility="{Binding CreatedBy, Converter={StaticResource StringToVisibility}}" />
                                         <StackPanel Grid.Column="2" Orientation="Horizontal">
                                             <Button Style="{ThemeResource IconBtn}" Tag="{Binding}" Click="EditButton_Click">
-                                                <TextBlock Text="✏" FontSize="12" />
+                                                <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons" FontSize="12" />
                                             </Button>
                                             <Button Style="{ThemeResource IconBtn}" Tag="{Binding}" Click="DeleteButton_Click" Margin="4,0,0,0">
-                                                <TextBlock Text="🗑" FontSize="12" />
+                                                <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="12" />
                                             </Button>
                                         </StackPanel>
                                     </Grid>
@@ -233,12 +233,12 @@
             <Border Grid.Row="3" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     Padding="20,8" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,1,0,0">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4">
-                    <Button Content="⏮" Command="{Binding FirstPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
-                    <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
+                    <Button Content="&#xE892;" FontFamily="Segoe Fluent Icons" Command="{Binding FirstPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
+                    <Button Content="&#xE76B;" FontFamily="Segoe Fluent Icons" Command="{Binding PrevPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding PageInfo}" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="12,0,12,0" />
-                    <Button Content="▶" Command="{Binding NextPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
-                    <Button Content="⏭" Command="{Binding LastPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
+                    <Button Content="&#xE76C;" FontFamily="Segoe Fluent Icons" Command="{Binding NextPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
+                    <Button Content="&#xE893;" FontFamily="Segoe Fluent Icons" Command="{Binding LastPageCommand}" Style="{ThemeResource PagingButton}" VerticalAlignment="Center" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -253,7 +253,7 @@
                 <StackPanel>
                     <Grid Margin="0,0,0,12">
                         <TextBlock Text="任务详情" FontSize="18" FontWeight="Bold" Foreground="{ThemeResource TextPrimaryBrush}" />
-                        <Button Content="✕" HorizontalAlignment="Right" Style="{ThemeResource IconBtn}"
+                        <Button Content="&#xE711;" FontFamily="Segoe Fluent Icons" HorizontalAlignment="Right" Style="{ThemeResource IconBtn}"
                                 Width="30" Height="30" FontSize="16" Command="{Binding CloseDetailCommand}" />
                     </Grid>
 

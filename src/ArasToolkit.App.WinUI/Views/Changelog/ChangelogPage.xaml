@@ -121,7 +121,7 @@
 
                                 <StackPanel Grid.Column="1">
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                        <TextBlock Text="📅" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <TextBlock Text="&#xE787;" FontFamily="Segoe Fluent Icons" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
                                         <TextBlock Text="{Binding DisplayDate}" FontSize="14" FontWeight="SemiBold"
                                                    Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
                                         <TextBlock Text=" · " Foreground="{ThemeResource BorderBrush}" FontSize="14" Margin="6,0" />

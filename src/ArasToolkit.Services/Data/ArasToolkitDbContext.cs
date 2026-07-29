@@ -52,9 +52,6 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>生命周期配置导入日志表</summary>
     public DbSet<LifecycleImportLog> LifecycleImportLogs => Set<LifecycleImportLog>();
 
-    /// <summary>个人资料库笔记表</summary>
-    public DbSet<KnowledgeEntry> KnowledgeEntries => Set<KnowledgeEntry>();
-
     /// <summary>SQL模板表</summary>
     public DbSet<SqlTemplate> SqlTemplates => Set<SqlTemplate>();
 
@@ -356,30 +353,6 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.DisplayCreatedAt);
             entity.Ignore(e => e.StatusText);
             entity.Ignore(e => e.Summary);
-        });
-
-        // ===== KnowledgeEntry → knowledge_entry 表 =====
-        modelBuilder.Entity<KnowledgeEntry>(entity =>
-        {
-            entity.ToTable("knowledge_entry");
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasMaxLength(12).ValueGeneratedNever();
-            entity.Property(e => e.Title).HasColumnName("title").IsRequired().HasMaxLength(500);
-            entity.Property(e => e.Content).HasColumnName("content");
-            entity.Property(e => e.PlainTextPreview).HasColumnName("plain_text_preview").HasMaxLength(500);
-            entity.Property(e => e.Tags).HasColumnName("tags").HasMaxLength(500);
-            entity.Property(e => e.Category).HasColumnName("category").HasMaxLength(200);
-            entity.Property(e => e.Pinned).HasColumnName("pinned");
-            entity.Property(e => e.CreatedDate).HasColumnName("created_date");
-            entity.Property(e => e.ModifiedDate).HasColumnName("modified_date");
-            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
-            entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(100);
-
-            entity.Ignore(e => e.DisplayModifiedDate);
-            entity.Ignore(e => e.DisplayCreatedDate);
-            entity.Ignore(e => e.DisplayTags);
-            entity.Ignore(e => e.HasTags);
-            entity.Ignore(e => e.IsSelected);
         });
 
         // ===== SqlTemplate → sql_template 表 =====
@@ -779,7 +752,8 @@ public class ArasToolkitDbContext : DbContext
                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
                 END
-
+
+
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='permission_import_log' AND COLUMN_NAME='sheet2_count')
                     ALTER TABLE permission_import_log ADD sheet2_count INT NOT NULL DEFAULT 0;
 
@@ -805,24 +779,6 @@ public class ArasToolkitDbContext : DbContext
                         ALTER TABLE lifecycle_import_log ADD sheet2_count INT NOT NULL DEFAULT 0;
                     IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='lifecycle_import_log' AND COLUMN_NAME='sheet3_count')
                         ALTER TABLE lifecycle_import_log ADD sheet3_count INT NOT NULL DEFAULT 0;
-                END
-
-                -- ===== knowledge_entry 表 =====
-                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='knowledge_entry')
-                BEGIN
-                    CREATE TABLE knowledge_entry (
-                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
-                        title NVARCHAR(500) NOT NULL,
-                        content NVARCHAR(MAX) NULL,
-                        plain_text_preview NVARCHAR(500) NULL,
-                        tags NVARCHAR(500) NULL,
-                        category NVARCHAR(200) NULL,
-                        pinned BIT NOT NULL DEFAULT 0,
-                        created_date DATETIME2 NOT NULL DEFAULT GETDATE(),
-                        modified_date DATETIME2 NULL,
-                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE(),
-                        user_id NVARCHAR(100) NULL
-                    );
                 END
 
                 -- ===== sql_template 表 =====

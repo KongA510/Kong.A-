@@ -71,40 +71,38 @@ public class MainViewModel : ObservableObject
     private void InitializeMenuItems()
     {
         // ===== 一级菜单：仪表盘 =====
-        MenuItems.Add(new MenuItemInfo { Name = "仪表盘", Icon = "Home", CardIcon = "🏠", Description = "系统概览仪表盘" });
+        MenuItems.Add(new MenuItemInfo { Name = "仪表盘", Icon = "Home", CardIcon = "\uE80F", Description = "系统概览仪表盘" });
 
         // ===== 二级菜单：系统翻译 =====
-        var sysTranslation = new MenuItemInfo { Name = "系统翻译", Icon = "Translate", CardIcon = "🌐", Description = "Aras翻译工具集" };
-        sysTranslation.Children.Add(new MenuItemInfo { Name = "文本翻译", Icon = "Translate", CardIcon = "📝", Description = "AI 驱动的 Excel 批量翻译工具" });
-        sysTranslation.Children.Add(new MenuItemInfo { Name = "翻译历史", Icon = "History", CardIcon = "📜", Description = "历史翻译记录查询" });
-        sysTranslation.Children.Add(new MenuItemInfo { Name = "字段翻译", Icon = "FormTextbox", CardIcon = "🔤", Description = "Aras窗体字段翻译工具" });
-        sysTranslation.Children.Add(new MenuItemInfo { Name = "表单翻译", Icon = "FormTextbox", CardIcon = "📝", Description = "Aras表单翻译工具" });
-        sysTranslation.Children.Add(new MenuItemInfo { Name = "窗体翻译", Icon = "WindowMaximize", CardIcon = "🪟", Description = "Aras对象类属性翻译工具" });
+        var sysTranslation = new MenuItemInfo { Name = "系统翻译", Icon = "Translate", CardIcon = "\uE774", Description = "Aras翻译工具集" };
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "文本翻译", Icon = "Translate", CardIcon = "\uE70F", Description = "AI 驱动的 Excel 批量翻译工具" });
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "翻译历史", Icon = "History", CardIcon = "\uE81C", Description = "历史翻译记录查询" });
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "字段翻译", Icon = "FormTextbox", CardIcon = "\uE8D2", Description = "Aras窗体字段翻译工具" });
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "表单翻译", Icon = "FormTextbox", CardIcon = "\uE70F", Description = "Aras表单翻译工具" });
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "窗体翻译", Icon = "WindowMaximize", CardIcon = "\uE8A7", Description = "Aras对象类属性翻译工具" });
         MenuItems.Add(sysTranslation);
 
         // ===== 二级菜单：系统配置 =====
-        var sysConfig = new MenuItemInfo { Name = "系统配置", Icon = "Cog", CardIcon = "⚙️", Description = "Aras系统配置工具集" };
-        sysConfig.Children.Add(new MenuItemInfo { Name = "窗体配置", Icon = "Cog", CardIcon = "🖼️", Description = "Aras窗体配置工具", IsPlaceholder = true });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "对象类配置", Icon = "CubeOutline", CardIcon = "📦", Description = "批量创建Aras对象类和关系类" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "List配置", Icon = "FormatListBulleted", CardIcon = "📋", Description = "批量创建Aras List主档和菜单项" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "属性配置", Icon = "Tune", CardIcon = "🔧", Description = "批量创建Aras对象类属性定义" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "📀", Description = "Excel数据导入Aras系统" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "生命周期配置", Icon = "Refresh", CardIcon = "🔄", Description = "批量创建Aras对象类的生命周期状态定义" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "权限配置", Icon = "ShieldAccount", CardIcon = "🔒", Description = "Aras权限配置工具" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "数据库导出", Icon = "DatabaseExport", CardIcon = "📤", Description = "执行SQL查询并导出为Excel文件" });
+        var sysConfig = new MenuItemInfo { Name = "系统配置", Icon = "Cog", CardIcon = "\uE713", Description = "Aras系统配置工具集" };
+        sysConfig.Children.Add(new MenuItemInfo { Name = "窗体配置", Icon = "Cog", CardIcon = "\uE8B9", Description = "Aras窗体配置工具", IsPlaceholder = true });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "对象类配置", Icon = "CubeOutline", CardIcon = "\uE7B8", Description = "批量创建Aras对象类和关系类" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "List配置", Icon = "FormatListBulleted", CardIcon = "\uE8FD", Description = "批量创建Aras List主档和菜单项" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "属性配置", Icon = "Tune", CardIcon = "\uE90F", Description = "批量创建Aras对象类属性定义" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "\uE8B5", Description = "Excel数据导入Aras系统" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "生命周期配置", Icon = "Refresh", CardIcon = "\uE895", Description = "批量创建Aras对象类的生命周期状态定义" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "权限配置", Icon = "ShieldAccount", CardIcon = "\uE72E", Description = "Aras权限配置工具" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "数据库导出", Icon = "DatabaseExport", CardIcon = "\uE898", Description = "执行SQL查询并导出为Excel文件" });
         MenuItems.Add(sysConfig);
 
         // ===== 二级菜单：系统日志 =====
-        var sysLog = new MenuItemInfo { Name = "系统日志", Icon = "History", CardIcon = "📋", Description = "系统日志与审计记录" };
-        sysLog.Children.Add(new MenuItemInfo { Name = "更新日志", Icon = "History", CardIcon = "📜", Description = "系统更新日志与版本记录" });
-        sysLog.Children.Add(new MenuItemInfo { Name = "错误日志", Icon = "Bug", CardIcon = "🐛", Description = "系统错误记录与排查" });
-        sysLog.Children.Add(new MenuItemInfo { Name = "敏感操作日志", Icon = "ShieldAccount", CardIcon = "🔒", Description = "业务操作审计轨迹记录" });
+        var sysLog = new MenuItemInfo { Name = "系统日志", Icon = "History", CardIcon = "\uE8FD", Description = "系统日志与审计记录" };
+        sysLog.Children.Add(new MenuItemInfo { Name = "更新日志", Icon = "History", CardIcon = "\uE81C", Description = "系统更新日志与版本记录" });
+        sysLog.Children.Add(new MenuItemInfo { Name = "错误日志", Icon = "Bug", CardIcon = "\uEBE8", Description = "系统错误记录与排查" });
+        sysLog.Children.Add(new MenuItemInfo { Name = "敏感操作日志", Icon = "ShieldAccount", CardIcon = "\uE72E", Description = "业务操作审计轨迹记录" });
         MenuItems.Add(sysLog);
 
         // ===== 顶层叶节点 =====
-        MenuItems.Add(new MenuItemInfo { Name = "数据报表", Icon = "ChartBar", CardIcon = "📊", Description = "数据统计与图表可视化" });
-        MenuItems.Add(new MenuItemInfo { Name = "个人任务记录", Icon = "ClipboardCheck", CardIcon = "📋", Description = "个人待办任务管理" });
-        MenuItems.Add(new MenuItemInfo { Name = "我的资料", Icon = "Folder", CardIcon = "📁", Description = "文件资源管理器" });
-        MenuItems.Add(new MenuItemInfo { Name = "个人资料库", Icon = "BookOpen", CardIcon = "📚", Description = "个人知识库与笔记管理" });
+        MenuItems.Add(new MenuItemInfo { Name = "个人任务记录", Icon = "ClipboardCheck", CardIcon = "\uE8FD", Description = "个人待办任务管理" });
+        MenuItems.Add(new MenuItemInfo { Name = "我的资料", Icon = "Folder", CardIcon = "\uE8B7", Description = "文件资源管理器" });
     }
 }

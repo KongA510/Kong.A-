@@ -107,7 +107,7 @@ public sealed partial class MainWindow : Window
         {
             Content = item.Name,
             Tag = item.Name,
-            Icon = new FontIcon { Glyph = item.CardIcon, FontFamily = new FontFamily("Segoe UI Emoji") }
+            Icon = new FontIcon { Glyph = item.CardIcon, FontFamily = new FontFamily("Segoe Fluent Icons") }
         };
         foreach (var child in item.Children)
             nvi.MenuItems.Add(CreateNavItem(child));

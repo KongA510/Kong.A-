@@ -305,13 +305,13 @@ public class TodoViewModel : ObservableObject
         try
         {
             var deleted = await _todoService.BatchDeleteAsync(selectedIds);
-            StatusMessage = $"🗑️ 已批量删除 {deleted} 条任务";
+            StatusMessage = $"已批量删除 {deleted} 条任务";
             IsAllSelected = false;
             await LoadDataAsync();
         }
         catch (Exception ex)
         {
-            StatusMessage = $"❌ 批量删除失败: {ex.Message}";
+            StatusMessage = $"批量删除失败: {ex.Message}";
             await _errorLogService.LogErrorAsync("Todo-批量删除", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
@@ -335,7 +335,7 @@ public class TodoViewModel : ObservableObject
     {
         IsAdding = true;
         IsEditing = true;
-        EditDialogTitle = "➕ 新增待办项";
+        EditDialogTitle = "新增待办项";
         EditingItem = new PersonalTask { Status = "未开始", CompletionPercent = 0 };
     }
 
@@ -361,7 +361,7 @@ public class TodoViewModel : ObservableObject
             };
             IsAdding = false;
             IsEditing = true;
-            EditDialogTitle = "✏️ 编辑待办项";
+            EditDialogTitle = "编辑待办项";
         }
     }
 
@@ -369,7 +369,7 @@ public class TodoViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(EditingItem.TaskName))
         {
-            StatusMessage = "❌ 任务名称不能为空！";
+            StatusMessage = "任务名称不能为空！";
             return;
         }
 
@@ -378,12 +378,12 @@ public class TodoViewModel : ObservableObject
             if (IsAdding)
             {
                 await _todoService.AddItemAsync(EditingItem);
-                StatusMessage = "✅ 新增成功";
+                StatusMessage = "新增成功";
             }
             else
             {
                 await _todoService.UpdateItemAsync(EditingItem);
-                StatusMessage = "✅ 保存成功";
+                StatusMessage = "保存成功";
             }
 
             IsEditing = false;
@@ -391,7 +391,7 @@ public class TodoViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"❌ 保存失败: {ex.Message}";
+            StatusMessage = $"保存失败: {ex.Message}";
             await _errorLogService.LogErrorAsync("Todo-保存", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
             await LoadDataAsync();
@@ -414,7 +414,7 @@ public class TodoViewModel : ObservableObject
         try
         {
             await _todoService.DeleteItemAsync(id);
-            StatusMessage = "🗑️ 已删除";
+            StatusMessage = "已删除";
             await LoadDataAsync();
         }
         catch (Exception ex)
@@ -436,12 +436,12 @@ public class TodoViewModel : ObservableObject
         try
         {
             var imported = await _todoService.ImportFromExcelAsync(filePath);
-            StatusMessage = $"✅ 成功导入 {imported.Count} 条待办项";
+            StatusMessage = $"成功导入 {imported.Count} 条待办项";
             await LoadDataAsync();
         }
         catch (Exception ex)
         {
-            StatusMessage = $"❌ 导入失败: {ex.Message}";
+            StatusMessage = $"导入失败: {ex.Message}";
             await _errorLogService.LogErrorAsync("Todo-Excel导入", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
@@ -459,11 +459,11 @@ public class TodoViewModel : ObservableObject
         try
         {
             await _todoService.ExportTemplateAsync(filePath);
-            StatusMessage = $"✅ 模板已导出到: {filePath}";
+            StatusMessage = $"模板已导出到: {filePath}";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"❌ 导出失败: {ex.Message}";
+            StatusMessage = $"导出失败: {ex.Message}";
             await _errorLogService.LogErrorAsync("Todo-Excel导出", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }

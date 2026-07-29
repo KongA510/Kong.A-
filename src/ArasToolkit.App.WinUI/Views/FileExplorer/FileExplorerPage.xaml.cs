@@ -42,7 +42,7 @@ public sealed partial class FileExplorerPage : Page
         }
     }
 
-    /// <summary>📂 按钮 — 在资源管理器中定位。</summary>
+    /// <summary>按钮 — 在资源管理器中定位。</summary>
     private void OpenInExplorerButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: FileSystemItem item } && DataContext is FileExplorerViewModel vm)

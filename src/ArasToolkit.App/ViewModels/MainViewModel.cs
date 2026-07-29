@@ -129,8 +129,6 @@ public class MainViewModel : ObservableObject
         sysLog.Children.Add(new MenuItemInfo { Name = "敏感操作日志", Icon = "ShieldAccount", CardIcon = "🔒", Description = "业务操作审计轨迹记录" });
         MenuItems.Add(sysLog);
 
-        // ===== 数据报表 =====
-        MenuItems.Add(new MenuItemInfo { Name = "数据报表", Icon = "ChartBar", CardIcon = "📊", Description = "数据统计与图表可视化" });
 
         // ===== 个人任务记录 =====
         MenuItems.Add(new MenuItemInfo { Name = "个人任务记录", Icon = "ClipboardCheck", CardIcon = "📋", Description = "个人待办任务管理" });
@@ -138,8 +136,6 @@ public class MainViewModel : ObservableObject
         // ===== 我的资料 =====
         MenuItems.Add(new MenuItemInfo { Name = "我的资料", Icon = "Folder", CardIcon = "📁", Description = "文件资源管理器" });
 
-       // ===== 个人资料库 =====
-       MenuItems.Add(new MenuItemInfo { Name = "个人资料库", Icon = "BookOpen", CardIcon = "📚", Description = "个人知识库与笔记管理" });
 
    }
 

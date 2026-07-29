@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
         <StackPanel>
-            <TextBlock Text="🔤 字段翻译" FontSize="24" FontWeight="Bold" Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,0,0,4" />
+            <TextBlock Text="字段翻译" FontSize="24" FontWeight="Bold" Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,0,0,4" />
             <TextBlock Text="Aras 窗体字段批量翻译工具" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,0,0,20" />
 
             <Border Style="{ThemeResource SimpleCard}" Padding="20,16" Margin="0,0,0,16">
@@ -21,9 +21,9 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                        <Button Content="🔄 加载窗体" Command="{Binding LoadFormsCommand}" Style="{ThemeResource PrimaryButton}" Padding="14,5" />
+                        <Button Content="加载窗体" Command="{Binding LoadFormsCommand}" Style="{ThemeResource PrimaryButton}" Padding="14,5" />
                     </StackPanel>
-                    <Button Content="📋 加载字段" Command="{Binding LoadFieldsCommand}" Style="{ThemeResource PrimaryButton}" Padding="16,6" HorizontalAlignment="Left" />
+                    <Button Content="加载字段" Command="{Binding LoadFieldsCommand}" Style="{ThemeResource PrimaryButton}" Padding="16,6" HorizontalAlignment="Left" />
                 </StackPanel>
             </Border>
 
@@ -88,8 +88,8 @@
                         <TextBox Text="{Binding SourceLanguage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Style="{ThemeResource DarkTextBox}" Width="140" />
                         <TextBlock Text="目标语言:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
                         <TextBox Text="{Binding TargetLanguages, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Style="{ThemeResource DarkTextBox}" Width="200" />
-                        <Button Content="🚀 开始翻译" Command="{Binding TranslateCommand}" Style="{ThemeResource PrimaryButton}" Padding="16,6" />
-                        <Button Content="📥 导出Excel" Command="{Binding ExportCommand}" Padding="14,6" Background="Transparent" Foreground="{ThemeResource TextSecondaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" />
+                        <Button Content="开始翻译" Command="{Binding TranslateCommand}" Style="{ThemeResource PrimaryButton}" Padding="16,6" />
+                        <Button Content="导出Excel" Command="{Binding ExportCommand}" Padding="14,6" Background="Transparent" Foreground="{ThemeResource TextSecondaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" />
                     </StackPanel>
                     <StackPanel Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,8" Spacing="4">
                         <Border Padding="12,10" CornerRadius="8" Background="#F0FDF4">
@@ -100,7 +100,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="🔔" FontSize="14" Margin="0,0,8,0" />
+                                        <TextBlock Text="&#xE7E7;" FontFamily="Segoe Fluent Icons" FontSize="14" Margin="0,0,8,0" />
                                         <TextBlock Text="{Binding ProgressText}" FontSize="13" Foreground="#166534" VerticalAlignment="Center" FontWeight="SemiBold" />
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="22,2,0,0">
@@ -109,7 +109,7 @@
                                         <TextBlock Text="%" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" />
                                     </StackPanel>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="✖ 取消" Command="{Binding CancelCommand}" Height="30" Padding="12,0" Background="#EF4444" Foreground="White" BorderThickness="0" VerticalAlignment="Center" />
+                                <Button Grid.Column="1" Content="取消" Command="{Binding CancelCommand}" Height="30" Padding="12,0" Background="#EF4444" Foreground="White" BorderThickness="0" VerticalAlignment="Center" />
                             </Grid>
                         </Border>
                         <ProgressBar IsIndeterminate="{Binding IsProgressIndeterminate, Mode=OneWay}" Value="{Binding ProgressPercentage, Mode=OneWay}" Minimum="0" Maximum="100" Height="4" />
@@ -122,7 +122,7 @@
                 <StackPanel>
                     <Grid Margin="0,0,0,12">
                         <TextBlock Text="任务历史" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" />
-                        <Button Content="🔄 刷新" Command="{Binding RefreshHistoryCommand}" HorizontalAlignment="Right" Padding="12,6" Background="Transparent" Foreground="{ThemeResource TextPrimaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" FontSize="12" />
+                        <Button Content="刷新" Command="{Binding RefreshHistoryCommand}" HorizontalAlignment="Right" Padding="12,6" Background="Transparent" Foreground="{ThemeResource TextPrimaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" FontSize="12" />
                     </Grid>
                     <Border Style="{ThemeResource SimpleCard}" Padding="0">
                     <Grid>

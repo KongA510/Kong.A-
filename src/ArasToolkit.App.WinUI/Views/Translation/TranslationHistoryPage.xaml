@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
         <StackPanel>
-            <TextBlock Text="📜 翻译历史" FontSize="24" FontWeight="Bold" Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,0,0,4" />
+            <TextBlock Text="翻译历史" FontSize="24" FontWeight="Bold" Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,0,0,4" />
             <TextBlock Text="历史翻译记录查询" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,0,0,20" />
 
             <Border Style="{ThemeResource SimpleCard}" Padding="20,16">
@@ -14,7 +14,7 @@
                             <TextBlock Text="全部记录" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
                             <TextBlock Text="{Binding PageInfo}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="12,0,0,0" />
                         </StackPanel>
-                        <Button Content="🔄 刷新" Command="{Binding RefreshHistoryCommand}" HorizontalAlignment="Right" Padding="12,6" Background="Transparent" Foreground="{ThemeResource TextPrimaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" FontSize="12" />
+                        <Button Content="刷新" Command="{Binding RefreshHistoryCommand}" HorizontalAlignment="Right" Padding="12,6" Background="Transparent" Foreground="{ThemeResource TextPrimaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" FontSize="12" />
                     </Grid>
 
                     <Border BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,9" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
@@ -66,9 +66,9 @@
                     </ListView>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0" Spacing="8">
-                        <Button Content="◀ 上一页" Command="{Binding PrevPageCommand}" Style="{ThemeResource PagingButton}" Width="80" />
+                        <Button Content="上一页" Command="{Binding PrevPageCommand}" Style="{ThemeResource PagingButton}" Width="80" />
                         <TextBlock Text="{Binding PageInfo}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                        <Button Content="下一页 ▶" Command="{Binding NextPageCommand}" Style="{ThemeResource PagingButton}" Width="80" />
+                        <Button Content="下一页" Command="{Binding NextPageCommand}" Style="{ThemeResource PagingButton}" Width="80" />
                     </StackPanel>
                 </StackPanel>
             </Border>

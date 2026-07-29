@@ -23,7 +23,7 @@
                 <TextBlock Text="查看和管理已保存的 Aras 连接配置（连接成功后应用启动时自动连接）" FontSize="13"
                            Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,6,0,0" />
             </StackPanel>
-            <Button Grid.Column="1" Content="＋ 新增连接" Command="{Binding ToggleFormCommand}"
+            <Button Grid.Column="1" Content="新增连接" Command="{Binding ToggleFormCommand}"
                     Style="{ThemeResource PrimaryButton}" Height="36" FontSize="13"
                     VerticalAlignment="Bottom" Padding="20,8" />
         </Grid>
@@ -116,7 +116,7 @@
                                                    Foreground="{ThemeResource AccentBrush}" />
                                         <Border CornerRadius="3" Padding="6,2" Margin="8,0,0,0" Background="#DEF7EC"
                                                 Visibility="{Binding IsEnabled, Converter={StaticResource BoolToVisibility}}">
-                                            <TextBlock Text="✓ 已启用" FontSize="10" Foreground="#16A34A" FontWeight="SemiBold" />
+                                            <TextBlock Text="已启用" FontSize="10" Foreground="#16A34A" FontWeight="SemiBold" />
                                         </Border>
                                     </StackPanel>
                                     <TextBlock Text="{Binding Url}" FontSize="11"
