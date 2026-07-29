@@ -52,8 +52,6 @@ public static class ServiceCollectionExtensions
         // 注册个人任务记录服务（单例，通过 IDbContextFactory 创建 DbContext）
         services.AddSingleton<ITodoService, TodoService>();
 
-        // 注册图表报表服务（单例）
-        services.AddSingleton<IChartService, ChartService>();
 
         // 注册数据导入服务
         services.AddSingleton<IDataImportService, DataImportService>();
@@ -88,8 +86,6 @@ public static class ServiceCollectionExtensions
         // 注册文件浏览器服务（单例，纯文件系统操作）
         services.AddSingleton<IFileExplorerService, FileExplorerService>();
 
-        // 注册个人资料库服务（单例）
-        services.AddSingleton<IKnowledgeService, KnowledgeService>();
 
         // 注册数据库导出服务（单例）
         services.AddSingleton<ISqlTemplateService, SqlTemplateService>();

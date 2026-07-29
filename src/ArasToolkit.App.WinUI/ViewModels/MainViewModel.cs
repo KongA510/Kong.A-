@@ -102,9 +102,7 @@ public class MainViewModel : ObservableObject
         MenuItems.Add(sysLog);
 
         // ===== 顶层叶节点 =====
-        MenuItems.Add(new MenuItemInfo { Name = "数据报表", Icon = "ChartBar", CardIcon = "\uE9D2", Description = "数据统计与图表可视化" });
         MenuItems.Add(new MenuItemInfo { Name = "个人任务记录", Icon = "ClipboardCheck", CardIcon = "\uE8FD", Description = "个人待办任务管理" });
         MenuItems.Add(new MenuItemInfo { Name = "我的资料", Icon = "Folder", CardIcon = "\uE8B7", Description = "文件资源管理器" });
-        MenuItems.Add(new MenuItemInfo { Name = "个人资料库", Icon = "BookOpen", CardIcon = "\uE8F1", Description = "个人知识库与笔记管理" });
     }
 }

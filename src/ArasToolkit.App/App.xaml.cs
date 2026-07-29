@@ -55,7 +55,6 @@ public partial class App : Application
         services.AddTransient<ErrorLogViewModel>();
         services.AddTransient<OperationLogViewModel>();
         services.AddTransient<TodoViewModel>();
-        services.AddTransient<ChartViewModel>();
         services.AddTransient<TextTranslationViewModel>();
         services.AddTransient<FieldTranslationViewModel>();
         services.AddTransient<PropertyTranslationViewModel>();
@@ -70,7 +69,6 @@ public partial class App : Application
         services.AddTransient<PermissionConfigViewModel>();
         services.AddTransient<LifecycleConfigViewModel>();
         services.AddTransient<FileExplorerViewModel>();
-        services.AddTransient<KnowledgeViewModel>();
         services.AddTransient<DatabaseExportViewModel>();
         services.AddTransient<DatabaseExportConfigViewModel>();
         services.AddTransient<ArasLoginWindow>();
@@ -88,7 +86,6 @@ public partial class App : Application
         services.AddTransient<ErrorLogView>();
         services.AddTransient<OperationLogView>();
         services.AddTransient<TodoView>();
-        services.AddTransient<ChartView>();
         services.AddTransient<TextTranslationView>();
         services.AddTransient<FieldTranslationView>();
         services.AddTransient<PropertyTranslationView>();
@@ -99,7 +96,6 @@ public partial class App : Application
         services.AddTransient<PermissionConfigView>();
         services.AddTransient<LifecycleConfigView>();
         services.AddTransient<FileExplorerView>();
-        services.AddTransient<KnowledgeBaseView>();
         services.AddTransient<DatabaseExportView>();
         services.AddTransient<DatabaseExportConfigView>();
 

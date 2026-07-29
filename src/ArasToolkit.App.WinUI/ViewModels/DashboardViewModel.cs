@@ -98,10 +98,8 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "更新日志", Description = "系统更新日志与版本记录", Icon = "\uE81C" },
         new() { Name = "错误日志", Description = "系统错误记录与排查", Icon = "\uEBE8" },
         new() { Name = "敏感操作日志", Description = "业务操作审计轨迹记录", Icon = "\uE72E" },
-        new() { Name = "数据报表", Description = "数据统计与图表可视化", Icon = "\uE9D2" },
         new() { Name = "个人任务记录", Description = "个人待办任务管理与追踪", Icon = "\uE73E" },
         new() { Name = "我的资料", Description = "文件资源管理器", Icon = "\uE8B7" },
-       new() { Name = "个人资料库", Description = "个人知识库与笔记管理", Icon = "\uE8F1" },
    };
 
     public ICommand RefreshCommand { get; }
