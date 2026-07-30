@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.UI.Xaml;
 using ArasToolkit.App.WinUI.Services;
 using ArasToolkit.App.WinUI.ViewModels;
@@ -84,6 +84,7 @@ public partial class App : Application
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<FileExplorerViewModel>();
         services.AddTransient<ArasLoginViewModel>();
+        services.AddTransient<UserManageViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -118,6 +119,7 @@ public partial class App : Application
         nav.Register("设置-退出登录", typeof(SettingsPage));
         nav.Register("我的资料", typeof(FileExplorerPage));
         nav.Register("Aras连接", typeof(ArasLoginPage));
+        nav.Register("用户管理", typeof(UserManagePage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)

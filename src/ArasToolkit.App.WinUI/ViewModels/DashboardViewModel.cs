@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using ArasToolkit.Core.Extensions;
@@ -102,6 +102,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "Aras翻译日志", Description = "字段、表单、窗体翻译任务与明细", Icon = "\uE81C" },
         new() { Name = "个人任务记录", Description = "个人待办任务管理与追踪", Icon = "\uE73E" },
         new() { Name = "我的资料", Description = "文件资源管理器", Icon = "\uE8B7" },
+        new() { Name = "用户管理", Description = "管理员创建用户与角色分配", Icon = "\uE716" },
    };
 
     public ObservableCollection<DashboardMetric> ArasMetrics { get; } = [];

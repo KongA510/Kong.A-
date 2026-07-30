@@ -1,10 +1,10 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ArasToolkit.Core.Entities;
 
 /// <summary>
-/// 应用用户表 — 存储应用本地登录账号
+/// 应用用户表 — 存储应用本地登录账号（由管理员创建分配）
 /// </summary>
 [Table("app_user")]
 public class AppUser
@@ -28,6 +28,13 @@ public class AppUser
     [MaxLength(100)]
     public string? DisplayName { get; set; }
 
+    [Column("role")]
+    [MaxLength(50)]
+    public string Role { get; set; } = "User";
+
+    [Column("is_active")]
+    public bool IsActive { get; set; } = true;
+
     [Column("is_admin")]
     public bool IsAdmin { get; set; }
 
@@ -37,4 +44,18 @@ public class AppUser
 
     [Column("creator_on")]
     public DateTime CreatorOn { get; set; } = DateTime.Now;
+
+    /// <summary>角色显示文本</summary>
+    [NotMapped]
+    public string RoleDisplay => Role switch
+    {
+        "Admin" => "管理员",
+        "User" => "普通用户",
+        "Viewer" => "只读用户",
+        _ => Role
+    };
+
+    /// <summary>状态显示文本</summary>
+    [NotMapped]
+    public string StatusDisplay => IsActive ? "启用" : "禁用";
 }

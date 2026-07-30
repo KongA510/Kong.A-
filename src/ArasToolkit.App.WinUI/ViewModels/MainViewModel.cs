@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
@@ -93,6 +93,7 @@ public class MainViewModel : ObservableObject
         sysConfig.Children.Add(new MenuItemInfo { Name = "生命周期配置", Icon = "Refresh", CardIcon = "\uE895", Description = "批量创建Aras对象类的生命周期状态定义" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "权限配置", Icon = "ShieldAccount", CardIcon = "\uE72E", Description = "Aras权限配置工具" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "数据库导出", Icon = "DatabaseExport", CardIcon = "\uE898", Description = "执行SQL查询并导出为Excel文件" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "用户管理", Icon = "AccountGroup", CardIcon = "\uE716", Description = "管理员创建用户与角色分配" });
         MenuItems.Add(sysConfig);
 
         // ===== 二级菜单：系统日志 =====

@@ -1,74 +1,74 @@
-using System.Text.Json;
+ï»¿using System.Text.Json;
 using ArasToolkit.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArasToolkit.Services.Data;
 
 /// <summary>
-/// Aras ¹¤¾ßÏä EF Core Êı¾İ¿âÉÏÏÂÎÄ
-/// ¹ÜÀí personal_task, operation_log, error_log, changelog ±íµÄ ORM Ó³Éä
+/// Aras å·¥å…·ç®± EF Core æ•°æ®åº“ä¸Šä¸‹æ–‡
+/// ç®¡ç† personal_task, operation_log, error_log, changelog è¡¨çš„ ORM æ˜ å°„
 /// </summary>
 public class ArasToolkitDbContext : DbContext
 {
-    /// <summary>¸öÈËÈÎÎñ±í</summary>
+    /// <summary>ä¸ªäººä»»åŠ¡è¡¨</summary>
     public DbSet<PersonalTask> PersonalTasks => Set<PersonalTask>();
 
-    /// <summary>²Ù×÷ÈÕÖ¾±í</summary>
+    /// <summary>æ“ä½œæ—¥å¿—è¡¨</summary>
     public DbSet<OperationLog> OperationLogs => Set<OperationLog>();
 
-    /// <summary>´íÎóÈÕÖ¾±í</summary>
+    /// <summary>é”™è¯¯æ—¥å¿—è¡¨</summary>
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
 
-   /// <summary>¸üĞÂÈÕÖ¾±í</summary>
+   /// <summary>æ›´æ–°æ—¥å¿—è¡¨</summary>
    public DbSet<Changelog> Changelogs => Set<Changelog>();
  
-     /// <summary>Ó¦ÓÃÓÃ»§±í</summary>
+     /// <summary>åº”ç”¨ç”¨æˆ·è¡¨</summary>
      public DbSet<AppUser> AppUsers => Set<AppUser>();
 
-    /// <summary>Êı¾İµ¼ÈëÅäÖÃ±í</summary>
+    /// <summary>æ•°æ®å¯¼å…¥é…ç½®è¡¨</summary>
     public DbSet<DataImportConfig> DataImportConfigs => Set<DataImportConfig>();
 
-    /// <summary>ÎÄ±¾·­Òë¼ÇÂ¼±í</summary>
+    /// <summary>æ–‡æœ¬ç¿»è¯‘è®°å½•è¡¨</summary>
     public DbSet<TextTranslationRecord> TextTranslationRecords => Set<TextTranslationRecord>();
 
-    /// <summary>AI Ä£ĞÍÅäÖÃ±í</summary>
+    /// <summary>AI æ¨¡å‹é…ç½®è¡¨</summary>
     public DbSet<AiModelConfig> AiModelConfigs => Set<AiModelConfig>();
 
-    /// <summary>¶ÔÏóÀàÅäÖÃµ¼ÈëÈÕÖ¾±í</summary>
+    /// <summary>å¯¹è±¡ç±»é…ç½®å¯¼å…¥æ—¥å¿—è¡¨</summary>
     public DbSet<ObjectClassImportLog> ObjectClassImportLogs => Set<ObjectClassImportLog>();
 
-    /// <summary>ListÅäÖÃµ¼ÈëÈÕÖ¾±í</summary>
+    /// <summary>Listé…ç½®å¯¼å…¥æ—¥å¿—è¡¨</summary>
     public DbSet<ListImportLog> ListImportLogs => Set<ListImportLog>();
 
-    /// <summary>ÊôĞÔÅäÖÃµ¼ÈëÈÕÖ¾±í</summary>
+    /// <summary>å±æ€§é…ç½®å¯¼å…¥æ—¥å¿—è¡¨</summary>
     public DbSet<PropertyImportLog> PropertyImportLogs => Set<PropertyImportLog>();
 
-    /// <summary>ArasµÇÂ¼ÅäÖÃ±í</summary>
+    /// <summary>Arasç™»å½•é…ç½®è¡¨</summary>
     public DbSet<ArasLoginConfig> ArasLoginConfigs => Set<ArasLoginConfig>();
 
-    /// <summary>È¨ÏŞÅäÖÃµ¼ÈëÈÕÖ¾±í</summary>
+    /// <summary>æƒé™é…ç½®å¯¼å…¥æ—¥å¿—è¡¨</summary>
     public DbSet<PermissionImportLog> PermissionImportLogs => Set<PermissionImportLog>();
 
-    /// <summary>ÉúÃüÖÜÆÚÅäÖÃµ¼ÈëÈÕÖ¾±í</summary>
+    /// <summary>ç”Ÿå‘½å‘¨æœŸé…ç½®å¯¼å…¥æ—¥å¿—è¡¨</summary>
     public DbSet<LifecycleImportLog> LifecycleImportLogs => Set<LifecycleImportLog>();
 
-    /// <summary>SQLÄ£°å±í</summary>
+    /// <summary>SQLæ¨¡æ¿è¡¨</summary>
     public DbSet<SqlTemplate> SqlTemplates => Set<SqlTemplate>();
 
-    /// <summary>Êı¾İ¿âµ¼³öÈÕÖ¾±í</summary>
+    /// <summary>æ•°æ®åº“å¯¼å‡ºæ—¥å¿—è¡¨</summary>
     public DbSet<DatabaseExportLog> DatabaseExportLogs => Set<DatabaseExportLog>();
 
-    /// <summary>Êı¾İ¿âµ¼³öÅäÖÃ±í</summary>
+    /// <summary>æ•°æ®åº“å¯¼å‡ºé…ç½®è¡¨</summary>
     public DbSet<DatabaseExportConfig> DatabaseExportConfigs => Set<DatabaseExportConfig>();
 
-    /// <summary>·­ÒëÈÎÎñ±í</summary>
+    /// <summary>ç¿»è¯‘ä»»åŠ¡è¡¨</summary>
     public DbSet<TranslationTask> TranslationTasks => Set<TranslationTask>();
 
-    /// <summary>·­Òë¼ÇÂ¼±í</summary>
+    /// <summary>ç¿»è¯‘è®°å½•è¡¨</summary>
     public DbSet<TranslationRecord> TranslationRecords => Set<TranslationRecord>();
 
 
-    /// <summary>»º´æµÄÁ¬½Ó×Ö·û´®£¨±ÜÃâÖØ¸´¶ÁÈ¡ÎÄ¼ş£©</summary>
+    /// <summary>ç¼“å­˜çš„è¿æ¥å­—ç¬¦ä¸²ï¼ˆé¿å…é‡å¤è¯»å–æ–‡ä»¶ï¼‰</summary>
     private static string? _cachedConnectionString;
 
     public ArasToolkitDbContext() { }
@@ -77,7 +77,7 @@ public class ArasToolkitDbContext : DbContext
         : base(options) { }
 
     /// <summary>
-    /// ÅäÖÃÊı¾İ¿âÁ¬½Ó ¡ª ´Ó DBSeeting.json ¶ÁÈ¡ SQL Server Á¬½Ó×Ö·û´®
+    /// é…ç½®æ•°æ®åº“è¿æ¥ â€” ä» DBSeeting.json è¯»å– SQL Server è¿æ¥å­—ç¬¦ä¸²
     /// </summary>
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -88,11 +88,11 @@ public class ArasToolkitDbContext : DbContext
     }
 
     /// <summary>
-    /// ÅäÖÃÊµÌåÓ³Éä ¡ª Ö¸¶¨±íÃûºÍÁĞÃû
+    /// é…ç½®å®ä½“æ˜ å°„ â€” æŒ‡å®šè¡¨åå’Œåˆ—å
     /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // PersonalTask ¡ú personal_task ±í
+        // PersonalTask â†’ personal_task è¡¨
         modelBuilder.Entity<PersonalTask>(entity =>
         {
             entity.ToTable("personal_task");
@@ -121,7 +121,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.DisplayCreatorOn);
         });
 
-        // OperationLog ¡ú operation_log ±í
+        // OperationLog â†’ operation_log è¡¨
         modelBuilder.Entity<OperationLog>(entity =>
         {
             entity.ToTable("operation_log");
@@ -136,7 +136,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
         });
 
-        // ErrorLog ¡ú error_log ±í
+        // ErrorLog â†’ error_log è¡¨
         modelBuilder.Entity<ErrorLog>(entity =>
         {
             entity.ToTable("error_log");
@@ -153,7 +153,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.DisplayDate);
         });
 
-        // Changelog ¡ú changelog ±í
+        // Changelog â†’ changelog è¡¨
         modelBuilder.Entity<Changelog>(entity =>
         {
             entity.ToTable("changelog");
@@ -169,7 +169,7 @@ public class ArasToolkitDbContext : DbContext
            entity.Ignore(e => e.DisplayDate);
        });
  
-         // AppUser ¡ú app_user ±í
+         // AppUser â†’ app_user è¡¨
          modelBuilder.Entity<AppUser>(entity =>
          {
              entity.ToTable("app_user");
@@ -194,7 +194,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
         });
 
-        // TextTranslationRecord ¡ú text_translation_record ±í
+        // TextTranslationRecord â†’ text_translation_record è¡¨
         modelBuilder.Entity<TextTranslationRecord>(entity =>
         {
             entity.ToTable("text_translation_record");
@@ -214,7 +214,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.DisplayCreatedAt);
         });
 
-        // AiModelConfig ¡ú ai_model_config ±í
+        // AiModelConfig â†’ ai_model_config è¡¨
         modelBuilder.Entity<AiModelConfig>(entity =>
         {
             entity.ToTable("ai_model_config");
@@ -232,7 +232,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.StatusText);
         });
 
-        // ObjectClassImportLog ¡ú object_class_import_log ±í
+        // ObjectClassImportLog â†’ object_class_import_log è¡¨
         modelBuilder.Entity<ObjectClassImportLog>(entity =>
         {
             entity.ToTable("object_class_import_log");
@@ -253,7 +253,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.Summary);
         });
 
-        // ===== Listµ¼ÈëÈÕÖ¾±í =====
+        // ===== Listå¯¼å…¥æ—¥å¿—è¡¨ =====
         modelBuilder.Entity<ListImportLog>(entity =>
         {
             entity.ToTable("list_import_log");
@@ -275,7 +275,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.Summary);
         });
 
-        // ===== ÊôĞÔÅäÖÃµ¼ÈëÈÕÖ¾±í =====
+        // ===== å±æ€§é…ç½®å¯¼å…¥æ—¥å¿—è¡¨ =====
         modelBuilder.Entity<PropertyImportLog>(entity =>
         {
             entity.ToTable("property_import_log");
@@ -295,7 +295,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.Summary);
         });
 
-        // ===== ArasLoginConfig ¡ú aras_login_config ±í =====
+        // ===== ArasLoginConfig â†’ aras_login_config è¡¨ =====
         modelBuilder.Entity<ArasLoginConfig>(entity =>
         {
             entity.ToTable("aras_login_config");
@@ -312,7 +312,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.StatusText);
         });
 
-        // ===== È¨ÏŞÅäÖÃµ¼ÈëÈÕÖ¾±í =====
+        // ===== æƒé™é…ç½®å¯¼å…¥æ—¥å¿—è¡¨ =====
         modelBuilder.Entity<PermissionImportLog>(entity =>
         {
             entity.ToTable("permission_import_log");
@@ -333,7 +333,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.Summary);
         });
 
-        // ===== ÉúÃüÖÜÆÚÅäÖÃµ¼ÈëÈÕÖ¾±í =====
+        // ===== ç”Ÿå‘½å‘¨æœŸé…ç½®å¯¼å…¥æ—¥å¿—è¡¨ =====
         modelBuilder.Entity<LifecycleImportLog>(entity =>
         {
             entity.ToTable("lifecycle_import_log");
@@ -355,7 +355,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.Summary);
         });
 
-        // ===== SqlTemplate ¡ú sql_template ±í =====
+        // ===== SqlTemplate â†’ sql_template è¡¨ =====
         modelBuilder.Entity<SqlTemplate>(entity =>
         {
             entity.ToTable("sql_template");
@@ -369,7 +369,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.DisplayCreatedAt);
         });
 
-        // ===== DatabaseExportLog ¡ú database_export_log ±í =====
+        // ===== DatabaseExportLog â†’ database_export_log è¡¨ =====
         modelBuilder.Entity<DatabaseExportLog>(entity =>
         {
             entity.ToTable("database_export_log");
@@ -396,7 +396,7 @@ public class ArasToolkitDbContext : DbContext
             entity.Ignore(e => e.FileDirectory);
         });
 
-        // ===== DatabaseExportConfig ¡ú database_export_config ±í =====
+        // ===== DatabaseExportConfig â†’ database_export_config è¡¨ =====
         modelBuilder.Entity<DatabaseExportConfig>(entity =>
         {
             entity.ToTable("database_export_config");
@@ -413,7 +413,7 @@ public class ArasToolkitDbContext : DbContext
     }
 
    /// <summary>
-    /// ´Ó DBSeeting.json ¶ÁÈ¡ SQL Server Á¬½Ó×Ö·û´®£¨´ø»º´æ£©
+    /// ä» DBSeeting.json è¯»å– SQL Server è¿æ¥å­—ç¬¦ä¸²ï¼ˆå¸¦ç¼“å­˜ï¼‰
     /// </summary>
     private static string GetConnectionString()
     {
@@ -459,16 +459,16 @@ public class ArasToolkitDbContext : DbContext
             }
             catch (JsonException ex)
             {
-                throw new InvalidOperationException($"Êı¾İ¿âÅäÖÃÎÄ¼ş¸ñÊ½ÎŞĞ§: {configPath}", ex);
+                throw new InvalidOperationException($"æ•°æ®åº“é…ç½®æ–‡ä»¶æ ¼å¼æ— æ•ˆ: {configPath}", ex);
             }
         }
 
         throw new InvalidOperationException(
-            $"Î´ÅäÖÃÊı¾İ¿âÁ¬½Ó¡£ÇëÉèÖÃ»·¾³±äÁ¿ {environmentVariable}£¬»òÔÚ ArasToolkit.Core ÏÂ´´½¨²»ÄÉÈë Git µÄ DBSeeting.local.json¡£");
+            $"æœªé…ç½®æ•°æ®åº“è¿æ¥ã€‚è¯·è®¾ç½®ç¯å¢ƒå˜é‡ {environmentVariable}ï¼Œæˆ–åœ¨ ArasToolkit.Core ä¸‹åˆ›å»ºæœªè·Ÿè¸ªå…¥ Git çš„ DBSeeting.local.jsonã€‚");
     }
 
     /// <summary>
-    /// Ë¢ĞÂ»º´æµÄÁ¬½Ó×Ö·û´®£¨ÅäÖÃ±ä¸üºóµ÷ÓÃ£©
+    /// åˆ·æ–°ç¼“å­˜çš„è¿æ¥å­—ç¬¦ä¸²ï¼ˆé…ç½®å˜æ›´åè°ƒç”¨ï¼‰
     /// </summary>
     public static void RefreshConnectionString()
     {
@@ -476,47 +476,47 @@ public class ArasToolkitDbContext : DbContext
     }
 
     /// <summary>
-    /// Í¬²½Êı¾İ¿â±í½á¹¹£¨½öµ±ÓÃ»§Ã÷È·ÒªÇóÊ±µ÷ÓÃ£©
-    /// ¡ª ¼ì²é²¢Ìí¼ÓÈ±Ê§µÄÁĞ/±í
+    /// åŒæ­¥æ•°æ®åº“è¡¨ç»“æ„ï¼ˆä»…å½“ç”¨æˆ·æ˜ç¡®è¦æ±‚æ—¶è°ƒç”¨ï¼‰
+    /// â€” æ£€æŸ¥å¹¶æ·»åŠ ç¼ºå¤±çš„åˆ—/è¡¨
     /// </summary>
     public async Task EnsureSchemaAsync()
     {
         try
         {
             var sql = @"
-                -- ===== personal_task ±íÁĞÍ¬²½ =====
+                -- ===== personal_task è¡¨åˆ—åŒæ­¥ =====
 
-                -- ÈÎÎñËµÃ÷
+                -- ä»»åŠ¡è¯´æ˜
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='personal_task' AND COLUMN_NAME='description')
                 BEGIN
                     ALTER TABLE personal_task ADD description NVARCHAR(2000) NULL;
                     UPDATE personal_task SET description = '' WHERE description IS NULL;
                 END
 
-                -- ¿ªÊ¼Ê±¼ä
+                -- å¼€å§‹æ—¶é—´
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='personal_task' AND COLUMN_NAME='start_date')
                     ALTER TABLE personal_task ADD start_date DATETIME2 NULL;
 
-                -- Íê³É¶È
+                -- å®Œæˆåº¦
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='personal_task' AND COLUMN_NAME='completion_percent')
                     ALTER TABLE personal_task ADD completion_percent INT NOT NULL DEFAULT 0;
 
-                -- ´´½¨ÈÕÆÚ
+                -- åˆ›å»ºæ—¥æœŸ
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='personal_task' AND COLUMN_NAME='created_date')
                     ALTER TABLE personal_task ADD created_date DATETIME2 NOT NULL DEFAULT GETDATE();
 
-                -- ĞŞ¸ÄÈÕÆÚ
+                -- ä¿®æ”¹æ—¥æœŸ
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='personal_task' AND COLUMN_NAME='modified_date')
                     ALTER TABLE personal_task ADD modified_date DATETIME2 NULL;
 
-                -- ¼ÇÂ¼´´½¨Ê±¼ä£¨È«²¿±íÍ¨ÓÃÁĞ£©
+                -- è®°å½•åˆ›å»ºæ—¶é—´ï¼ˆå…¨éƒ¨è¡¨é€šç”¨åˆ—ï¼‰
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='personal_task' AND COLUMN_NAME='creator_on')
                 BEGIN
                     ALTER TABLE personal_task ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                     UPDATE personal_task SET creator_on = ISNULL(created_date, GETDATE());
                 END
 
-                -- ±¸×¢
+                -- å¤‡æ³¨
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='personal_task' AND COLUMN_NAME='remarks')
                 BEGIN
                     ALTER TABLE personal_task ADD remarks NVARCHAR(1000) NULL;
@@ -534,20 +534,20 @@ public class ArasToolkitDbContext : DbContext
                     ALTER TABLE personal_task ADD modified_by NVARCHAR(100) NULL;
                 END
 
-                -- ===== personal_task ÓÃ»§IDÁĞÍ¬²½ =====
+                -- ===== personal_task ç”¨æˆ·IDåˆ—åŒæ­¥ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='personal_task' AND COLUMN_NAME='user_id')
                 BEGIN
                     ALTER TABLE personal_task ADD user_id NVARCHAR(100) NULL;
                 END
 
-                -- ===== operation_log ±íÁĞÍ¬²½ =====
+                -- ===== operation_log è¡¨åˆ—åŒæ­¥ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='operation_log' AND COLUMN_NAME='creator_on')
                 BEGIN
                     ALTER TABLE operation_log ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                     UPDATE operation_log SET creator_on = ISNULL(operate_time, GETDATE());
                 END
 
-                -- ===== error_log ±í =====
+                -- ===== error_log è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='error_log')
                 BEGIN
                     CREATE TABLE error_log (
@@ -555,7 +555,7 @@ public class ArasToolkitDbContext : DbContext
                         function_name NVARCHAR(200) NOT NULL,
                         error_message NVARCHAR(MAX) NOT NULL,
                         record_date DATETIME2 NOT NULL DEFAULT GETDATE(),
-                        level NVARCHAR(20) NOT NULL DEFAULT 'P1-ÆÕÍ¨',
+                        level NVARCHAR(20) NOT NULL DEFAULT 'P1-æ™®é€š',
                         stack_trace NVARCHAR(MAX) NULL,
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
@@ -563,7 +563,7 @@ public class ArasToolkitDbContext : DbContext
                 ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='error_log' AND COLUMN_NAME='user_id')
                 BEGIN
                     ALTER TABLE error_log ADD user_id NVARCHAR(100) NULL;
-                    -- ÇåÀí¾ÉÁĞ
+                    -- æ¸…ç†æ—§åˆ—
                     IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='error_log' AND COLUMN_NAME='user_name')
                         ALTER TABLE error_log DROP COLUMN user_name;
                 END
@@ -574,14 +574,14 @@ public class ArasToolkitDbContext : DbContext
                     UPDATE error_log SET creator_on = ISNULL(record_date, GETDATE());
                 END
 
-                -- ===== changelog ±í =====
+                -- ===== changelog è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='changelog')
                 BEGIN
                     CREATE TABLE changelog (
                         id BIGINT IDENTITY(1,1) PRIMARY KEY,
                         version NVARCHAR(20) NOT NULL,
                         release_date DATETIME2 NOT NULL DEFAULT GETDATE(),
-                        type NVARCHAR(20) NOT NULL DEFAULT N'ĞÂÔö',
+                        type NVARCHAR(20) NOT NULL DEFAULT N'æ–°å¢',
                         description NVARCHAR(MAX) NOT NULL,
                         author NVARCHAR(100) NOT NULL,
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
@@ -593,7 +593,7 @@ public class ArasToolkitDbContext : DbContext
                     UPDATE changelog SET creator_on = ISNULL(release_date, GETDATE());
                END
  
-                 -- ===== app_user ±í =====
+                 -- ===== app_user è¡¨ =====
                  IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='app_user')
                  BEGIN
                      CREATE TABLE app_user (
@@ -611,7 +611,14 @@ public class ArasToolkitDbContext : DbContext
                      ALTER TABLE app_user ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                  END
 
-                -- ===== data_import_config ±í =====
+                -- ===== ????: v1.0.7 ?????? =====
+                IF NOT EXISTS (SELECT 1 FROM changelog WHERE version = '1.0.7')
+                BEGIN
+                    INSERT INTO changelog (version, release_date, type, description, author, creator_on)
+                    VALUES ('1.0.7', GETDATE(), N'??', N'????????????????+?????Admin/User/Viewer????????????????', N'????', GETDATE());
+                END
+
+                -- ===== data_import_config è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='data_import_config')
                 BEGIN
                    CREATE TABLE data_import_config (
@@ -627,7 +634,7 @@ public class ArasToolkitDbContext : DbContext
                     ALTER TABLE data_import_config ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                 END
 
-                -- ÇåÀí¾ÉÁĞ
+                -- æ¸…ç†æ—§åˆ—
                 IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='data_import_config' AND COLUMN_NAME='sheet_name')
                     ALTER TABLE data_import_config DROP COLUMN sheet_name;
                 IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='data_import_config' AND COLUMN_NAME='start_row')
@@ -639,7 +646,7 @@ public class ArasToolkitDbContext : DbContext
                 IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='data_import_config' AND COLUMN_NAME='end_col')
                     ALTER TABLE data_import_config DROP COLUMN end_col;
 
-                -- ===== text_translation_record ±í =====
+                -- ===== text_translation_record è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='text_translation_record')
                 BEGIN
                     CREATE TABLE text_translation_record (
@@ -668,7 +675,7 @@ public class ArasToolkitDbContext : DbContext
                         ALTER TABLE text_translation_record ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                 END
 
-                -- ===== ai_model_config ±í =====
+                -- ===== ai_model_config è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='ai_model_config')
                 BEGIN
                     CREATE TABLE ai_model_config (
@@ -691,7 +698,7 @@ public class ArasToolkitDbContext : DbContext
                         ALTER TABLE ai_model_config ADD extra_params NVARCHAR(MAX) NULL;
                 END
 
-                -- ===== object_class_import_log ±í =====
+                -- ===== object_class_import_log è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='object_class_import_log')
                 BEGIN
                     CREATE TABLE object_class_import_log (
@@ -707,7 +714,7 @@ public class ArasToolkitDbContext : DbContext
                     );
                 END
 
-                -- ===== list_import_log ±í =====
+                -- ===== list_import_log è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='list_import_log')
                 BEGIN
                     CREATE TABLE list_import_log (
@@ -724,7 +731,7 @@ public class ArasToolkitDbContext : DbContext
                     );
                 END
 
-                -- ===== aras_login_config ±í =====
+                -- ===== aras_login_config è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='aras_login_config')
                 BEGIN
                     CREATE TABLE aras_login_config (
@@ -746,7 +753,7 @@ public class ArasToolkitDbContext : DbContext
                         ALTER TABLE aras_login_config ADD user_id NVARCHAR(100) NULL;
                 END
 
-                -- ===== property_import_log ±í =====
+                -- ===== property_import_log è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='property_import_log')
                 BEGIN
                     CREATE TABLE property_import_log (
@@ -761,7 +768,7 @@ public class ArasToolkitDbContext : DbContext
                     );
                 END
 
-                -- ===== permission_import_log ±í =====
+                -- ===== permission_import_log è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='permission_import_log')
                 BEGIN
                     CREATE TABLE permission_import_log (
@@ -781,7 +788,7 @@ public class ArasToolkitDbContext : DbContext
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='permission_import_log' AND COLUMN_NAME='sheet2_count')
                     ALTER TABLE permission_import_log ADD sheet2_count INT NOT NULL DEFAULT 0;
 
-                -- ===== lifecycle_import_log ±í =====
+                -- ===== lifecycle_import_log è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='lifecycle_import_log')
                 BEGIN
                     CREATE TABLE lifecycle_import_log (
@@ -805,7 +812,7 @@ public class ArasToolkitDbContext : DbContext
                         ALTER TABLE lifecycle_import_log ADD sheet3_count INT NOT NULL DEFAULT 0;
                 END
 
-                -- ===== sql_template ±í =====
+                -- ===== sql_template è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='sql_template')
                 BEGIN
                     CREATE TABLE sql_template (
@@ -822,14 +829,14 @@ public class ArasToolkitDbContext : DbContext
                     ALTER TABLE sql_template ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                 END
 
-                -- ===== database_export_log ±í =====
+                -- ===== database_export_log è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='database_export_log')
                 BEGIN
                     CREATE TABLE database_export_log (
                         id NVARCHAR(12) NOT NULL PRIMARY KEY,
                         connection_string NVARCHAR(1000) NULL,
                         sql_query NVARCHAR(MAX) NOT NULL,
-                        export_mode NVARCHAR(20) NOT NULL DEFAULT N'Ò»´Îµ¼³ö',
+                        export_mode NVARCHAR(20) NOT NULL DEFAULT N'ä¸€æ¬¡å¯¼å‡º',
                         batch_size INT NOT NULL DEFAULT 500,
                         total_rows INT NOT NULL DEFAULT 0,
                         export_time DATETIME2 NOT NULL DEFAULT GETDATE(),
@@ -852,7 +859,7 @@ public class ArasToolkitDbContext : DbContext
                         ALTER TABLE database_export_log ADD file_count INT NOT NULL DEFAULT 1;
                 END
 
-                -- ===== database_export_config ±í =====
+                -- ===== database_export_config è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='database_export_config')
                 BEGIN
                     CREATE TABLE database_export_config (
@@ -870,7 +877,7 @@ public class ArasToolkitDbContext : DbContext
                     ALTER TABLE database_export_config ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                 END
             
-                -- ===== translation_task ±í =====
+                -- ===== translation_task è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='translation_task')
                 BEGIN
                     CREATE TABLE translation_task (
@@ -890,7 +897,7 @@ public class ArasToolkitDbContext : DbContext
                     );
                 END
 
-                -- ===== translation_record ±í =====
+                -- ===== translation_record è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='translation_record')
                 BEGIN
                     CREATE TABLE translation_record (
@@ -904,7 +911,7 @@ public class ArasToolkitDbContext : DbContext
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
                 END
-                -- ===== task_load_analysis_record ±í =====
+                -- ===== task_load_analysis_record è¡¨ =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='task_load_analysis_record')
                 BEGIN
                     CREATE TABLE task_load_analysis_record (
@@ -923,7 +930,7 @@ public class ArasToolkitDbContext : DbContext
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[Schema] ±í½á¹¹Í¬²½Ê§°Ü: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[Schema] è¡¨ç»“æ„åŒæ­¥å¤±è´¥: {ex.Message}");
         }
     }
 }
