@@ -1,3 +1,8 @@
+using System.Linq;
+using ArasToolkit.App.WinUI.Services;
+using ArasToolkit.App.WinUI.ViewModels;
+using ArasToolkit.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 
@@ -18,7 +23,29 @@ public sealed partial class PlaceholderPage : Page
         base.OnNavigatedTo(e);
         var name = e.Parameter?.ToString() ?? "页面";
         TitleText.Text = name;
+        var mainViewModel = App.Services.GetRequiredService<MainViewModel>();
+        var menu = mainViewModel.MenuItems.FirstOrDefault(item => item.Name == name);
 
-        DescText.Text = $"{name} — 该功能页面正在迁移到 WinUI 3，敬请期待。";
+        if (menu?.Children.Count > 0)
+        {
+            DescText.Text = menu.Description;
+            FeatureGrid.ItemsSource = menu.Children;
+            FeatureGrid.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+            EmptyState.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+            return;
+        }
+
+        DescText.Text = $"{name} — 当前功能入口已保留。";
+        FeatureGrid.ItemsSource = null;
+        FeatureGrid.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+        EmptyState.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+    }
+
+    private void FeatureGrid_ItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is not MenuItemInfo item)
+            return;
+
+        App.Services.GetRequiredService<NavigationService>().Navigate(item.Name);
     }
 }

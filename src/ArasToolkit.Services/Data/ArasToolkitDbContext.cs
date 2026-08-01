@@ -420,27 +420,51 @@ public class ArasToolkitDbContext : DbContext
         if (!string.IsNullOrEmpty(_cachedConnectionString))
             return _cachedConnectionString;
 
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        var configPath = Path.Combine(baseDir, "DBSeeting.json");
-
-        if (!File.Exists(configPath))
+        const string environmentVariable = "ARAS_TOOLKIT_DB_CONNECTION";
+        var environmentValue = Environment.GetEnvironmentVariable(environmentVariable);
+        if (!string.IsNullOrWhiteSpace(environmentValue))
         {
-            configPath = Path.Combine(baseDir, "..", "..", "..", "..",
-                "ArasToolkit.Core", "DBSeeting.json");
+            _cachedConnectionString = environmentValue.Trim();
+            return _cachedConnectionString;
         }
 
-        if (!File.Exists(configPath))
-            throw new FileNotFoundException(
-                $"找不到数据库配置文件 DBSeeting.json，已搜索路径: {baseDir}");
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        var sourceConfigDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..",
+            "ArasToolkit.Core"));
+        var candidatePaths = new[]
+        {
+            Path.Combine(baseDir, "DBSeeting.local.json"),
+            Path.Combine(baseDir, "DBSeeting.json"),
+            Path.Combine(sourceConfigDir, "DBSeeting.local.json"),
+            Path.Combine(sourceConfigDir, "DBSeeting.json")
+        };
 
-        var json = File.ReadAllText(configPath);
-        using var doc = JsonDocument.Parse(json);
-        _cachedConnectionString = doc.RootElement.GetProperty("sql").GetString() ?? "";
+        foreach (var configPath in candidatePaths.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (!File.Exists(configPath))
+                continue;
 
-        if (string.IsNullOrEmpty(_cachedConnectionString))
-            throw new InvalidOperationException("DBSeeting.json 中未找到 'sql' 连接字符串");
+            try
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(configPath));
+                if (!doc.RootElement.TryGetProperty("sql", out var sqlElement))
+                    continue;
 
-        return _cachedConnectionString;
+                var connectionString = sqlElement.GetString();
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    continue;
+
+                _cachedConnectionString = connectionString.Trim();
+                return _cachedConnectionString;
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException($"数据库配置文件格式无效: {configPath}", ex);
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"未配置数据库连接。请设置环境变量 {environmentVariable}，或在 ArasToolkit.Core 下创建不纳入 Git 的 DBSeeting.local.json。");
     }
 
     /// <summary>

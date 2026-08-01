@@ -5,6 +5,7 @@ using ArasToolkit.App.WinUI.ViewModels;
 using ArasToolkit.App.WinUI.Views;
 using ArasToolkit.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -28,10 +29,13 @@ public sealed partial class MainWindow : Window
 
         this.InitializeComponent();
 
+        // 跟随 Windows 主题启用 Mica 背景，失效时由透明/系统背景自然回退。
+        SystemBackdrop = new MicaBackdrop { Kind = MicaKind.BaseAlt };
+
         // 根容器 DataContext 供 {Binding IsLoggedIn} 使用
         RootGrid.DataContext = _mainVM;
 
-        TryResize(1280, 720);
+        TryResize(1360, 820);
         VersionText.Text = _mainVM.VersionText;
 
         // 主界面导航

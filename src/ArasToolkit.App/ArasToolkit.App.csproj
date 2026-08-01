@@ -25,8 +25,12 @@
   <Target Name="CopyConfigFiles" AfterTargets="Build">
     <ItemGroup>
       <ConfigFiles Include="..\ArasToolkit.Core\DBSeeting.json" />
+      <LocalConfigFiles Include="..\ArasToolkit.Core\DBSeeting.local.json"
+                        Condition="Exists('..\ArasToolkit.Core\DBSeeting.local.json')" />
     </ItemGroup>
     <Copy SourceFiles="@(ConfigFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(LocalConfigFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true"
+          Condition="'@(LocalConfigFiles)' != ''" />
   </Target>
 
   <PropertyGroup>
@@ -36,7 +40,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <NuGetAudit>false</NuGetAudit>
+    <NuGetAudit>true</NuGetAudit>
   </PropertyGroup>
 
   <ItemGroup>

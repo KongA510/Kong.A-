@@ -40,3 +40,6 @@ Thumbs.db
 ## Codex / Claude
 .claude/
 .codex/
+
+## Local secrets
+src/ArasToolkit.Core/DBSeeting.local.json

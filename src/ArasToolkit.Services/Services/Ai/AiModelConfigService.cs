@@ -34,8 +34,11 @@ public class AiModelConfigService : IAiModelConfigService
     public async Task<AiModelConfig?> GetEnabledAsync(string? userId = null)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
-        return await db.AiModelConfigs
-            .Where(m => m.IsEnabled)
+        var query = db.AiModelConfigs.Where(m => m.IsEnabled);
+        if (!string.IsNullOrWhiteSpace(userId))
+            query = query.Where(m => m.UserId == userId);
+
+        return await query
             .OrderByDescending(m => m.CreatorOn)
             .FirstOrDefaultAsync();
     }

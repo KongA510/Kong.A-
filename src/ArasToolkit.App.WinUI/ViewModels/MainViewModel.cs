@@ -84,7 +84,7 @@ public class MainViewModel : ObservableObject
 
         // ===== 二级菜单：系统配置 =====
         var sysConfig = new MenuItemInfo { Name = "系统配置", Icon = "Cog", CardIcon = "\uE713", Description = "Aras系统配置工具集" };
-        sysConfig.Children.Add(new MenuItemInfo { Name = "窗体配置", Icon = "Cog", CardIcon = "\uE8B9", Description = "Aras窗体配置工具", IsPlaceholder = true });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "窗体配置", Icon = "Cog", CardIcon = "\uE8B9", Description = "按规范生成 Aras 经典窗体字段布局" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "对象类配置", Icon = "CubeOutline", CardIcon = "\uE7B8", Description = "批量创建Aras对象类和关系类" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "List配置", Icon = "FormatListBulleted", CardIcon = "\uE8FD", Description = "批量创建Aras List主档和菜单项" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "属性配置", Icon = "Tune", CardIcon = "\uE90F", Description = "批量创建Aras对象类属性定义" });

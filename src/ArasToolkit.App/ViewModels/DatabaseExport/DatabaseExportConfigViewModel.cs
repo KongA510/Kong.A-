@@ -4,8 +4,6 @@ using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
-using ArasToolkit.Services.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace ArasToolkit.App.ViewModels;
 
@@ -15,7 +13,6 @@ namespace ArasToolkit.App.ViewModels;
 public class DatabaseExportConfigViewModel : ObservableObject
 {
     private readonly IDatabaseExportConfigService _configService;
-    private readonly IDbContextFactory<ArasToolkitDbContext> _dbFactory;
     private readonly IErrorLogService _errorLogService;
 
     private ObservableCollection<DatabaseExportConfig> _configs = [];
@@ -25,11 +22,9 @@ public class DatabaseExportConfigViewModel : ObservableObject
 
     public DatabaseExportConfigViewModel(
         IDatabaseExportConfigService configService,
-        IDbContextFactory<ArasToolkitDbContext> dbFactory,
         IErrorLogService errorLogService)
     {
         _configService = configService;
-        _dbFactory = dbFactory;
         _errorLogService = errorLogService;
 
         SaveCommand = new RelayCommand(async _ => await SaveAsync(), _ => !IsProcessing && !string.IsNullOrEmpty(NewConfigName));
@@ -45,15 +40,6 @@ public class DatabaseExportConfigViewModel : ObservableObject
 
     private async Task InitializeAsync()
     {
-        try
-        {
-            await using var db = await _dbFactory.CreateDbContextAsync();
-            await db.EnsureSchemaAsync();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[DBExportConfig] Schema同步失败: {ex.Message}");
-        }
         await LoadAsync();
     }
 

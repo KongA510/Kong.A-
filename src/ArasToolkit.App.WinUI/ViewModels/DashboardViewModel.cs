@@ -87,7 +87,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "字段翻译", Description = "Aras窗体字段翻译工具", Icon = "\uE8D2" },
         new() { Name = "表单翻译", Description = "Aras表单翻译工具", Icon = "\uE70F" },
         new() { Name = "窗体翻译", Description = "Aras对象类属性翻译工具", Icon = "\uE8A7" },
-        new() { Name = "窗体配置", Description = "Aras窗体配置工具", Icon = "\uE713" },
+        new() { Name = "窗体配置", Description = "按四列坐标规范生成 Aras 经典窗体", Icon = "\uE8B9" },
         new() { Name = "对象类配置", Description = "批量创建Aras对象类和关系类", Icon = "\uE7B8" },
         new() { Name = "List配置", Description = "批量创建Aras List主档和菜单项", Icon = "\uE8FD" },
         new() { Name = "属性配置", Description = "批量创建Aras对象类属性定义", Icon = "\uE90F" },
@@ -101,6 +101,9 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "个人任务记录", Description = "个人待办任务管理与追踪", Icon = "\uE73E" },
         new() { Name = "我的资料", Description = "文件资源管理器", Icon = "\uE8B7" },
    };
+
+    public ObservableCollection<DashboardMetric> ArasMetrics { get; } = [];
+    public ObservableCollection<DashboardMetric> UserMetrics { get; } = [];
 
     public ICommand RefreshCommand { get; }
 
@@ -123,6 +126,12 @@ public class DashboardViewModel : ObservableObject
             ConnectedUser = "";
             LoginTime = "";
         }
+
+        ReplaceMetrics(ArasMetrics,
+            new DashboardMetric("服务器", ConnectedServer, "\uE968"),
+            new DashboardMetric("数据库", ConnectedDatabase, "\uE8B5"),
+            new DashboardMetric("Aras 用户", ConnectedUser, "\uE77B"),
+            new DashboardMetric("登录时间", LoginTime, "\uE823"));
     }
 
     private void RefreshAppUserInfo()
@@ -140,8 +149,24 @@ public class DashboardViewModel : ObservableObject
             AppDisplayName = "未登录";
             AppLoginTime = "";
         }
+
+        ReplaceMetrics(UserMetrics,
+            new DashboardMetric("应用账号", AppUsername, "\uE77B"),
+            new DashboardMetric("显示名称", AppDisplayName, "\uE716"),
+            new DashboardMetric("本次登录", AppLoginTime, "\uE823"));
+    }
+
+    private static void ReplaceMetrics(
+        ObservableCollection<DashboardMetric> target,
+        params DashboardMetric[] values)
+    {
+        target.Clear();
+        foreach (var value in values)
+            target.Add(value);
     }
 }
+
+public sealed record DashboardMetric(string Label, string Value, string Icon);
 
 /// <summary>
 /// 快速操作项

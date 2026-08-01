@@ -77,6 +77,9 @@ public static class ServiceCollectionExtensions
         // 注册属性配置导入服务（单例）
         services.AddSingleton<IPropertyImportService, PropertyImportService>();
 
+        // 注册 Aras 经典窗体配置服务（单例）
+        services.AddSingleton<IFormConfigurationService, FormConfigurationService>();
+
         // 注册权限配置导入服务（单例）
         services.AddSingleton<IPermissionImportService, PermissionImportService>();
 
