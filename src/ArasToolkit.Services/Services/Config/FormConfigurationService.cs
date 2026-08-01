@@ -271,9 +271,9 @@ public sealed class FormConfigurationService : IFormConfigurationService
             }
             else
             {
-                // 第二步（覆盖）：保留 Form 身份，替换 Body 下的 Field 并更新尺寸。
+                // 第二步（覆盖）：保留 Form 身份，移除全部旧 Body 后整体重建主体并更新尺寸。
                 formId = existing.getID();
-                ReplaceFormFields(innovator, existing, request, cancellationToken);
+                ReplaceFormBody(innovator, existing, request, cancellationToken);
             }
 
             if (string.IsNullOrWhiteSpace(formId))
@@ -327,7 +327,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
         ?? throw new InvalidOperationException("未连接到 Aras 系统，请先在“Aras连接”页面登录。");
 
     /// <summary>
-    /// 查询同名 Form，并同时加载 Body/Field，供覆盖流程复用。
+    /// 只查询同名 Form，不附加 Body 关系筛选，确保没有 Body 的异常旧窗体也能被识别。
     /// Aras IOM 对“合法查询但零条匹配”会同时返回 isError=true 与 isEmpty=true；
     /// 这种结果表示 Form 不存在，必须返回 null 进入新增链路，不能作为真实错误抛出。
     /// </summary>
@@ -338,17 +338,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
                 new XAttribute("type", "Form"),
                 new XAttribute("action", "get"),
                 new XAttribute("select", "id,name,label,width,height"),
-                new XElement("name", formName),
-                new XElement("Relationships",
-                    new XElement("Item",
-                        new XAttribute("type", "Body"),
-                        new XAttribute("action", "get"),
-                        new XAttribute("select", "id"),
-                        new XElement("Relationships",
-                            new XElement("Item",
-                                new XAttribute("type", "Field"),
-                                new XAttribute("action", "get"),
-                                new XAttribute("select", "id")))))));
+                new XElement("name", formName)));
 
         var result = innovator.applyAML(ToAml(aml));
 
@@ -362,63 +352,66 @@ public sealed class FormConfigurationService : IFormConfigurationService
     }
 
     /// <summary>
-    /// 覆盖现有 Form 的字段。已有 Body 时删除旧 Field 后批量新增；
-    /// 老数据没有 Body 时则补建 Body，并在两条路径中同步更新窗体尺寸。
+    /// 覆盖现有 Form 的主体：先删除该 Form 下全部旧 Body，再创建新的 Body 与 Field。
+    /// 不复用旧 Body，也不逐个删除 Field，避免旧主体关系残留和大量 AML 节点带来的性能损耗。
     /// </summary>
-    private static void ReplaceFormFields(
+    private static void ReplaceFormBody(
         Innovator innovator,
         Item existingForm,
         ArasFormConfigurationRequest request,
         CancellationToken cancellationToken)
     {
-        Item? body = null;
-        var formRelationships = existingForm.getRelationships();
-        for (var index = 0; index < formRelationships.getItemCount(); index++)
+        cancellationToken.ThrowIfCancellationRequested();
+        var bodyIds = GetFormBodyIds(innovator, existingForm.getID());
+        var replaceAml = new XElement("AML");
+
+        // 异常数据中可能存在多个 Body；覆盖时全部移除，确保最终只保留一个新主体。
+        foreach (var bodyId in bodyIds)
         {
-            var candidate = formRelationships.getItemByIndex(index);
-            if (candidate.getType().Equals("Body", StringComparison.OrdinalIgnoreCase))
-            {
-                body = candidate;
-                break;
-            }
+            replaceAml.Add(new XElement("Item",
+                new XAttribute("type", "Body"),
+                new XAttribute("action", "delete"),
+                new XAttribute("id", bodyId)));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        if (body != null)
-        {
-            // 删除旧字段、更新窗体尺寸并写入新字段放在同一 AML 请求中，
-            // 尽量避免覆盖过程中出现“旧字段已删但新字段尚未写入”的中间状态。
-            var updateAml = new XElement("AML",
-                BuildFormDimensionsItem(request, existingForm.getID()));
-            var fields = body.getRelationships();
-            for (var index = 0; index < fields.getItemCount(); index++)
-            {
-                var field = fields.getItemByIndex(index);
-                if (field.getType().Equals("Field", StringComparison.OrdinalIgnoreCase) &&
-                    !string.IsNullOrWhiteSpace(field.getID()))
-                {
-                    updateAml.Add(new XElement("Item",
-                        new XAttribute("type", "Field"),
-                        new XAttribute("action", "delete"),
-                        new XAttribute("id", field.getID())));
-                }
-            }
 
-            updateAml.Add(new XElement("Item",
-                new XAttribute("type", "Body"),
-                new XAttribute("action", "edit"),
-                new XAttribute("id", body.getID()),
-                new XElement("Relationships", BuildFieldItems(request.Fields))));
-            var updateResult = innovator.applyAML(ToAml(updateAml));
-            ThrowIfError(updateResult, "覆盖窗体字段失败");
-            return;
-        }
-
-        var addBodyAml = new XElement("AML",
+        // 删除与重建放在同一次请求中，减少网络往返和无 Body 中间状态的暴露时间。
+        replaceAml.Add(
             BuildFormDimensionsItem(request, existingForm.getID(),
                 new XElement("Relationships", BuildBodyItem(request.Fields))));
-        var addBodyResult = innovator.applyAML(ToAml(addBodyAml));
-        ThrowIfError(addBodyResult, "为现有窗体创建主体失败");
+
+        var replaceResult = innovator.applyAML(ToAml(replaceAml));
+        ThrowIfError(replaceResult, "覆盖窗体主体失败");
+    }
+
+    /// <summary>
+    /// 按 source_id 查询 Form 下全部 Body，只返回覆盖流程实际需要的 ID。
+    /// 零条 Body 属于可修复的异常数据，返回空集合后仍会为 Form 创建新主体。
+    /// </summary>
+    private static IReadOnlyList<string> GetFormBodyIds(Innovator innovator, string formId)
+    {
+        var aml = new XElement("AML",
+            new XElement("Item",
+                new XAttribute("type", "Body"),
+                new XAttribute("action", "get"),
+                new XAttribute("select", "id"),
+                new XElement("source_id", formId)));
+
+        var result = innovator.applyAML(ToAml(aml));
+        if (result.isEmpty())
+            return [];
+
+        ThrowIfError(result, "读取窗体主体失败");
+        var bodyIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var index = 0; index < result.getItemCount(); index++)
+        {
+            var bodyId = result.getItemByIndex(index).getID();
+            if (!string.IsNullOrWhiteSpace(bodyId))
+                bodyIds.Add(bodyId);
+        }
+
+        return bodyIds.ToList();
     }
 
     /// <summary>
