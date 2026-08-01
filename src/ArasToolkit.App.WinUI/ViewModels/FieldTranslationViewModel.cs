@@ -64,6 +64,10 @@ public sealed class FieldTranslationViewModel : ObservableObject
         set
         {
             if (!SetProperty(ref _selectedItemType, value)) return;
+            Forms.Clear();
+            SelectedForm = null;
+            Fields.Clear();
+            NotifyCollectionState();
             (LoadFormsCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
@@ -74,6 +78,8 @@ public sealed class FieldTranslationViewModel : ObservableObject
         set
         {
             if (!SetProperty(ref _selectedForm, value)) return;
+            Fields.Clear();
+            NotifyCollectionState();
             (LoadFieldsCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
@@ -130,6 +136,7 @@ public sealed class FieldTranslationViewModel : ObservableObject
     public string ProgressText => Progress?.StatusText ?? string.Empty;
     public bool IsProgressIndeterminate => IsBusy && Progress == null;
     public string SelectionSummary => $"共 {Fields.Count} 个窗体字段，已选择 {Fields.Count(item => item.IsSelected)} 个";
+    public string ItemTypeFilterSummary => $"显示 {FilteredItemTypes.Count}/{ItemTypes.Count} 个对象类";
 
     public ICommand LoadItemTypesCommand { get; }
     public ICommand LoadFormsCommand { get; }
@@ -149,14 +156,6 @@ public sealed class FieldTranslationViewModel : ObservableObject
             await LoadItemTypesAsync();
         else
             StatusMessage = "请先在 Aras 连接页面连接服务器。";
-    }
-
-    public async Task SelectItemTypeFromSearchAsync(ItemTypeItem? itemType)
-    {
-        if (itemType == null) return;
-        SelectedItemType = itemType;
-        ItemTypeSearchText = itemType.DisplayName;
-        await LoadFormsAsync();
     }
 
     public void NotifySelectionChanged() => NotifyCollectionState();
@@ -191,7 +190,7 @@ public sealed class FieldTranslationViewModel : ObservableObject
             ItemTypes.Clear();
             foreach (var item in items) ItemTypes.Add(item);
             ApplyItemTypeFilter(ItemTypeSearchText);
-            StatusMessage = $"已加载 {ItemTypes.Count} 个对象类，可输入名称或标签模糊搜索。";
+            StatusMessage = $"已加载 {ItemTypes.Count} 个对象类；搜索仅筛选本地列表，不会请求 Aras。";
         }
         catch (Exception ex)
         {
@@ -335,10 +334,16 @@ public sealed class FieldTranslationViewModel : ObservableObject
         var filtered = ItemTypes.Where(item => terms.Length == 0 || terms.All(term =>
             item.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
             item.Label.Contains(term, StringComparison.OrdinalIgnoreCase) ||
-            item.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)))
-            .Take(40);
+            item.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)));
         FilteredItemTypes.Clear();
         foreach (var item in filtered) FilteredItemTypes.Add(item);
+        OnPropertyChanged(nameof(ItemTypeFilterSummary));
+
+        var selectedId = SelectedItemType?.Id;
+        var selected = FilteredItemTypes.FirstOrDefault(item => item.Id == selectedId)
+                       ?? FilteredItemTypes.FirstOrDefault();
+        if (!ReferenceEquals(selected, SelectedItemType))
+            SelectedItemType = selected;
     }
 
     private void SetAllSelected(bool value)

@@ -33,30 +33,30 @@
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="2*" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <AutoSuggestBox Grid.Column="0" Header="对象类模糊搜索"
-                                        PlaceholderText="输入对象类名称或标签，例如 Part、零件"
-                                        Text="{Binding ItemTypeSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                        ItemsSource="{Binding FilteredItemTypes}"
-                                        SuggestionChosen="ItemTypeSearch_SuggestionChosen"
-                                        QuerySubmitted="ItemTypeSearch_QuerySubmitted">
-                            <AutoSuggestBox.ItemTemplate>
+                        <ComboBox Grid.Column="0" Header="Aras 对象类"
+                                  ItemsSource="{Binding FilteredItemTypes}"
+                                  SelectedItem="{Binding SelectedItemType, Mode=TwoWay}"
+                                  MaxDropDownHeight="360">
+                            <ComboBox.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding Name}" FontSize="12"
-                                                   Foreground="{ThemeResource TextSecondaryBrush}" />
-                                    </StackPanel>
+                                    <TextBlock Text="{Binding DisplayName}" />
                                 </DataTemplate>
-                            </AutoSuggestBox.ItemTemplate>
-                        </AutoSuggestBox>
-                        <Button Grid.Column="1" Content="刷新对象类" Command="{Binding LoadItemTypesCommand}"
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBox Grid.Column="1" Header="模糊筛选对象类"
+                                 PlaceholderText="输入名称或标签，仅筛选左侧列表"
+                                 Text="{Binding ItemTypeSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="2" Content="刷新对象类" Command="{Binding LoadItemTypesCommand}"
                                 VerticalAlignment="Bottom" Height="34" />
-                        <Button Grid.Column="2" Content="加载字段" Command="{Binding LoadPropertiesCommand}"
+                        <Button Grid.Column="3" Content="加载字段" Command="{Binding LoadPropertiesCommand}"
                                 Style="{ThemeResource PrimaryButton}" VerticalAlignment="Bottom" Height="34" />
                     </Grid>
+                    <TextBlock Text="{Binding ItemTypeFilterSummary}" FontSize="12"
+                               Foreground="{ThemeResource TextSecondaryBrush}" />
                 </StackPanel>
             </Border>
 
