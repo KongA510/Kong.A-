@@ -8,10 +8,10 @@ using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.App.WinUI.ViewModels;
 
-/// <summary>按 Aras 对象类加载 Property，并将 AI 翻译结果写回多语言标签。</summary>
-public sealed class PropertyTranslationViewModel : ObservableObject
+/// <summary>按 Aras 对象类加载关联 Form，并翻译 Form 多语言标签。</summary>
+public sealed class FormTranslationViewModel : ObservableObject
 {
-    private readonly IPropertyTranslationService _service;
+    private readonly IFormTranslationService _service;
     private readonly IArasConnectionService _connectionService;
     private readonly IAiDispatcherService _aiDispatcherService;
     private readonly IErrorLogService _errorLogService;
@@ -27,8 +27,8 @@ public sealed class PropertyTranslationViewModel : ObservableObject
     private TranslationProgressInfo? _progress;
     private CancellationTokenSource? _cancellationTokenSource;
 
-    public PropertyTranslationViewModel(
-        IPropertyTranslationService service,
+    public FormTranslationViewModel(
+        IFormTranslationService service,
         IArasConnectionService connectionService,
         IAiDispatcherService aiDispatcherService,
         IErrorLogService errorLogService)
@@ -39,18 +39,18 @@ public sealed class PropertyTranslationViewModel : ObservableObject
         _errorLogService = errorLogService;
 
         LoadItemTypesCommand = new RelayCommand(async _ => await LoadItemTypesAsync(), _ => !IsBusy);
-        LoadPropertiesCommand = new RelayCommand(async _ => await LoadPropertiesAsync(),
+        LoadFormsCommand = new RelayCommand(async _ => await LoadFormsAsync(),
             _ => !IsBusy && SelectedItemType != null);
-        SelectAllCommand = new RelayCommand(_ => SetAllSelected(true), _ => !IsBusy && Properties.Count > 0);
-        ClearSelectionCommand = new RelayCommand(_ => SetAllSelected(false), _ => !IsBusy && Properties.Count > 0);
-        TranslateCommand = new RelayCommand(async _ => await TranslateAsync(), _ => !IsBusy && Properties.Count > 0);
+        SelectAllCommand = new RelayCommand(_ => SetAllSelected(true), _ => !IsBusy && Forms.Count > 0);
+        ClearSelectionCommand = new RelayCommand(_ => SetAllSelected(false), _ => !IsBusy && Forms.Count > 0);
+        TranslateCommand = new RelayCommand(async _ => await TranslateAsync(), _ => !IsBusy && Forms.Count > 0);
         CancelCommand = new RelayCommand(_ => _cancellationTokenSource?.Cancel(), _ => IsBusy);
-        ExportCommand = new RelayCommand(async _ => await ExportAsync(), _ => !IsBusy && Properties.Count > 0);
+        ExportCommand = new RelayCommand(async _ => await ExportAsync(), _ => !IsBusy && Forms.Count > 0);
     }
 
     public ObservableCollection<ItemTypeItem> ItemTypes { get; } = [];
     public ObservableCollection<ItemTypeItem> FilteredItemTypes { get; } = [];
-    public ObservableCollection<PropertyItem> Properties { get; } = [];
+    public ObservableCollection<ArasFormItem> Forms { get; } = [];
     public ObservableCollection<string> SourceLanguages { get; } =
         ["简体中文", "繁体中文", "英文", "日文", "韩文", "法文", "德文", "西班牙文"];
 
@@ -60,7 +60,7 @@ public sealed class PropertyTranslationViewModel : ObservableObject
         set
         {
             if (!SetProperty(ref _selectedItemType, value)) return;
-            (LoadPropertiesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (LoadFormsCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 
@@ -115,10 +115,10 @@ public sealed class PropertyTranslationViewModel : ObservableObject
     public double ProgressPercentage => Progress?.Percentage ?? 0;
     public string ProgressText => Progress?.StatusText ?? string.Empty;
     public bool IsProgressIndeterminate => IsBusy && Progress == null;
-    public string SelectionSummary => $"共 {Properties.Count} 个字段，已选择 {Properties.Count(item => item.IsSelected)} 个";
+    public string SelectionSummary => $"共 {Forms.Count} 个关联表单，已选择 {Forms.Count(item => item.IsSelected)} 个";
 
     public ICommand LoadItemTypesCommand { get; }
-    public ICommand LoadPropertiesCommand { get; }
+    public ICommand LoadFormsCommand { get; }
     public ICommand SelectAllCommand { get; }
     public ICommand ClearSelectionCommand { get; }
     public ICommand TranslateCommand { get; }
@@ -141,7 +141,7 @@ public sealed class PropertyTranslationViewModel : ObservableObject
         if (itemType == null) return;
         SelectedItemType = itemType;
         ItemTypeSearchText = itemType.DisplayName;
-        await LoadPropertiesAsync();
+        await LoadFormsAsync();
     }
 
     public void NotifySelectionChanged() => NotifyCollectionState();
@@ -160,7 +160,7 @@ public sealed class PropertyTranslationViewModel : ObservableObject
         catch (Exception ex)
         {
             AiModelText = "AI：配置读取失败";
-            await _errorLogService.LogErrorAsync("字段翻译-读取AI配置", ex.Message,
+            await _errorLogService.LogErrorAsync("表单翻译-读取AI配置", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
     }
@@ -181,7 +181,7 @@ public sealed class PropertyTranslationViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"对象类加载失败：{ex.Message}";
-            await _errorLogService.LogErrorAsync("字段翻译-加载对象类", ex.Message,
+            await _errorLogService.LogErrorAsync("表单翻译-加载对象类", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
@@ -190,23 +190,25 @@ public sealed class PropertyTranslationViewModel : ObservableObject
         }
     }
 
-    private async Task LoadPropertiesAsync()
+    private async Task LoadFormsAsync()
     {
         if (SelectedItemType == null) return;
         IsBusy = true;
-        StatusMessage = $"正在加载 {SelectedItemType.DisplayName} 的字段…";
+        StatusMessage = $"正在加载 {SelectedItemType.DisplayName} 的关联表单…";
         try
         {
-            var properties = await _service.GetPropertiesByItemTypeIdAsync(SelectedItemType.Id);
-            Properties.Clear();
-            foreach (var property in properties) Properties.Add(property);
+            var forms = await _service.GetFormsByItemTypeIdAsync(SelectedItemType.Id);
+            Forms.Clear();
+            foreach (var form in forms) Forms.Add(form);
             NotifyCollectionState();
-            StatusMessage = $"已加载 {Properties.Count} 个字段，默认全部选中。";
+            StatusMessage = Forms.Count == 0
+                ? "该对象类没有关联的 Aras Form。"
+                : $"已加载 {Forms.Count} 个关联表单，默认全部选中。";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"字段加载失败：{ex.Message}";
-            await _errorLogService.LogErrorAsync("字段翻译-加载字段", ex.Message,
+            StatusMessage = $"表单加载失败：{ex.Message}";
+            await _errorLogService.LogErrorAsync("表单翻译-加载表单", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
@@ -217,10 +219,10 @@ public sealed class PropertyTranslationViewModel : ObservableObject
 
     private async Task TranslateAsync()
     {
-        var selected = Properties.Where(item => item.IsSelected).ToList();
+        var selected = Forms.Where(item => item.IsSelected).ToList();
         if (SelectedItemType == null || selected.Count == 0)
         {
-            StatusMessage = "请先选择至少一个字段。";
+            StatusMessage = "请先选择至少一个表单。";
             return;
         }
 
@@ -230,17 +232,17 @@ public sealed class PropertyTranslationViewModel : ObservableObject
         try
         {
             var task = await _service.CreateTaskAsync(
-                $"字段翻译-{SelectedItemType.Name}", "字段翻译", SelectedItemType.Id,
+                $"表单翻译-{SelectedItemType.Name}", SelectedItemType.Id,
                 SourceLanguage, TargetLanguages, selected.Count);
             var progress = new Progress<TranslationProgressInfo>(value =>
             {
                 Progress = value;
                 StatusMessage = value.StatusText;
             });
-            await _service.TranslateAsync(task, Properties.ToList(), SourceLanguage,
+            await _service.TranslateAsync(task, Forms.ToList(), SourceLanguage,
                 TargetLanguages, progress, _cancellationTokenSource.Token);
             RefreshRows();
-            StatusMessage = $"字段翻译完成，已写回 Aras；可在“系统日志 → Aras翻译日志”查看明细。";
+            StatusMessage = "表单翻译完成，Form 多语言标签已写回 Aras；日志明细已保存。";
         }
         catch (OperationCanceledException)
         {
@@ -249,7 +251,7 @@ public sealed class PropertyTranslationViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"翻译失败：{ex.Message}";
-            await _errorLogService.LogErrorAsync("字段翻译-执行翻译", ex.Message,
+            await _errorLogService.LogErrorAsync("表单翻译-执行翻译", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
@@ -267,15 +269,15 @@ public sealed class PropertyTranslationViewModel : ObservableObject
         try
         {
             var task = await _service.CreateTaskAsync(
-                $"字段导出-{SelectedItemType.Name}", "字段翻译", SelectedItemType.Id,
-                SourceLanguage, TargetLanguages, Properties.Count);
-            var path = await _service.ExportToExcelAsync(task, Properties.ToList());
-            StatusMessage = $"字段清单已导出：{path}";
+                $"表单导出-{SelectedItemType.Name}", SelectedItemType.Id,
+                SourceLanguage, TargetLanguages, Forms.Count);
+            var path = await _service.ExportToExcelAsync(task, Forms.ToList());
+            StatusMessage = $"表单清单已导出：{path}";
         }
         catch (Exception ex)
         {
             StatusMessage = $"导出失败：{ex.Message}";
-            await _errorLogService.LogErrorAsync("字段翻译-导出", ex.Message,
+            await _errorLogService.LogErrorAsync("表单翻译-导出", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
@@ -299,15 +301,15 @@ public sealed class PropertyTranslationViewModel : ObservableObject
 
     private void SetAllSelected(bool value)
     {
-        foreach (var property in Properties) property.IsSelected = value;
+        foreach (var form in Forms) form.IsSelected = value;
         RefreshRows();
     }
 
     private void RefreshRows()
     {
-        var rows = Properties.ToList();
-        Properties.Clear();
-        foreach (var row in rows) Properties.Add(row);
+        var rows = Forms.ToList();
+        Forms.Clear();
+        foreach (var row in rows) Forms.Add(row);
         NotifyCollectionState();
     }
 
@@ -320,7 +322,7 @@ public sealed class PropertyTranslationViewModel : ObservableObject
     private void RaiseCommandStates()
     {
         (LoadItemTypesCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (LoadPropertiesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (LoadFormsCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (SelectAllCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (ClearSelectionCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (TranslateCommand as RelayCommand)?.RaiseCanExecuteChanged();

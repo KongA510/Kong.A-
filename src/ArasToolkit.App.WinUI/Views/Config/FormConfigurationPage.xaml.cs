@@ -30,4 +30,22 @@ public sealed partial class FormConfigurationPage : Page
         Unloaded -= OnUnloaded;
         ViewModel.Dispose();
     }
+
+    private void ItemTypeSearchBox_SuggestionChosen(
+        AutoSuggestBox sender,
+        AutoSuggestBoxSuggestionChosenEventArgs args)
+    {
+        if (args.SelectedItem is ArasToolkit.Core.Models.ArasItemTypeInfo itemType)
+            ViewModel.SelectItemTypeFromSearch(itemType);
+    }
+
+    private void ItemTypeSearchBox_QuerySubmitted(
+        AutoSuggestBox sender,
+        AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        var itemType = args.ChosenSuggestion as ArasToolkit.Core.Models.ArasItemTypeInfo
+                       ?? ViewModel.FilteredItemTypes.FirstOrDefault();
+        if (itemType != null)
+            ViewModel.SelectItemTypeFromSearch(itemType);
+    }
 }

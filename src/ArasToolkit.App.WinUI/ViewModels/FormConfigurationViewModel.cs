@@ -28,6 +28,7 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
     private string _lastSuggestedFormName = string.Empty;
     private bool _reloadPending;
     private bool _disposed;
+    private string _itemTypeSearchText = string.Empty;
 
     public FormConfigurationViewModel(
         IFormConfigurationService formService,
@@ -54,6 +55,7 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
     }
 
     public ObservableCollection<ArasItemTypeInfo> ItemTypes { get; } = [];
+    public ObservableCollection<ArasItemTypeInfo> FilteredItemTypes { get; } = [];
     public ObservableCollection<ArasFormProperty> Properties { get; } = [];
     public ObservableCollection<ArasFormFieldLayout> LayoutFields { get; } = [];
 
@@ -78,6 +80,16 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
             }
 
             RefreshCommands();
+        }
+    }
+
+    public string ItemTypeSearchText
+    {
+        get => _itemTypeSearchText;
+        set
+        {
+            if (SetProperty(ref _itemTypeSearchText, value))
+                ApplyItemTypeFilter(value);
         }
     }
 
@@ -180,6 +192,8 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
             ItemTypes.Clear();
             foreach (var itemType in itemTypes)
                 ItemTypes.Add(itemType);
+
+            ApplyItemTypeFilter(ItemTypeSearchText);
 
             SelectedItemType = ItemTypes.FirstOrDefault();
             var current = _connectionService.CurrentConnection;
@@ -386,12 +400,35 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
     private void ClearConnectionData()
     {
         ItemTypes.Clear();
+        FilteredItemTypes.Clear();
         SelectedItemType = null;
         Properties.Clear();
         LayoutFields.Clear();
         OnPropertyChanged(nameof(PropertySummary));
         OnPropertyChanged(nameof(LayoutSummary));
         RefreshCommands();
+    }
+
+    public void SelectItemTypeFromSearch(ArasItemTypeInfo itemType)
+    {
+        SelectedItemType = itemType;
+        ItemTypeSearchText = itemType.DisplayName;
+    }
+
+    private void ApplyItemTypeFilter(string? searchText)
+    {
+        FilteredItemTypes.Clear();
+        if (string.IsNullOrWhiteSpace(searchText))
+            return;
+
+        var terms = searchText.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var itemType in ItemTypes.Where(item => terms.All(term =>
+                     item.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                     item.Label.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                     item.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase))).Take(30))
+        {
+            FilteredItemTypes.Add(itemType);
+        }
     }
 
     public void Dispose()

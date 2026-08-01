@@ -28,6 +28,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="2*" />
                                 <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="2*" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
@@ -48,19 +49,37 @@
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
 
-                            <TextBox Grid.Row="0" Grid.Column="1"
+                            <AutoSuggestBox x:Name="ItemTypeSearchBox"
+                                            Grid.Row="0" Grid.Column="1"
+                                            Header="搜索对象类"
+                                            PlaceholderText="输入名称或标签进行模糊搜索"
+                                            Text="{Binding ItemTypeSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            ItemsSource="{Binding FilteredItemTypes}"
+                                            SuggestionChosen="ItemTypeSearchBox_SuggestionChosen"
+                                            QuerySubmitted="ItemTypeSearchBox_QuerySubmitted">
+                                <AutoSuggestBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Name}" Style="{ThemeResource CaptionText}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </AutoSuggestBox.ItemTemplate>
+                            </AutoSuggestBox>
+
+                            <TextBox Grid.Row="0" Grid.Column="2"
                                      Header="窗体名称"
                                      Text="{Binding FormName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      PlaceholderText="例如：Part 自动窗体" />
 
-                            <Button Grid.Row="0" Grid.Column="2" VerticalAlignment="Bottom"
+                            <Button Grid.Row="0" Grid.Column="3" VerticalAlignment="Bottom"
                                     Command="{Binding RefreshItemTypesCommand}" Style="{ThemeResource FluentButton}">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE72C;" FontSize="14" />
                                     <TextBlock Text="刷新对象类" />
                                 </StackPanel>
                             </Button>
-                            <Button Grid.Row="0" Grid.Column="3" VerticalAlignment="Bottom"
+                            <Button Grid.Row="0" Grid.Column="4" VerticalAlignment="Bottom"
                                     Command="{Binding LoadPropertiesCommand}" Style="{ThemeResource AccentButton}">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE8A5;" FontSize="14" />
@@ -68,7 +87,7 @@
                                 </StackPanel>
                             </Button>
 
-                            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
+                            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5"
                                         Orientation="Horizontal" Spacing="20">
                                 <CheckBox Content="覆盖同名窗体" IsChecked="{Binding ReplaceExisting, Mode=TwoWay}" />
                                 <CheckBox Content="设为对象类默认视图" IsChecked="{Binding SetAsDefaultView, Mode=TwoWay}" />

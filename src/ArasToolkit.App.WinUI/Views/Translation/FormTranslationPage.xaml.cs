@@ -6,14 +6,14 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace ArasToolkit.App.WinUI.Views;
 
-public sealed partial class PropertyTranslationPage : Page
+public sealed partial class FormTranslationPage : Page
 {
-    private PropertyTranslationViewModel Vm => (PropertyTranslationViewModel)DataContext;
+    private FormTranslationViewModel Vm => (FormTranslationViewModel)DataContext;
 
-    public PropertyTranslationPage()
+    public FormTranslationPage()
     {
         InitializeComponent();
-        DataContext = App.Services.GetRequiredService<PropertyTranslationViewModel>();
+        DataContext = App.Services.GetRequiredService<FormTranslationViewModel>();
         Loaded += Page_Loaded;
     }
 

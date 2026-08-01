@@ -77,9 +77,9 @@ public class MainViewModel : ObservableObject
         var sysTranslation = new MenuItemInfo { Name = "系统翻译", Icon = "Translate", CardIcon = "\uE774", Description = "Aras翻译工具集" };
         sysTranslation.Children.Add(new MenuItemInfo { Name = "文本翻译", Icon = "Translate", CardIcon = "\uE70F", Description = "AI 驱动的 Excel 批量翻译工具" });
         sysTranslation.Children.Add(new MenuItemInfo { Name = "翻译历史", Icon = "History", CardIcon = "\uE81C", Description = "历史翻译记录查询" });
-        sysTranslation.Children.Add(new MenuItemInfo { Name = "字段翻译", Icon = "FormTextbox", CardIcon = "\uE8D2", Description = "Aras窗体字段翻译工具" });
-        sysTranslation.Children.Add(new MenuItemInfo { Name = "表单翻译", Icon = "FormTextbox", CardIcon = "\uE70F", Description = "Aras表单翻译工具" });
-        sysTranslation.Children.Add(new MenuItemInfo { Name = "窗体翻译", Icon = "WindowMaximize", CardIcon = "\uE8A7", Description = "Aras对象类属性翻译工具" });
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "字段翻译", Icon = "FormTextbox", CardIcon = "\uE8D2", Description = "按对象类翻译 Aras Property 标签" });
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "表单翻译", Icon = "FormTextbox", CardIcon = "\uE70F", Description = "按对象类翻译关联 Form 标签" });
+        sysTranslation.Children.Add(new MenuItemInfo { Name = "窗体翻译", Icon = "WindowMaximize", CardIcon = "\uE8A7", Description = "翻译 Form Field 标签与说明" });
         MenuItems.Add(sysTranslation);
 
         // ===== 二级菜单：系统配置 =====
@@ -99,6 +99,7 @@ public class MainViewModel : ObservableObject
         sysLog.Children.Add(new MenuItemInfo { Name = "更新日志", Icon = "History", CardIcon = "\uE81C", Description = "系统更新日志与版本记录" });
         sysLog.Children.Add(new MenuItemInfo { Name = "错误日志", Icon = "Bug", CardIcon = "\uEBE8", Description = "系统错误记录与排查" });
         sysLog.Children.Add(new MenuItemInfo { Name = "敏感操作日志", Icon = "ShieldAccount", CardIcon = "\uE72E", Description = "业务操作审计轨迹记录" });
+        sysLog.Children.Add(new MenuItemInfo { Name = "Aras翻译日志", Icon = "Translate", CardIcon = "\uE81C", Description = "字段、表单、窗体翻译任务与明细" });
         MenuItems.Add(sysLog);
 
         // ===== 顶层叶节点 =====

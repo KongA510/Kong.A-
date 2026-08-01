@@ -1,239 +1,349 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Aras.IOM;
+using System.Xml.Linq;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
-using ArasToolkit.Services.Data;
-using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 
 namespace ArasToolkit.Services.Services;
 
-public class FieldTranslationService : IFieldTranslationService
+/// <summary>按对象类选择 Form，并翻译 Form 下 Field 的标签及图例。</summary>
+public sealed class FieldTranslationService : IFieldTranslationService
 {
-    private readonly IDbContextFactory<ArasToolkitDbContext> _dbFactory;
-    private readonly ArasConnectionService _connectionService;
-    private readonly IAiDispatcherService _aiDispatcher;
-    private readonly IOperationLogService _operationLogService;
-    private readonly IErrorLogService _errorLogService;
+    private const string TaskType = "窗体翻译";
     private const string OutputDir = "Config/FieldTranslations";
 
+    private readonly ArasConnectionService _connectionService;
+    private readonly IAiDispatcherService _aiDispatcher;
+    private readonly IArasTranslationLogService _translationLogService;
+    private readonly IErrorLogService _errorLogService;
+
     public FieldTranslationService(
-        IDbContextFactory<ArasToolkitDbContext> dbFactory,
         ArasConnectionService connectionService,
         IAiDispatcherService aiDispatcher,
-        IOperationLogService operationLogService,
+        IArasTranslationLogService translationLogService,
         IErrorLogService errorLogService)
     {
-        _dbFactory = dbFactory;
         _connectionService = connectionService;
         _aiDispatcher = aiDispatcher;
-        _operationLogService = operationLogService;
+        _translationLogService = translationLogService;
         _errorLogService = errorLogService;
+    }
+
+    public async Task<List<ItemTypeItem>> GetItemTypeListAsync()
+    {
+        try
+        {
+            return ArasTranslationSupport.GetItemTypes(
+                ArasTranslationSupport.GetConnectedInnovator(_connectionService));
+        }
+        catch (Exception ex)
+        {
+            await _errorLogService.LogErrorAsync("窗体翻译-获取对象类", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
+        }
+    }
+
+    public async Task<List<ArasFormItem>> GetFormsByItemTypeIdAsync(string itemTypeId)
+    {
+        try
+        {
+            return ArasTranslationSupport.GetFormsByItemType(
+                ArasTranslationSupport.GetConnectedInnovator(_connectionService),
+                itemTypeId);
+        }
+        catch (Exception ex)
+        {
+            await _errorLogService.LogErrorAsync("窗体翻译-获取窗体", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
+        }
     }
 
     public async Task<List<ArasFormItem>> GetFormListAsync()
     {
-        var forms = new List<ArasFormItem>();
         try
         {
-            var innovator = _connectionService.TypedInnovator;
-            if (innovator == null) return forms;
+            var innovator = ArasTranslationSupport.GetConnectedInnovator(_connectionService);
+            var aml = new XElement("AML",
+                new XElement("Item",
+                    new XAttribute("type", "Form"),
+                    new XAttribute("action", "get"),
+                    new XAttribute("select", "id,name,label")));
+            var result = innovator.applyAML(aml.ToString(SaveOptions.DisableFormatting));
+            ArasTranslationSupport.ThrowIfError(result, "读取窗体列表失败");
 
-            var aml = "<AML><Item type='Body' action='get' select='id,source_id(name)'><Relationships><Item type='Field' action='get' select='id,name,label,legend'></Item></Relationships></Item></AML>";
-            var result = innovator.applyAML(aml);
-            if (result.isError()) return forms;
-
-            int count = result.getItemCount();
-            for (int i = 0; i < count; i++)
+            var forms = new List<ArasFormItem>();
+            for (var index = 0; index < result.getItemCount(); index++)
             {
-                var r = result.getItemByIndex(i);
+                var form = result.getItemByIndex(index);
                 forms.Add(new ArasFormItem
                 {
-                    Id = r.getID(),
-                    Name = r.getProperty("source_id", "name", "")
+                    Id = form.getID(),
+                    Name = form.getProperty("name", string.Empty),
+                    Label = form.getProperty("label", string.Empty),
+                    IsSelected = true
                 });
             }
+
+            return forms.OrderBy(form => form.DisplayName, StringComparer.CurrentCultureIgnoreCase).ToList();
         }
         catch (Exception ex)
         {
-            await _errorLogService.LogErrorAsync("字段翻译-获取窗体列表", ex.Message, ErrorLog.LevelP1, ex.StackTrace);
+            await _errorLogService.LogErrorAsync("窗体翻译-获取全部窗体", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
         }
-        return forms;
     }
 
     public async Task<List<FieldItem>> GetFieldsByFormIdAsync(string formId)
     {
-        var fields = new List<FieldItem>();
         try
         {
-            var innovator = _connectionService.TypedInnovator;
-            if (innovator == null) return fields;
+            var innovator = ArasTranslationSupport.GetConnectedInnovator(_connectionService);
+            var aml = new XElement("AML",
+                new XElement("Item",
+                    new XAttribute("type", "Body"),
+                    new XAttribute("action", "get"),
+                    new XAttribute("select", "id,source_id(name)"),
+                    new XElement("source_id", formId),
+                    new XElement("Relationships",
+                        new XElement("Item",
+                            new XAttribute("type", "Field"),
+                            new XAttribute("action", "get"),
+                            new XAttribute("select", "id,name,label,legend,sort_order")))));
+            var result = innovator.applyAML(aml.ToString(SaveOptions.DisableFormatting));
+            ArasTranslationSupport.ThrowIfError(result, "读取窗体字段失败");
 
-            var aml = $"<AML><Item type='Body' action='get' select='id,source_id(name)'><id>{formId}</id><Relationships><Item type='Field' action='get' select='id,name,label,legend'></Item></Relationships></Item></AML>";
-            var result = innovator.applyAML(aml);
-            if (result.isError()) return fields;
-
-            var bodyItem = result.getItemByIndex(0);
-            var formName = bodyItem.getProperty("source_id", "name", "");
-            var rels = bodyItem.getRelationships();
-            int count = rels.getItemCount();
-            for (int i = 0; i < count; i++)
+            var fields = new List<FieldItem>();
+            for (var bodyIndex = 0; bodyIndex < result.getItemCount(); bodyIndex++)
             {
-                var r = rels.getItemByIndex(i);
-                fields.Add(new FieldItem
+                var body = result.getItemByIndex(bodyIndex);
+                var formName = body.getProperty("source_id", "name", string.Empty);
+                var relationships = body.getRelationships();
+                for (var fieldIndex = 0; fieldIndex < relationships.getItemCount(); fieldIndex++)
                 {
-                    Id = r.getID(),
-                    Name = r.getProperty("name", ""),
-                    Label = r.getProperty("label", ""),
-                    Legend = r.getProperty("legend", ""),
-                    FormName = formName
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            await _errorLogService.LogErrorAsync("字段翻译-获取字段列表", ex.Message, ErrorLog.LevelP1, ex.StackTrace);
-        }
-        return fields;
-    }
-
-    public Task<List<FieldItem>> QueryFieldsByAmlAsync(string aml)
-    {
-        return Task.FromResult(new List<FieldItem>());
-    }
-
-    public Task<List<FieldItem>> QueryFieldsBySqlAsync(string sql)
-    {
-        return Task.FromResult(new List<FieldItem>());
-    }
-
-    public async Task<TranslationTask> CreateTaskAsync(string taskName, string queryMode, string queryCondition, string sourceLanguage, string targetLanguages, int totalFields)
-    {
-        var task = new TranslationTask
-        {
-            TaskName = taskName,
-            QueryMode = queryMode,
-            QueryCondition = queryCondition,
-            SourceLanguage = sourceLanguage,
-            TargetLanguages = targetLanguages,
-            TotalFields = totalFields,
-            Status = "Pending",
-            CreatorOn = DateTime.Now
-        };
-
-        using var db = await _dbFactory.CreateDbContextAsync();
-        db.Set<TranslationTask>().Add(task);
-        await db.SaveChangesAsync();
-        await _operationLogService.LogAsync("Create", "TranslationTask", task.Id, $"创建翻译任务: {taskName}");
-        return task;
-    }
-
-    public async Task TranslateAsync(TranslationTask task, List<FieldItem> fields, string sourceLanguage, string targetLanguages, IProgress<TranslationProgressInfo>? progress = null, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            task.Status = "Translating";
-            var targets = targetLanguages.Split(',', StringSplitOptions.RemoveEmptyEntries);
-            int total = fields.Count * targets.Length;
-            int done = 0;
-
-            foreach (var target in targets)
-            {
-                foreach (var field in fields)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var prompt = $"将以下文本从{sourceLanguage}翻译为{target.Trim()}，只返回翻译结果，不要解释：{field.Label}";
-                    var translated = await _aiDispatcher.ChatAsync(prompt, cancellationToken: cancellationToken);
-                    field.Label = translated.Trim();
-                    done++;
-                    progress?.Report(new TranslationProgressInfo
+                    var field = relationships.getItemByIndex(fieldIndex);
+                    fields.Add(new FieldItem
                     {
-                        Phase = "翻译中",
-                        Current = done,
-                        PhaseTotal = total,
-                        OverallCurrent = done,
-                        OverallTotal = total,
-                        ItemName = field.Name
+                        Id = field.getID(),
+                        Name = field.getProperty("name", string.Empty),
+                        Label = field.getProperty("label", string.Empty),
+                        Legend = field.getProperty("legend", string.Empty),
+                        FormName = formName,
+                        IsSelected = true
                     });
                 }
             }
 
-            task.TranslatedFields = fields.Count;
-            task.ProgressText = $"{done}/{total}";
-            task.Status = "Completed";
-
-            using var db = await _dbFactory.CreateDbContextAsync();
-            db.Set<TranslationTask>().Update(task);
-            await db.SaveChangesAsync();
-            await _operationLogService.LogAsync("Update", "TranslationTask", task.Id, $"翻译完成: {task.TaskName}");
-        }
-        catch (OperationCanceledException)
-        {
-            task.Status = "Cancelled";
-            using var db = await _dbFactory.CreateDbContextAsync();
-            db.Set<TranslationTask>().Update(task);
-            await db.SaveChangesAsync();
+            return fields
+                .Where(field => !string.IsNullOrWhiteSpace(field.Id))
+                .OrderBy(field => field.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
         }
         catch (Exception ex)
         {
-            task.Status = "Failed";
-            await _errorLogService.LogErrorAsync("字段翻译-执行翻译", ex.Message, ErrorLog.LevelP1, ex.StackTrace);
-            using var db = await _dbFactory.CreateDbContextAsync();
-            db.Set<TranslationTask>().Update(task);
-            await db.SaveChangesAsync();
+            await _errorLogService.LogErrorAsync("窗体翻译-获取字段", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
+        }
+    }
+
+    public Task<List<FieldItem>> QueryFieldsByAmlAsync(string aml)
+        => Task.FromResult(new List<FieldItem>());
+
+    public Task<List<FieldItem>> QueryFieldsBySqlAsync(string sql)
+        => Task.FromResult(new List<FieldItem>());
+
+    public Task<TranslationTask> CreateTaskAsync(
+        string taskName,
+        string queryMode,
+        string queryCondition,
+        string sourceLanguage,
+        string targetLanguages,
+        int totalFields)
+        => _translationLogService.CreateTaskAsync(
+            TaskType, taskName, queryCondition, sourceLanguage, targetLanguages, totalFields);
+
+    public async Task TranslateAsync(
+        TranslationTask task,
+        List<FieldItem> fields,
+        string sourceLanguage,
+        string targetLanguages,
+        IProgress<TranslationProgressInfo>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        var selected = fields.Where(field => field.IsSelected).ToList();
+        var targets = ArasTranslationSupport.ParseTargets(targetLanguages);
+        var records = new List<TranslationRecord>();
+        var completedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var totalOperations = selected.Count * targets.Count;
+        var completedOperations = 0;
+
+        if (selected.Count == 0)
+            throw new InvalidOperationException("至少需要选择一个窗体字段进行翻译。");
+
+        try
+        {
+            await _translationLogService.SaveOutcomeAsync(
+                task, [], "Translating", 0, $"0/{totalOperations}");
+            var innovator = ArasTranslationSupport.GetConnectedInnovator(_connectionService);
+
+            foreach (var target in targets)
+            {
+                foreach (var field in selected)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var originalLabel = string.IsNullOrWhiteSpace(field.Label) ? field.Name : field.Label;
+                    var translatedLabel = await ArasTranslationSupport.TranslateTextAsync(
+                        _aiDispatcher,
+                        originalLabel,
+                        sourceLanguage,
+                        target,
+                        $"Aras 窗体 {field.FormName} 的控件标签",
+                        cancellationToken);
+
+                    var values = new Dictionary<string, string> { ["label"] = translatedLabel };
+                    records.Add(ArasTranslationSupport.CreateRecord(
+                        task, field.Id, $"{field.Name}.label", originalLabel, translatedLabel, target));
+
+                    if (!string.IsNullOrWhiteSpace(field.Legend))
+                    {
+                        var translatedLegend = await ArasTranslationSupport.TranslateTextAsync(
+                            _aiDispatcher,
+                            field.Legend,
+                            sourceLanguage,
+                            target,
+                            $"Aras 窗体 {field.FormName} 的控件说明",
+                            cancellationToken);
+                        values["legend"] = translatedLegend;
+                        records.Add(ArasTranslationSupport.CreateRecord(
+                            task,
+                            field.Id,
+                            $"{field.Name}.legend",
+                            field.Legend,
+                            translatedLegend,
+                            target));
+                    }
+
+                    ArasTranslationSupport.ApplyLocalizedValues(
+                        innovator, "Field", field.Id, target, values);
+                    field.TranslationPreview = AppendPreview(
+                        field.TranslationPreview, target.Name, translatedLabel);
+                    completedIds.Add(field.Id);
+                    completedOperations++;
+                    progress?.Report(CreateProgress(
+                        completedOperations, totalOperations, field.Name, target.Name));
+                }
+            }
+
+            await _translationLogService.SaveOutcomeAsync(
+                task,
+                records,
+                "Completed",
+                completedIds.Count,
+                $"{completedOperations}/{totalOperations}");
+        }
+        catch (OperationCanceledException)
+        {
+            await _translationLogService.SaveOutcomeAsync(
+                task,
+                records,
+                "Cancelled",
+                completedIds.Count,
+                $"{completedOperations}/{totalOperations}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                await _translationLogService.SaveOutcomeAsync(
+                    task,
+                    records,
+                    "Failed",
+                    completedIds.Count,
+                    $"{completedOperations}/{totalOperations}");
+            }
+            catch
+            {
+                // 原始异常优先返回。
+            }
+
+            await _errorLogService.LogErrorAsync("窗体翻译-执行", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
         }
     }
 
     public async Task<string> ExportToExcelAsync(TranslationTask task, List<FieldItem> fields)
     {
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        var dateFolder = DateTime.Now.ToString("yyyy_M_d");
-        var dir = Path.Combine(baseDir, OutputDir, dateFolder);
-        Directory.CreateDirectory(dir);
-        var filePath = Path.Combine(dir, $"{task.TaskName}_{DateTime.Now:HHmmss}.xlsx");
-
-        using var package = new ExcelPackage();
-        var ws = package.Workbook.Worksheets.Add("字段翻译");
-        ws.Cells[1, 1].Value = "字段名称";
-        ws.Cells[1, 2].Value = "标签";
-        ws.Cells[1, 3].Value = "图例";
-        ws.Cells[1, 4].Value = "窗体";
-        for (int i = 0; i < fields.Count; i++)
+        try
         {
-            ws.Cells[i + 2, 1].Value = fields[i].Name;
-            ws.Cells[i + 2, 2].Value = fields[i].Label;
-            ws.Cells[i + 2, 3].Value = fields[i].Legend;
-            ws.Cells[i + 2, 4].Value = fields[i].FormName;
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            var directory = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                OutputDir,
+                DateTime.Now.ToString("yyyy_M_d"));
+            Directory.CreateDirectory(directory);
+            var filePath = Path.Combine(directory, $"{task.TaskName}_{DateTime.Now:HHmmss}.xlsx");
+
+            using var package = new ExcelPackage();
+            var worksheet = package.Workbook.Worksheets.Add("窗体翻译");
+            worksheet.Cells[1, 1].Value = "字段名称";
+            worksheet.Cells[1, 2].Value = "原标签";
+            worksheet.Cells[1, 3].Value = "原图例";
+            worksheet.Cells[1, 4].Value = "翻译结果";
+            worksheet.Cells[1, 5].Value = "窗体";
+            for (var index = 0; index < fields.Count; index++)
+            {
+                worksheet.Cells[index + 2, 1].Value = fields[index].Name;
+                worksheet.Cells[index + 2, 2].Value = fields[index].Label;
+                worksheet.Cells[index + 2, 3].Value = fields[index].Legend;
+                worksheet.Cells[index + 2, 4].Value = fields[index].TranslationPreview;
+                worksheet.Cells[index + 2, 5].Value = fields[index].FormName;
+            }
+
+            worksheet.Cells.AutoFitColumns();
+            await package.SaveAsAsync(new FileInfo(filePath));
+            await _translationLogService.SetOutputFileAsync(task.Id, filePath);
+            await _translationLogService.SaveOutcomeAsync(
+                task, [], "Completed", task.TotalFields, "已导出");
+            task.OutputFilePath = filePath;
+            return filePath;
         }
-        ws.Cells.AutoFitColumns();
-        await package.SaveAsAsync(new FileInfo(filePath));
-
-        task.OutputFilePath = filePath;
-        using var db = await _dbFactory.CreateDbContextAsync();
-        db.Set<TranslationTask>().Update(task);
-        await db.SaveChangesAsync();
-        return filePath;
+        catch (Exception ex)
+        {
+            await _errorLogService.LogErrorAsync("窗体翻译-导出", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
+        }
     }
 
-    public async Task<(List<TranslationTask> Items, int TotalCount)> GetTaskHistoryAsync(string? userId = null, int page = 1, int pageSize = 20)
-    {
-        using var db = await _dbFactory.CreateDbContextAsync();
-        var query = db.Set<TranslationTask>().AsQueryable();
-        if (!string.IsNullOrEmpty(userId))
-            query = query.Where(x => x.UserId == userId);
-        var total = await query.CountAsync();
-        var items = await query.OrderByDescending(x => x.CreatorOn)
-            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-        return (items, total);
-    }
+    public Task<(List<TranslationTask> Items, int TotalCount)> GetTaskHistoryAsync(
+        string? userId = null,
+        int page = 1,
+        int pageSize = 20)
+        => _translationLogService.GetTasksAsync(
+            userId, TaskType, null, null, page, pageSize);
+
+    private static TranslationProgressInfo CreateProgress(
+        int current,
+        int total,
+        string itemName,
+        string targetLanguage)
+        => new()
+        {
+            Phase = $"正在翻译为{targetLanguage}",
+            Current = current,
+            PhaseTotal = total,
+            OverallCurrent = current,
+            OverallTotal = total,
+            ItemName = itemName
+        };
+
+    private static string AppendPreview(string current, string language, string translated)
+        => string.IsNullOrWhiteSpace(current)
+            ? $"{language}: {translated}"
+            : $"{current}；{language}: {translated}";
 }
-
-
-

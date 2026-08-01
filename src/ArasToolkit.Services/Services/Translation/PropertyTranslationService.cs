@@ -1,239 +1,282 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Aras.IOM;
+using System.Xml.Linq;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
-using ArasToolkit.Services.Data;
-using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 
 namespace ArasToolkit.Services.Services;
 
-public class PropertyTranslationService : IPropertyTranslationService
+/// <summary>按 ItemType 拉取 Property，并通过当前 AI 配置写回 Aras 多语言标签。</summary>
+public sealed class PropertyTranslationService : IPropertyTranslationService
 {
-    private readonly IDbContextFactory<ArasToolkitDbContext> _dbFactory;
-    private readonly ArasConnectionService _connectionService;
-    private readonly IAiDispatcherService _aiDispatcher;
-    private readonly IOperationLogService _operationLogService;
-    private readonly IErrorLogService _errorLogService;
+    private const string TaskType = "字段翻译";
     private const string OutputDir = "Config/PropertyTranslations";
 
+    private readonly ArasConnectionService _connectionService;
+    private readonly IAiDispatcherService _aiDispatcher;
+    private readonly IArasTranslationLogService _translationLogService;
+    private readonly IErrorLogService _errorLogService;
+
     public PropertyTranslationService(
-        IDbContextFactory<ArasToolkitDbContext> dbFactory,
         ArasConnectionService connectionService,
         IAiDispatcherService aiDispatcher,
-        IOperationLogService operationLogService,
+        IArasTranslationLogService translationLogService,
         IErrorLogService errorLogService)
     {
-        _dbFactory = dbFactory;
         _connectionService = connectionService;
         _aiDispatcher = aiDispatcher;
-        _operationLogService = operationLogService;
+        _translationLogService = translationLogService;
         _errorLogService = errorLogService;
     }
 
     public async Task<List<ItemTypeItem>> GetItemTypeListAsync()
     {
-        var items = new List<ItemTypeItem>();
         try
         {
-            var innovator = _connectionService.TypedInnovator;
-            if (innovator == null) return items;
-
-            var aml = "<AML><Item type='ItemType' action='get' select='id,name,label'></Item></AML>";
-            var result = innovator.applyAML(aml);
-            if (result.isError()) return items;
-
-            int count = result.getItemCount();
-            for (int i = 0; i < count; i++)
-            {
-                var r = result.getItemByIndex(i);
-                items.Add(new ItemTypeItem
-                {
-                    Id = r.getID(),
-                    Name = r.getProperty("name", ""),
-                    Label = r.getProperty("label", "")
-                });
-            }
+            return ArasTranslationSupport.GetItemTypes(
+                ArasTranslationSupport.GetConnectedInnovator(_connectionService));
         }
         catch (Exception ex)
         {
-            await _errorLogService.LogErrorAsync("属性翻译-获取对象类列表", ex.Message, ErrorLog.LevelP1, ex.StackTrace);
+            await _errorLogService.LogErrorAsync("字段翻译-获取对象类", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
         }
-        return items;
     }
 
     public async Task<List<PropertyItem>> GetPropertiesByItemTypeIdAsync(string itemTypeId)
     {
-        var props = new List<PropertyItem>();
         try
         {
-            var innovator = _connectionService.TypedInnovator;
-            if (innovator == null) return props;
-
-            var aml = $"<AML><Item type='ItemType' action='get' select='id,name,label'><id>{itemTypeId}</id><Relationships><Item type='Property' action='get' select='id,name,label,data_type'></Item></Relationships></Item></AML>";
-            var result = innovator.applyAML(aml);
-            if (result.isError()) return props;
+            var innovator = ArasTranslationSupport.GetConnectedInnovator(_connectionService);
+            var aml = new XElement("AML",
+                new XElement("Item",
+                    new XAttribute("type", "ItemType"),
+                    new XAttribute("action", "get"),
+                    new XAttribute("select", "id,name,label"),
+                    new XElement("id", itemTypeId),
+                    new XElement("Relationships",
+                        new XElement("Item",
+                            new XAttribute("type", "Property"),
+                            new XAttribute("action", "get"),
+                            new XAttribute("select", "id,name,label,data_type,sort_order")))));
+            var result = innovator.applyAML(aml.ToString(SaveOptions.DisableFormatting));
+            ArasTranslationSupport.ThrowIfError(result, "读取对象类字段失败");
+            if (result.getItemCount() == 0)
+                return [];
 
             var itemType = result.getItemByIndex(0);
-            var itemTypeName = itemType.getProperty("name", "");
-            var rels = itemType.getRelationships();
-            int count = rels.getItemCount();
-            for (int i = 0; i < count; i++)
+            var itemTypeName = itemType.getProperty("name", string.Empty);
+            var relationships = itemType.getRelationships();
+            var properties = new List<PropertyItem>();
+            for (var index = 0; index < relationships.getItemCount(); index++)
             {
-                var r = rels.getItemByIndex(i);
-                props.Add(new PropertyItem
+                var property = relationships.getItemByIndex(index);
+                properties.Add(new PropertyItem
                 {
-                    Id = r.getID(),
-                    Name = r.getProperty("name", ""),
-                    Label = r.getProperty("label", ""),
-                    DataType = r.getProperty("data_type", ""),
-                    ItemTypeName = itemTypeName
+                    Id = property.getID(),
+                    Name = property.getProperty("name", string.Empty),
+                    Label = property.getProperty("label", string.Empty),
+                    DataType = property.getProperty("data_type", string.Empty),
+                    ItemTypeName = itemTypeName,
+                    IsSelected = true
                 });
             }
+
+            return properties
+                .Where(property => !string.IsNullOrWhiteSpace(property.Id))
+                .OrderBy(property => property.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
         }
         catch (Exception ex)
         {
-            await _errorLogService.LogErrorAsync("属性翻译-获取属性列表", ex.Message, ErrorLog.LevelP1, ex.StackTrace);
+            await _errorLogService.LogErrorAsync("字段翻译-获取字段", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
         }
-        return props;
     }
 
     public Task<List<PropertyItem>> QueryPropertiesByAmlAsync(string aml)
-    {
-        return Task.FromResult(new List<PropertyItem>());
-    }
+        => Task.FromResult(new List<PropertyItem>());
 
     public Task<List<PropertyItem>> QueryPropertiesBySqlAsync(string sql)
-    {
-        return Task.FromResult(new List<PropertyItem>());
-    }
+        => Task.FromResult(new List<PropertyItem>());
 
-    public async Task<TranslationTask> CreateTaskAsync(string taskName, string queryMode, string queryCondition, string sourceLanguage, string targetLanguages, int totalFields)
-    {
-        var task = new TranslationTask
-        {
-            TaskName = taskName,
-            QueryMode = queryMode,
-            QueryCondition = queryCondition,
-            SourceLanguage = sourceLanguage,
-            TargetLanguages = targetLanguages,
-            TotalFields = totalFields,
-            Status = "Pending",
-            CreatorOn = DateTime.Now
-        };
+    public Task<TranslationTask> CreateTaskAsync(
+        string taskName,
+        string queryMode,
+        string queryCondition,
+        string sourceLanguage,
+        string targetLanguages,
+        int totalFields)
+        => _translationLogService.CreateTaskAsync(
+            TaskType, taskName, queryCondition, sourceLanguage, targetLanguages, totalFields);
 
-        using var db = await _dbFactory.CreateDbContextAsync();
-        db.Set<TranslationTask>().Add(task);
-        await db.SaveChangesAsync();
-        await _operationLogService.LogAsync("Create", "TranslationTask", task.Id, $"创建属性翻译任务: {taskName}");
-        return task;
-    }
-
-    public async Task TranslateAsync(TranslationTask task, List<PropertyItem> properties, string sourceLanguage, string targetLanguages, IProgress<TranslationProgressInfo>? progress = null, CancellationToken cancellationToken = default)
+    public async Task TranslateAsync(
+        TranslationTask task,
+        List<PropertyItem> properties,
+        string sourceLanguage,
+        string targetLanguages,
+        IProgress<TranslationProgressInfo>? progress = null,
+        CancellationToken cancellationToken = default)
     {
+        var selected = properties.Where(property => property.IsSelected).ToList();
+        var targets = ArasTranslationSupport.ParseTargets(targetLanguages);
+        var records = new List<TranslationRecord>();
+        var completedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var totalOperations = selected.Count * targets.Count;
+        var completedOperations = 0;
+
+        if (selected.Count == 0)
+            throw new InvalidOperationException("至少需要选择一个字段进行翻译。");
+
         try
         {
-            task.Status = "Translating";
-            var targets = targetLanguages.Split(',', StringSplitOptions.RemoveEmptyEntries);
-            int total = properties.Count * targets.Length;
-            int done = 0;
+            await _translationLogService.SaveOutcomeAsync(
+                task, [], "Translating", 0, $"0/{totalOperations}");
+            var innovator = ArasTranslationSupport.GetConnectedInnovator(_connectionService);
 
             foreach (var target in targets)
             {
-                foreach (var prop in properties)
+                foreach (var property in selected)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var prompt = $"将以下文本从{sourceLanguage}翻译为{target.Trim()}，只返回翻译结果，不要解释：{prop.Label}";
-                    var translated = await _aiDispatcher.ChatAsync(prompt, cancellationToken: cancellationToken);
-                    prop.Label = translated.Trim();
-                    done++;
-                    progress?.Report(new TranslationProgressInfo
-                    {
-                        Phase = "翻译中",
-                        Current = done,
-                        PhaseTotal = total,
-                        OverallCurrent = done,
-                        OverallTotal = total,
-                        ItemName = prop.Name
-                    });
+                    var original = string.IsNullOrWhiteSpace(property.Label)
+                        ? property.Name
+                        : property.Label;
+                    var translated = await ArasTranslationSupport.TranslateTextAsync(
+                        _aiDispatcher,
+                        original,
+                        sourceLanguage,
+                        target,
+                        $"Aras 对象类 {property.ItemTypeName} 的字段标签",
+                        cancellationToken);
+
+                    ArasTranslationSupport.ApplyLocalizedValues(
+                        innovator,
+                        "Property",
+                        property.Id,
+                        target,
+                        new Dictionary<string, string> { ["label"] = translated });
+
+                    records.Add(ArasTranslationSupport.CreateRecord(
+                        task, property.Id, property.Name, original, translated, target));
+                    property.TranslationPreview = AppendPreview(
+                        property.TranslationPreview, target.Name, translated);
+                    completedIds.Add(property.Id);
+                    completedOperations++;
+                    progress?.Report(CreateProgress(
+                        completedOperations, totalOperations, property.Name, target.Name));
                 }
             }
 
-            task.TranslatedFields = properties.Count;
-            task.ProgressText = $"{done}/{total}";
-            task.Status = "Completed";
-
-            using var db = await _dbFactory.CreateDbContextAsync();
-            db.Set<TranslationTask>().Update(task);
-            await db.SaveChangesAsync();
-            await _operationLogService.LogAsync("Update", "TranslationTask", task.Id, $"属性翻译完成: {task.TaskName}");
+            await _translationLogService.SaveOutcomeAsync(
+                task,
+                records,
+                "Completed",
+                completedIds.Count,
+                $"{completedOperations}/{totalOperations}");
         }
         catch (OperationCanceledException)
         {
-            task.Status = "Cancelled";
-            using var db = await _dbFactory.CreateDbContextAsync();
-            db.Set<TranslationTask>().Update(task);
-            await db.SaveChangesAsync();
+            await _translationLogService.SaveOutcomeAsync(
+                task,
+                records,
+                "Cancelled",
+                completedIds.Count,
+                $"{completedOperations}/{totalOperations}");
+            throw;
         }
         catch (Exception ex)
         {
-            task.Status = "Failed";
-            await _errorLogService.LogErrorAsync("属性翻译-执行翻译", ex.Message, ErrorLog.LevelP1, ex.StackTrace);
-            using var db = await _dbFactory.CreateDbContextAsync();
-            db.Set<TranslationTask>().Update(task);
-            await db.SaveChangesAsync();
+            try
+            {
+                await _translationLogService.SaveOutcomeAsync(
+                    task,
+                    records,
+                    "Failed",
+                    completedIds.Count,
+                    $"{completedOperations}/{totalOperations}");
+            }
+            catch
+            {
+                // 原始异常优先返回。
+            }
+
+            await _errorLogService.LogErrorAsync("字段翻译-执行", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
         }
     }
 
     public async Task<string> ExportToExcelAsync(TranslationTask task, List<PropertyItem> properties)
     {
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        var dateFolder = DateTime.Now.ToString("yyyy_M_d");
-        var dir = Path.Combine(baseDir, OutputDir, dateFolder);
-        Directory.CreateDirectory(dir);
-        var filePath = Path.Combine(dir, $"{task.TaskName}_{DateTime.Now:HHmmss}.xlsx");
-
-        using var package = new ExcelPackage();
-        var ws = package.Workbook.Worksheets.Add("属性翻译");
-        ws.Cells[1, 1].Value = "属性名称";
-        ws.Cells[1, 2].Value = "标签";
-        ws.Cells[1, 3].Value = "数据类型";
-        ws.Cells[1, 4].Value = "对象类";
-        for (int i = 0; i < properties.Count; i++)
+        try
         {
-            ws.Cells[i + 2, 1].Value = properties[i].Name;
-            ws.Cells[i + 2, 2].Value = properties[i].Label;
-            ws.Cells[i + 2, 3].Value = properties[i].DataType;
-            ws.Cells[i + 2, 4].Value = properties[i].ItemTypeName;
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            var directory = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                OutputDir,
+                DateTime.Now.ToString("yyyy_M_d"));
+            Directory.CreateDirectory(directory);
+            var filePath = Path.Combine(directory, $"{task.TaskName}_{DateTime.Now:HHmmss}.xlsx");
+
+            using var package = new ExcelPackage();
+            var worksheet = package.Workbook.Worksheets.Add("字段翻译");
+            worksheet.Cells[1, 1].Value = "字段名称";
+            worksheet.Cells[1, 2].Value = "原标签";
+            worksheet.Cells[1, 3].Value = "翻译结果";
+            worksheet.Cells[1, 4].Value = "数据类型";
+            worksheet.Cells[1, 5].Value = "对象类";
+            for (var index = 0; index < properties.Count; index++)
+            {
+                worksheet.Cells[index + 2, 1].Value = properties[index].Name;
+                worksheet.Cells[index + 2, 2].Value = properties[index].Label;
+                worksheet.Cells[index + 2, 3].Value = properties[index].TranslationPreview;
+                worksheet.Cells[index + 2, 4].Value = properties[index].DataType;
+                worksheet.Cells[index + 2, 5].Value = properties[index].ItemTypeName;
+            }
+
+            worksheet.Cells.AutoFitColumns();
+            await package.SaveAsAsync(new FileInfo(filePath));
+            await _translationLogService.SetOutputFileAsync(task.Id, filePath);
+            await _translationLogService.SaveOutcomeAsync(
+                task, [], "Completed", task.TotalFields, "已导出");
+            task.OutputFilePath = filePath;
+            return filePath;
         }
-        ws.Cells.AutoFitColumns();
-        await package.SaveAsAsync(new FileInfo(filePath));
-
-        task.OutputFilePath = filePath;
-        using var db = await _dbFactory.CreateDbContextAsync();
-        db.Set<TranslationTask>().Update(task);
-        await db.SaveChangesAsync();
-        return filePath;
+        catch (Exception ex)
+        {
+            await _errorLogService.LogErrorAsync("字段翻译-导出", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+            throw;
+        }
     }
 
-    public async Task<(List<TranslationTask> Items, int TotalCount)> GetTaskHistoryAsync(string? userId = null, int page = 1, int pageSize = 20)
-    {
-        using var db = await _dbFactory.CreateDbContextAsync();
-        var query = db.Set<TranslationTask>().AsQueryable();
-        if (!string.IsNullOrEmpty(userId))
-            query = query.Where(x => x.UserId == userId);
-        var total = await query.CountAsync();
-        var items = await query.OrderByDescending(x => x.CreatorOn)
-            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-        return (items, total);
-    }
+    public Task<(List<TranslationTask> Items, int TotalCount)> GetTaskHistoryAsync(
+        string? userId = null,
+        int page = 1,
+        int pageSize = 20)
+        => _translationLogService.GetTasksAsync(
+            userId, TaskType, null, null, page, pageSize);
+
+    private static TranslationProgressInfo CreateProgress(
+        int current,
+        int total,
+        string itemName,
+        string targetLanguage)
+        => new()
+        {
+            Phase = $"正在翻译为{targetLanguage}",
+            Current = current,
+            PhaseTotal = total,
+            OverallCurrent = current,
+            OverallTotal = total,
+            ItemName = itemName
+        };
+
+    private static string AppendPreview(string current, string language, string translated)
+        => string.IsNullOrWhiteSpace(current)
+            ? $"{language}: {translated}"
+            : $"{current}；{language}: {translated}";
 }
-
-

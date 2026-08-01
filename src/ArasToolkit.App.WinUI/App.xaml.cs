@@ -73,6 +73,8 @@ public partial class App : Application
         services.AddTransient<LifecycleConfigViewModel>();
         services.AddTransient<FieldTranslationViewModel>();
         services.AddTransient<PropertyTranslationViewModel>();
+        services.AddTransient<FormTranslationViewModel>();
+        services.AddTransient<ArasTranslationLogViewModel>();
         services.AddTransient<TextTranslationViewModel>();
         services.AddTransient<DatabaseExportViewModel>();
         services.AddTransient<DatabaseExportConfigViewModel>();
@@ -97,9 +99,10 @@ public partial class App : Application
         nav.Register("窗体配置", typeof(FormConfigurationPage));
         nav.Register("权限配置", typeof(PermissionConfigPage));
         nav.Register("生命周期配置", typeof(LifecycleConfigPage));
-        nav.Register("字段翻译", typeof(FieldTranslationPage));
-        nav.Register("表单翻译", typeof(FieldTranslationPage));
-        nav.Register("窗体翻译", typeof(PropertyTranslationPage));
+        nav.Register("字段翻译", typeof(PropertyTranslationPage));
+        nav.Register("表单翻译", typeof(FormTranslationPage));
+        nav.Register("窗体翻译", typeof(FieldTranslationPage));
+        nav.Register("Aras翻译日志", typeof(ArasTranslationLogPage));
         nav.Register("文本翻译", typeof(TextTranslationPage));
         nav.Register("翻译历史", typeof(TranslationHistoryPage));
         nav.Register("数据库导出", typeof(DatabaseExportPage));
