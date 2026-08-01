@@ -11,6 +11,7 @@ public class ItemTypeItem
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Label { get; set; } = string.Empty;
+    public string DisplayName => string.IsNullOrWhiteSpace(Label) ? Name : $"{Label} ({Name})";
 }
 
 public class PropertyItem
@@ -20,6 +21,8 @@ public class PropertyItem
     public string Label { get; set; } = string.Empty;
     public string DataType { get; set; } = string.Empty;
     public string ItemTypeName { get; set; } = string.Empty;
+    public bool IsSelected { get; set; } = true;
+    public string TranslationPreview { get; set; } = string.Empty;
 }
 
 public interface IPropertyTranslationService

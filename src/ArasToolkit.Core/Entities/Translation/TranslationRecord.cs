@@ -17,29 +17,42 @@ public class TranslationRecord
     [Required]
     public string TaskId { get; set; } = string.Empty;
 
-    [Column("field_id")]
+    [Column("item_type")]
+    [MaxLength(100)]
+    public string? ItemType { get; set; }
+
+    [Column("item_id")]
     [MaxLength(50)]
     public string? FieldId { get; set; }
+
+    [Column("item_name")]
+    [MaxLength(200)]
+    public string? ItemName { get; set; }
 
     [Column("field_name")]
     [MaxLength(200)]
     public string? FieldName { get; set; }
 
-    [Column("original_label")]
-    [MaxLength(500)]
+    [Column("original_text")]
     public string? OriginalLabel { get; set; }
 
-    [Column("translated_label")]
-    [MaxLength(500)]
+    [Column("translated_text")]
     public string? TranslatedLabel { get; set; }
 
-    [Column("target_language")]
+    [Column("language")]
     [MaxLength(50)]
     public string? TargetLanguage { get; set; }
+
+    [Column("status")]
+    [MaxLength(50)]
+    public string Status { get; set; } = "Completed";
 
     [Column("creator_on")]
     public DateTime CreatorOn { get; set; } = DateTime.Now;
 
     [NotMapped]
     public string DisplayCreatedAt => CreatorOn.ToString("yyyy-MM-dd HH:mm:ss");
+
+    [NotMapped]
+    public string TranslationDisplay => $"{OriginalLabel} → {TranslatedLabel}";
 }

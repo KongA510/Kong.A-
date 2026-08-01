@@ -5,14 +5,14 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace ArasToolkit.App.WinUI.Views;
 
-public sealed partial class FieldTranslationPage : Page
+public sealed partial class FormTranslationPage : Page
 {
-    private FieldTranslationViewModel Vm => (FieldTranslationViewModel)DataContext;
+    private FormTranslationViewModel Vm => (FormTranslationViewModel)DataContext;
 
-    public FieldTranslationPage()
+    public FormTranslationPage()
     {
         InitializeComponent();
-        DataContext = App.Services.GetRequiredService<FieldTranslationViewModel>();
+        DataContext = App.Services.GetRequiredService<FormTranslationViewModel>();
         Loaded += Page_Loaded;
     }
 

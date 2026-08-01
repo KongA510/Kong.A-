@@ -10,6 +10,11 @@ public class ArasFormItem
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public string ItemTypeName { get; set; } = string.Empty;
+    public bool IsSelected { get; set; } = true;
+    public string TranslationPreview { get; set; } = string.Empty;
+    public string DisplayName => string.IsNullOrWhiteSpace(Label) ? Name : $"{Label} ({Name})";
 }
 
 public class FieldItem
@@ -19,10 +24,14 @@ public class FieldItem
     public string Label { get; set; } = string.Empty;
     public string Legend { get; set; } = string.Empty;
     public string FormName { get; set; } = string.Empty;
+    public bool IsSelected { get; set; } = true;
+    public string TranslationPreview { get; set; } = string.Empty;
 }
 
 public interface IFieldTranslationService
 {
+    Task<List<ItemTypeItem>> GetItemTypeListAsync();
+    Task<List<ArasFormItem>> GetFormsByItemTypeIdAsync(string itemTypeId);
     Task<List<ArasFormItem>> GetFormListAsync();
     Task<List<FieldItem>> GetFieldsByFormIdAsync(string formId);
     Task<List<FieldItem>> QueryFieldsByAmlAsync(string aml);

@@ -3,6 +3,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
     <Grid Margin="32,28" RowSpacing="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -11,7 +13,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
@@ -186,7 +188,8 @@
                     <!-- 表体 -->
                     <ListView Grid.Row="1" ItemsSource="{Binding HistoryRecords}"
                               Style="{ThemeResource TableListView}"
-                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                              MaxHeight="420">
                         <ListView.ItemTemplate>
                             <DataTemplate>
                                 <Border Padding="16,11" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1">
@@ -239,4 +242,5 @@
             </Grid>
         </Border>
     </Grid>
+    </ScrollViewer>
 </Page>

@@ -99,39 +99,17 @@ public class AppUserService : IAppUserService
             ";
             await context.Database.ExecuteSqlRawAsync(sql);
 
-            // Update existing plaintext passwords to MD5
-            try
-            {
-                await context.Database.ExecuteSqlRawAsync(
-                    "UPDATE app_user SET password = N'915d92dbc92c8b655764d3df7e22161b' WHERE username = N'xinke.wang';" +
-                    "UPDATE app_user SET password = N'21232f297a57a5a743894a0e4a801fc3' WHERE username = N'admin';");
-            }
-            catch { }
-
-            // 插入默认管理员（如果不存在）
+            // 仅在部署方显式提供一次性引导密码时创建管理员，避免内置已知口令。
             var adminExists = await context.Set<AppUser>().AnyAsync(u => u.Username == "admin");
-            if (!adminExists)
+            var bootstrapPassword = Environment.GetEnvironmentVariable(
+                "ARAS_TOOLKIT_BOOTSTRAP_ADMIN_PASSWORD");
+            if (!adminExists && !string.IsNullOrWhiteSpace(bootstrapPassword))
             {
                 context.Set<AppUser>().Add(new AppUser
                 {
                     Username = "admin",
-                    Password = "21232f297a57a5a743894a0e4a801fc3",
+                    Password = bootstrapPassword.ToMd5(),
                     DisplayName = "系统管理员",
-                    IsAdmin = true,
-                    CreatorOn = DateTime.Now
-                });
-                await context.SaveChangesAsync();
-            }
-
-            // 插入管理员 xinke.wang（如果不存在）
-            var xinkeExists = await context.Set<AppUser>().AnyAsync(u => u.Username == "xinke.wang");
-            if (!xinkeExists)
-            {
-                context.Set<AppUser>().Add(new AppUser
-                {
-                    Username = "xinke.wang",
-                    Password = "915d92dbc92c8b655764d3df7e22161b",
-                    DisplayName = "王新轲",
                     IsAdmin = true,
                     CreatorOn = DateTime.Now
                 });

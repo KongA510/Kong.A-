@@ -56,7 +56,8 @@ public class ArasLoginConfigService : IArasLoginConfigService
             existing.Username = config.Username;
             if (!string.IsNullOrEmpty(config.Md5Password))
                 existing.Md5Password = config.Md5Password;
-            existing.IsEnabled = config.IsEnabled;
+            // 编辑连接只更新连接参数，不应清除用户已选择的默认连接状态。
+            // 默认连接只能通过 EnableAsync 显式切换，保证同一用户最多一条启用记录。
         }
         else
         {
@@ -102,18 +103,27 @@ public class ArasLoginConfigService : IArasLoginConfigService
 
     public async Task<ArasLoginConfig?> GetEnabledAsync(string? userId)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+            return null;
+
         await using var db = await _dbFactory.CreateDbContextAsync();
         return await db.ArasLoginConfigs
-            .Where(c => c.IsEnabled)
+            .Where(c => c.UserId == userId && c.IsEnabled)
             .OrderByDescending(c => c.CreatorOn)
             .FirstOrDefaultAsync();
     }
 
     public async Task EnableAsync(string id, string userId)
     {
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("连接 ID 和用户 ID 不能为空。");
+
         await using var db = await _dbFactory.CreateDbContextAsync();
         // 禁用该用户所有配置，仅启用目标
         var all = await db.ArasLoginConfigs.Where(c => c.UserId == userId).ToListAsync();
+        if (all.All(c => c.Id != id))
+            throw new InvalidOperationException("指定的 Aras 连接不属于当前用户。");
+
         foreach (var c in all)
             c.IsEnabled = (c.Id == id);
         await db.SaveChangesAsync();

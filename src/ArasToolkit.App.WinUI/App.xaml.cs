@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using ArasToolkit.App.WinUI.Services;
 using ArasToolkit.App.WinUI.ViewModels;
 using ArasToolkit.App.WinUI.Views;
+using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,8 +29,7 @@ public partial class App : Application
         this.InitializeComponent();
         ConfigureServices();
 
-        this.UnhandledException += (s, e) =>
-            System.Diagnostics.Debug.WriteLine($"[WinUI Unhandled] {e.Exception}");
+        this.UnhandledException += OnUnhandledException;
 
         // R37lib 子目录程序集探测（IOM.dll 运行时依赖）
         AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
@@ -68,10 +68,13 @@ public partial class App : Application
         services.AddTransient<ObjectClassConfigViewModel>();
         services.AddTransient<ListConfigViewModel>();
         services.AddTransient<PropertyConfigViewModel>();
+        services.AddTransient<FormConfigurationViewModel>();
         services.AddTransient<PermissionConfigViewModel>();
         services.AddTransient<LifecycleConfigViewModel>();
         services.AddTransient<FieldTranslationViewModel>();
         services.AddTransient<PropertyTranslationViewModel>();
+        services.AddTransient<FormTranslationViewModel>();
+        services.AddTransient<ArasTranslationLogViewModel>();
         services.AddTransient<TextTranslationViewModel>();
         services.AddTransient<DatabaseExportViewModel>();
         services.AddTransient<DatabaseExportConfigViewModel>();
@@ -93,11 +96,13 @@ public partial class App : Application
         nav.Register("对象类配置", typeof(ObjectClassConfigPage));
         nav.Register("List配置", typeof(ListConfigPage));
         nav.Register("属性配置", typeof(PropertyConfigPage));
+        nav.Register("窗体配置", typeof(FormConfigurationPage));
         nav.Register("权限配置", typeof(PermissionConfigPage));
         nav.Register("生命周期配置", typeof(LifecycleConfigPage));
-        nav.Register("字段翻译", typeof(FieldTranslationPage));
-        nav.Register("表单翻译", typeof(FieldTranslationPage));
-        nav.Register("窗体翻译", typeof(PropertyTranslationPage));
+        nav.Register("字段翻译", typeof(PropertyTranslationPage));
+        nav.Register("表单翻译", typeof(FormTranslationPage));
+        nav.Register("窗体翻译", typeof(FieldTranslationPage));
+        nav.Register("Aras翻译日志", typeof(ArasTranslationLogPage));
         nav.Register("文本翻译", typeof(TextTranslationPage));
         nav.Register("翻译历史", typeof(TranslationHistoryPage));
         nav.Register("数据库导出", typeof(DatabaseExportPage));
@@ -117,5 +122,20 @@ public partial class App : Application
     {
         MainWindow = new MainWindow();
         MainWindow.Activate();
+    }
+
+    private async void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine($"[WinUI Unhandled] {e.Exception}");
+        try
+        {
+            var errorLogService = Services.GetRequiredService<IErrorLogService>();
+            await errorLogService.LogErrorAsync("WinUI-未处理异常", e.Exception.Message,
+                ErrorLog.LevelP0, e.Exception.StackTrace);
+        }
+        catch (Exception logException)
+        {
+            System.Diagnostics.Debug.WriteLine($"[WinUI Unhandled] 错误日志写入失败: {logException.Message}");
+        }
     }
 }

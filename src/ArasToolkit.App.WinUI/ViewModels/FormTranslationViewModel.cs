@@ -8,15 +8,14 @@ using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.App.WinUI.ViewModels;
 
-/// <summary>按对象类和关联 Form 加载 Field，并翻译窗体控件标签及说明。</summary>
-public sealed class FieldTranslationViewModel : ObservableObject
+/// <summary>按 Aras 对象类加载关联 Form，并翻译 Form 多语言标签。</summary>
+public sealed class FormTranslationViewModel : ObservableObject
 {
-    private readonly IFieldTranslationService _service;
+    private readonly IFormTranslationService _service;
     private readonly IArasConnectionService _connectionService;
     private readonly IAiDispatcherService _aiDispatcherService;
     private readonly IErrorLogService _errorLogService;
     private ItemTypeItem? _selectedItemType;
-    private ArasFormItem? _selectedForm;
     private string _itemTypeSearchText = string.Empty;
     private string _sourceLanguage = "简体中文";
     private string _targetLanguages = "繁体中文,英文";
@@ -28,8 +27,8 @@ public sealed class FieldTranslationViewModel : ObservableObject
     private TranslationProgressInfo? _progress;
     private CancellationTokenSource? _cancellationTokenSource;
 
-    public FieldTranslationViewModel(
-        IFieldTranslationService service,
+    public FormTranslationViewModel(
+        IFormTranslationService service,
         IArasConnectionService connectionService,
         IAiDispatcherService aiDispatcherService,
         IErrorLogService errorLogService)
@@ -42,19 +41,16 @@ public sealed class FieldTranslationViewModel : ObservableObject
         LoadItemTypesCommand = new RelayCommand(async _ => await LoadItemTypesAsync(), _ => !IsBusy);
         LoadFormsCommand = new RelayCommand(async _ => await LoadFormsAsync(),
             _ => !IsBusy && SelectedItemType != null);
-        LoadFieldsCommand = new RelayCommand(async _ => await LoadFieldsAsync(),
-            _ => !IsBusy && SelectedForm != null);
-        SelectAllCommand = new RelayCommand(_ => SetAllSelected(true), _ => !IsBusy && Fields.Count > 0);
-        ClearSelectionCommand = new RelayCommand(_ => SetAllSelected(false), _ => !IsBusy && Fields.Count > 0);
-        TranslateCommand = new RelayCommand(async _ => await TranslateAsync(), _ => !IsBusy && Fields.Count > 0);
+        SelectAllCommand = new RelayCommand(_ => SetAllSelected(true), _ => !IsBusy && Forms.Count > 0);
+        ClearSelectionCommand = new RelayCommand(_ => SetAllSelected(false), _ => !IsBusy && Forms.Count > 0);
+        TranslateCommand = new RelayCommand(async _ => await TranslateAsync(), _ => !IsBusy && Forms.Count > 0);
         CancelCommand = new RelayCommand(_ => _cancellationTokenSource?.Cancel(), _ => IsBusy);
-        ExportCommand = new RelayCommand(async _ => await ExportAsync(), _ => !IsBusy && Fields.Count > 0);
+        ExportCommand = new RelayCommand(async _ => await ExportAsync(), _ => !IsBusy && Forms.Count > 0);
     }
 
     public ObservableCollection<ItemTypeItem> ItemTypes { get; } = [];
     public ObservableCollection<ItemTypeItem> FilteredItemTypes { get; } = [];
     public ObservableCollection<ArasFormItem> Forms { get; } = [];
-    public ObservableCollection<FieldItem> Fields { get; } = [];
     public ObservableCollection<string> SourceLanguages { get; } =
         ["简体中文", "繁体中文", "英文", "日文", "韩文", "法文", "德文", "西班牙文"];
 
@@ -65,22 +61,8 @@ public sealed class FieldTranslationViewModel : ObservableObject
         {
             if (!SetProperty(ref _selectedItemType, value)) return;
             Forms.Clear();
-            SelectedForm = null;
-            Fields.Clear();
             NotifyCollectionState();
             (LoadFormsCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        }
-    }
-
-    public ArasFormItem? SelectedForm
-    {
-        get => _selectedForm;
-        set
-        {
-            if (!SetProperty(ref _selectedForm, value)) return;
-            Fields.Clear();
-            NotifyCollectionState();
-            (LoadFieldsCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 
@@ -135,12 +117,11 @@ public sealed class FieldTranslationViewModel : ObservableObject
     public double ProgressPercentage => Progress?.Percentage ?? 0;
     public string ProgressText => Progress?.StatusText ?? string.Empty;
     public bool IsProgressIndeterminate => IsBusy && Progress == null;
-    public string SelectionSummary => $"共 {Fields.Count} 个窗体字段，已选择 {Fields.Count(item => item.IsSelected)} 个";
+    public string SelectionSummary => $"共 {Forms.Count} 个关联表单，已选择 {Forms.Count(item => item.IsSelected)} 个";
     public string ItemTypeFilterSummary => $"显示 {FilteredItemTypes.Count}/{ItemTypes.Count} 个对象类";
 
     public ICommand LoadItemTypesCommand { get; }
     public ICommand LoadFormsCommand { get; }
-    public ICommand LoadFieldsCommand { get; }
     public ICommand SelectAllCommand { get; }
     public ICommand ClearSelectionCommand { get; }
     public ICommand TranslateCommand { get; }
@@ -174,7 +155,7 @@ public sealed class FieldTranslationViewModel : ObservableObject
         catch (Exception ex)
         {
             AiModelText = "AI：配置读取失败";
-            await _errorLogService.LogErrorAsync("窗体翻译-读取AI配置", ex.Message,
+            await _errorLogService.LogErrorAsync("表单翻译-读取AI配置", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
     }
@@ -195,7 +176,7 @@ public sealed class FieldTranslationViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"对象类加载失败：{ex.Message}";
-            await _errorLogService.LogErrorAsync("窗体翻译-加载对象类", ex.Message,
+            await _errorLogService.LogErrorAsync("表单翻译-加载对象类", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
@@ -208,48 +189,21 @@ public sealed class FieldTranslationViewModel : ObservableObject
     {
         if (SelectedItemType == null) return;
         IsBusy = true;
-        StatusMessage = $"正在加载 {SelectedItemType.DisplayName} 的关联窗体…";
+        StatusMessage = $"正在加载 {SelectedItemType.DisplayName} 的关联表单…";
         try
         {
             var forms = await _service.GetFormsByItemTypeIdAsync(SelectedItemType.Id);
             Forms.Clear();
-            Fields.Clear();
             foreach (var form in forms) Forms.Add(form);
-            SelectedForm = Forms.FirstOrDefault();
             NotifyCollectionState();
             StatusMessage = Forms.Count == 0
                 ? "该对象类没有关联的 Aras Form。"
-                : $"已加载 {Forms.Count} 个关联窗体，请选择后加载字段。";
+                : $"已加载 {Forms.Count} 个关联表单，默认全部选中。";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"窗体加载失败：{ex.Message}";
-            await _errorLogService.LogErrorAsync("窗体翻译-加载窗体", ex.Message,
-                ErrorLog.LevelP1, ex.StackTrace);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    private async Task LoadFieldsAsync()
-    {
-        if (SelectedForm == null) return;
-        IsBusy = true;
-        StatusMessage = $"正在加载 {SelectedForm.DisplayName} 的窗体字段…";
-        try
-        {
-            var fields = await _service.GetFieldsByFormIdAsync(SelectedForm.Id);
-            Fields.Clear();
-            foreach (var field in fields) Fields.Add(field);
-            NotifyCollectionState();
-            StatusMessage = $"已加载 {Fields.Count} 个窗体字段，默认全部选中。";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"窗体字段加载失败：{ex.Message}";
-            await _errorLogService.LogErrorAsync("窗体翻译-加载字段", ex.Message,
+            StatusMessage = $"表单加载失败：{ex.Message}";
+            await _errorLogService.LogErrorAsync("表单翻译-加载表单", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
@@ -260,10 +214,10 @@ public sealed class FieldTranslationViewModel : ObservableObject
 
     private async Task TranslateAsync()
     {
-        var selected = Fields.Where(item => item.IsSelected).ToList();
-        if (SelectedForm == null || selected.Count == 0)
+        var selected = Forms.Where(item => item.IsSelected).ToList();
+        if (SelectedItemType == null || selected.Count == 0)
         {
-            StatusMessage = "请先选择至少一个窗体字段。";
+            StatusMessage = "请先选择至少一个表单。";
             return;
         }
 
@@ -273,17 +227,17 @@ public sealed class FieldTranslationViewModel : ObservableObject
         try
         {
             var task = await _service.CreateTaskAsync(
-                $"窗体翻译-{SelectedForm.Name}", "窗体翻译", SelectedForm.Id,
+                $"表单翻译-{SelectedItemType.Name}", SelectedItemType.Id,
                 SourceLanguage, TargetLanguages, selected.Count);
             var progress = new Progress<TranslationProgressInfo>(value =>
             {
                 Progress = value;
                 StatusMessage = value.StatusText;
             });
-            await _service.TranslateAsync(task, Fields.ToList(), SourceLanguage,
+            await _service.TranslateAsync(task, Forms.ToList(), SourceLanguage,
                 TargetLanguages, progress, _cancellationTokenSource.Token);
             RefreshRows();
-            StatusMessage = "窗体字段翻译完成，标签与非空图例已写回 Aras；日志明细已保存。";
+            StatusMessage = "表单翻译完成，Form 多语言标签已写回 Aras；日志明细已保存。";
         }
         catch (OperationCanceledException)
         {
@@ -292,7 +246,7 @@ public sealed class FieldTranslationViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"翻译失败：{ex.Message}";
-            await _errorLogService.LogErrorAsync("窗体翻译-执行翻译", ex.Message,
+            await _errorLogService.LogErrorAsync("表单翻译-执行翻译", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
@@ -305,20 +259,20 @@ public sealed class FieldTranslationViewModel : ObservableObject
 
     private async Task ExportAsync()
     {
-        if (SelectedForm == null) return;
+        if (SelectedItemType == null) return;
         IsBusy = true;
         try
         {
             var task = await _service.CreateTaskAsync(
-                $"窗体导出-{SelectedForm.Name}", "窗体翻译", SelectedForm.Id,
-                SourceLanguage, TargetLanguages, Fields.Count);
-            var path = await _service.ExportToExcelAsync(task, Fields.ToList());
-            StatusMessage = $"窗体字段清单已导出：{path}";
+                $"表单导出-{SelectedItemType.Name}", SelectedItemType.Id,
+                SourceLanguage, TargetLanguages, Forms.Count);
+            var path = await _service.ExportToExcelAsync(task, Forms.ToList());
+            StatusMessage = $"表单清单已导出：{path}";
         }
         catch (Exception ex)
         {
             StatusMessage = $"导出失败：{ex.Message}";
-            await _errorLogService.LogErrorAsync("窗体翻译-导出", ex.Message,
+            await _errorLogService.LogErrorAsync("表单翻译-导出", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
@@ -348,15 +302,15 @@ public sealed class FieldTranslationViewModel : ObservableObject
 
     private void SetAllSelected(bool value)
     {
-        foreach (var field in Fields) field.IsSelected = value;
+        foreach (var form in Forms) form.IsSelected = value;
         RefreshRows();
     }
 
     private void RefreshRows()
     {
-        var rows = Fields.ToList();
-        Fields.Clear();
-        foreach (var row in rows) Fields.Add(row);
+        var rows = Forms.ToList();
+        Forms.Clear();
+        foreach (var row in rows) Forms.Add(row);
         NotifyCollectionState();
     }
 
@@ -370,7 +324,6 @@ public sealed class FieldTranslationViewModel : ObservableObject
     {
         (LoadItemTypesCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (LoadFormsCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (LoadFieldsCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (SelectAllCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (ClearSelectionCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (TranslateCommand as RelayCommand)?.RaiseCanExecuteChanged();

@@ -13,7 +13,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <NuGetAudit>false</NuGetAudit>
+    <NuGetAudit>true</NuGetAudit>
     <!-- NETSDK1206：框架依赖(unpackaged)模式下 win10-* 原生资产由已安装的 Windows App Runtime 提供，
          无需复制到输出，警告为良性，予以抑制。 -->
     <NoWarn>$(NoWarn);NETSDK1206</NoWarn>
@@ -54,8 +54,12 @@
   <Target Name="CopyConfigFiles" AfterTargets="Build">
     <ItemGroup>
       <ConfigFiles Include="..\ArasToolkit.Core\DBSeeting.json" />
+      <LocalConfigFiles Include="..\ArasToolkit.Core\DBSeeting.local.json"
+                        Condition="Exists('..\ArasToolkit.Core\DBSeeting.local.json')" />
     </ItemGroup>
     <Copy SourceFiles="@(ConfigFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(LocalConfigFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true"
+          Condition="'@(LocalConfigFiles)' != ''" />
   </Target>
 
 </Project>

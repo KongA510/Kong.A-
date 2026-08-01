@@ -3,21 +3,79 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid Padding="32">
-        <Border Style="{ThemeResource SimpleCard}"
-                HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-                <TextBlock x:Name="IconText" Text="&#xE74A;" FontFamily="Segoe Fluent Icons" FontSize="48" HorizontalAlignment="Center" />
-                <TextBlock x:Name="TitleText"
-                           FontSize="24" FontWeight="Bold"
-                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"
-                           HorizontalAlignment="Center" />
-                <TextBlock x:Name="DescText"
-                           FontSize="14"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           HorizontalAlignment="Center"
-                           TextWrapping="Wrap" />
+    <Grid Background="Transparent">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="32,24,32,36" Spacing="22">
+                <StackPanel Spacing="4">
+                    <TextBlock x:Name="TitleText" Style="{ThemeResource PageTitleText}" />
+                    <TextBlock x:Name="DescText" Style="{ThemeResource PageSubtitleText}" />
+                </StackPanel>
+
+                <GridView x:Name="FeatureGrid"
+                          IsItemClickEnabled="True"
+                          SelectionMode="None"
+                          ItemClick="FeatureGrid_ItemClick">
+                    <GridView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="3" />
+                        </ItemsPanelTemplate>
+                    </GridView.ItemsPanel>
+                    <GridView.ItemContainerStyle>
+                        <Style TargetType="GridViewItem">
+                            <Setter Property="Margin" Value="0,0,14,14" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                            <Setter Property="CornerRadius" Value="12" />
+                        </Style>
+                    </GridView.ItemContainerStyle>
+                    <GridView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Width="260" MinHeight="126" Style="{ThemeResource SimpleCard}">
+                                <Grid RowSpacing="10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="36" Height="36" CornerRadius="8"
+                                                Background="{ThemeResource AccentFillColorSecondaryBrush}">
+                                            <FontIcon Glyph="{Binding CardIcon}" FontSize="17"
+                                                      FontFamily="Segoe Fluent Icons"
+                                                      Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="15"
+                                                   FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <FontIcon Grid.Column="2" Glyph="&#xE72A;" FontSize="12"
+                                                  Foreground="{ThemeResource TextSecondaryBrush}"
+                                                  VerticalAlignment="Center" />
+                                    </Grid>
+                                    <TextBlock Grid.Row="1" Text="{Binding Description}"
+                                               Style="{ThemeResource CaptionText}" TextWrapping="Wrap"
+                                               TextTrimming="None" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </GridView.ItemTemplate>
+                </GridView>
+
+                <Border x:Name="EmptyState" Style="{ThemeResource SimpleCard}"
+                        HorizontalAlignment="Stretch" MinHeight="320" Visibility="Collapsed">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                        <FontIcon x:Name="IconText" Glyph="&#xE74A;" FontSize="48"
+                                  Foreground="{ThemeResource TextSecondaryBrush}" />
+                        <TextBlock Text="该功能尚未提供 WinUI 页面"
+                                   FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Text="当前入口已保留，后续迁移不会影响其他现有功能。"
+                                   Style="{ThemeResource PageSubtitleText}" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
             </StackPanel>
-        </Border>
+        </ScrollViewer>
     </Grid>
 </Page>

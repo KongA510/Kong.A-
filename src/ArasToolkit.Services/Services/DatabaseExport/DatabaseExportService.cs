@@ -54,6 +54,8 @@ public class DatabaseExportService : IDatabaseExportService
 
         try
         {
+            SqlReadOnlyQueryValidator.EnsureReadOnly(sqlQuery);
+
             await writer.WriteLineAsync("===== 数据库导出日志 =====").ConfigureAwait(false);
             await writer.WriteLineAsync($"开始时间: {startTime:yyyy-MM-dd HH:mm:ss}").ConfigureAwait(false);
             await writer.WriteLineAsync($"导出模式: {exportMode}").ConfigureAwait(false);

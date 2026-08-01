@@ -77,6 +77,9 @@ public static class ServiceCollectionExtensions
         // 注册属性配置导入服务（单例）
         services.AddSingleton<IPropertyImportService, PropertyImportService>();
 
+        // 注册 Aras 经典窗体配置服务（单例）
+        services.AddSingleton<IFormConfigurationService, FormConfigurationService>();
+
         // 注册权限配置导入服务（单例）
         services.AddSingleton<IPermissionImportService, PermissionImportService>();
 
@@ -93,10 +96,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDatabaseExportConfigService, DatabaseExportConfigService>();
 
         // 注册字段翻译服务（单例）
+        services.AddSingleton<IArasTranslationLogService, ArasTranslationLogService>();
         services.AddSingleton<IFieldTranslationService, FieldTranslationService>();
 
         // 注册属性翻译服务（单例）
         services.AddSingleton<IPropertyTranslationService, PropertyTranslationService>();
+        services.AddSingleton<IFormTranslationService, FormTranslationService>();
 
 
         return services;

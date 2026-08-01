@@ -5,8 +5,6 @@ using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
-using ArasToolkit.Services.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace ArasToolkit.App.WinUI.ViewModels;
 
@@ -15,7 +13,6 @@ public class DatabaseExportViewModel : ObservableObject
     private readonly IDatabaseExportService _exportService;
     private readonly ISqlTemplateService _templateService;
     private readonly IDatabaseExportConfigService _exportConfigService;
-    private readonly IDbContextFactory<ArasToolkitDbContext> _dbFactory;
     private readonly IErrorLogService _errorLogService;
 
     private string _connectionString = "";
@@ -39,13 +36,11 @@ public class DatabaseExportViewModel : ObservableObject
     public DatabaseExportViewModel(
         IDatabaseExportService exportService, ISqlTemplateService templateService,
         IDatabaseExportConfigService exportConfigService,
-        IDbContextFactory<ArasToolkitDbContext> dbFactory,
         IErrorLogService errorLogService)
     {
         _exportService = exportService;
         _templateService = templateService;
         _exportConfigService = exportConfigService;
-        _dbFactory = dbFactory;
         _errorLogService = errorLogService;
         HistoryRecords = new ObservableCollection<DatabaseExportLog>();
 
@@ -68,15 +63,6 @@ public class DatabaseExportViewModel : ObservableObject
 
     private async Task InitializeAsync()
     {
-        try
-        {
-            await using var db = await _dbFactory.CreateDbContextAsync();
-            await db.EnsureSchemaAsync();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[DBExport] Schema同步失败: {ex.Message}");
-        }
         await LoadConfigAsync();
         await LoadTemplatesAsync();
         await LoadHistoryAsync();

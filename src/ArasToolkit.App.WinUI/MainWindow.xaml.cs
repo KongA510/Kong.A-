@@ -3,8 +3,10 @@ using System.Threading.Tasks;
 using ArasToolkit.App.WinUI.Services;
 using ArasToolkit.App.WinUI.ViewModels;
 using ArasToolkit.App.WinUI.Views;
+using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -19,19 +21,24 @@ public sealed partial class MainWindow : Window
     private readonly MainViewModel _mainVM;
     private readonly NavigationService _navService;
     private readonly AppLoginViewModel _appLoginVM;
+    private readonly IArasConnectionService _connectionService;
 
     public MainWindow()
     {
         _mainVM = App.Services.GetRequiredService<MainViewModel>();
         _navService = App.Services.GetRequiredService<NavigationService>();
         _appLoginVM = App.Services.GetRequiredService<AppLoginViewModel>();
+        _connectionService = App.Services.GetRequiredService<IArasConnectionService>();
 
         this.InitializeComponent();
+
+        // 跟随 Windows 主题启用 Mica 背景，失效时由透明/系统背景自然回退。
+        SystemBackdrop = new MicaBackdrop { Kind = MicaKind.BaseAlt };
 
         // 根容器 DataContext 供 {Binding IsLoggedIn} 使用
         RootGrid.DataContext = _mainVM;
 
-        TryResize(1280, 720);
+        TryResize(1360, 820);
         VersionText.Text = _mainVM.VersionText;
 
         // 主界面导航
@@ -46,6 +53,10 @@ public sealed partial class MainWindow : Window
     /// <summary>登录成功 → 切换到主界面并导航到仪表盘（切回 UI 线程）。</summary>
     private void OnLoginSucceeded()
     {
+        // 应用账号发生切换时不得沿用上一个账号的全局 Aras 会话。
+        // 先清除旧连接，再由当前账号的默认配置重新建立连接。
+        _connectionService.Disconnect();
+
         DispatcherQueue.TryEnqueue(() =>
         {
             _mainVM.IsLoggedIn = true;
@@ -75,9 +86,11 @@ public sealed partial class MainWindow : Window
     /// <summary>退出登录 → 切回登录界面并重置导航选中态。</summary>
     public void ResetToLogin()
     {
+        _connectionService.Disconnect();
         _mainVM.IsLoggedIn = false;
         _mainVM.SelectedMenuItem = null;
         NavView.SelectedItem = null;
+        CurrentUserContext.Current = null;
         LoginFrame.Navigate(typeof(AppLoginPage), _appLoginVM);
     }
 

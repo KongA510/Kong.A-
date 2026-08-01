@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="个人工具箱">
 
-    <Grid x:Name="RootGrid" Background="{ThemeResource SystemBaseBrush}">
+    <Grid x:Name="RootGrid" Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
@@ -20,25 +20,51 @@
                         Grid.Row="0"
                         IsBackButtonVisible="Collapsed"
                         IsSettingsVisible="False"
-                        PaneDisplayMode="Left"
-                        OpenPaneLength="240"
+                        PaneDisplayMode="Auto"
+                        OpenPaneLength="260"
+                        CompactPaneLength="48"
+                        CompactModeThresholdWidth="720"
+                        ExpandedModeThresholdWidth="1080"
+                        AlwaysShowHeader="False"
+                        Background="Transparent"
                         ItemInvoked="NavView_ItemInvoked"
                         Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}}">
-            <Frame x:Name="ContentFrame" />
+            <NavigationView.PaneHeader>
+                <Grid x:Name="AppPaneHeader"
+                      Margin="4,6,8,12"
+                      ColumnSpacing="10"
+                      Visibility="{Binding IsPaneOpen, ElementName=NavView, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="32" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="32" Height="32" CornerRadius="8"
+                            Background="{ThemeResource AccentFillColorDefaultBrush}">
+                        <SymbolIcon Symbol="AllApps"
+                                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Aras Toolkit" FontWeight="SemiBold" />
+                        <TextBlock Text="WinUI 3" Style="{ThemeResource CaptionText}" />
+                    </StackPanel>
+                </Grid>
+            </NavigationView.PaneHeader>
+            <Frame x:Name="ContentFrame" Background="Transparent" />
         </NavigationView>
 
         <!-- 状态栏 -->
         <Border Grid.Row="1"
-                Background="{ThemeResource SystemFillColorNeutralBrush}"
-                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
                 BorderThickness="0,1,0,0"
-                Padding="16,4">
-            <StackPanel Orientation="Horizontal">
+                Padding="16,5">
+            <StackPanel Orientation="Horizontal" Spacing="12">
                 <TextBlock x:Name="VersionText" FontSize="11"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                <TextBlock Text=" | .NET 8.0 · WinUI 3" FontSize="11"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           Margin="12,0,0,0" />
+                <TextBlock Text=".NET 8 · Windows App SDK · Fluent UI" FontSize="11"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
         </Border>
     </Grid>
