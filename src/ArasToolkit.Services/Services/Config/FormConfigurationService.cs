@@ -556,7 +556,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
     {
         var borderHeight = CalculateFormHeight(fields) + BorderHeightOffset;
         var htmlCode = FormattableString.Invariant(
-            $"<div style=\"height:{borderHeight}px;width:{BorderHtmlWidth}px;border:1px solid\"> </div>");
+            $"<div style=\"height:{borderHeight}px;width:830px;border:1px solid\"> </div>");
 
         return new XElement("Item",
             new XAttribute("type", "Field"),
@@ -572,7 +572,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
             new XElement("font_size", "8pt"),
             new XElement("x", BorderFieldX),
             new XElement("y", BorderFieldY),
-            new XElement("z_index", BorderFieldZIndex),
+            new XElement("z_index", -1),
             new XElement("html_code", htmlCode),
             new XElement("display_length", BorderHtmlWidth));
     }
