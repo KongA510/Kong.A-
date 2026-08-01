@@ -23,6 +23,13 @@ public sealed class FormConfigurationService : IFormConfigurationService
     public const int ItemDisplayLength = 135;
     public const int TextDisplayLength = 150;
 
+    // HTML 边框字段固定放在所有数据字段之后，并以负层级显示在控件背后。
+    private const int BorderFieldX = 10;
+    private const int BorderFieldY = 20;
+    private const int BorderFieldZIndex = -1;
+    private const int BorderHtmlWidth = 830;
+    private const int BorderHeightOffset = 50;
+
     // 这四个系统属性如果存在，必须固定占据第一行且保持下列顺序。
     private static readonly IReadOnlyDictionary<string, int> PreferredOrder =
         new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -246,6 +253,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
     {
         ArgumentNullException.ThrowIfNull(request);
         ValidateRequest(request);
+        var generatedFieldCount = request.Fields.Count + 1; // 包含末尾自动追加的 HTML 边框字段。
 
         try
         {
@@ -293,7 +301,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
                     wasUpdated ? "Update" : "Create",
                     "ArasFormConfiguration",
                     formId,
-                    $"{(wasUpdated ? "覆盖" : "创建")}窗体: {request.FormName}，对象类: {request.ItemTypeName}，字段: {request.Fields.Count}")
+                    $"{(wasUpdated ? "覆盖" : "创建")}窗体: {request.FormName}，对象类: {request.ItemTypeName}，字段: {generatedFieldCount}")
                     .ConfigureAwait(false);
             }
             catch (Exception logException)
@@ -305,7 +313,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
             {
                 FormId = formId,
                 FormName = request.FormName,
-                FieldCount = request.Fields.Count,
+                FieldCount = generatedFieldCount,
                 WasUpdated = wasUpdated,
                 ViewAssigned = viewAssigned
             };
@@ -475,7 +483,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
     /// <summary>构造新增 Form、Body 和 Field 的完整 AML。</summary>
     private static XElement BuildAddFormAml(ArasFormConfigurationRequest request) =>
         new("AML",
-            new XElement("Item",
+                new XElement("Item",
                 new XAttribute("type", "Form"),
                 new XAttribute("action", "add"),
                 new XElement("name", request.FormName),
@@ -510,21 +518,64 @@ public sealed class FormConfigurationService : IFormConfigurationService
             new XElement("Relationships", BuildFieldItems(fields)));
 
     /// <summary>
-    /// 将布局模型转换为 Aras Field 关系项。
+    /// 将布局模型转换为 Aras Field 关系项，并在末尾追加一个 HTML 边框字段。
     /// propertytype_id 保持 Field 与原始 Property 的绑定关系。
     /// </summary>
     private static IEnumerable<XElement> BuildFieldItems(
-        IReadOnlyList<ArasFormFieldLayout> fields) => fields.Select(field =>
-            new XElement("Item",
-                new XAttribute("type", "Field"),
-                new XAttribute("action", "add"),
-                new XElement("name", field.Name),
-                new XElement("label", field.Label),
-                new XElement("field_type", field.FieldType),
-                new XElement("propertytype_id", field.PropertyId),
-                new XElement("x", field.X),
-                new XElement("y", field.Y),
-                new XElement("display_length", field.DisplayLength)));
+        IReadOnlyList<ArasFormFieldLayout> fields)
+    {
+        foreach (var field in fields)
+        {
+            yield return new XElement("Item",
+                    new XAttribute("type", "Field"),
+                    new XAttribute("action", "add"),
+                    new XElement("name", field.Name),
+                    new XElement("label", field.Label),
+                    new XElement("field_type", field.FieldType),
+                    new XElement("propertytype_id", field.PropertyId),
+                    new XElement("display_length_unit", "px"),
+                    new XElement("is_visible", "1"),
+                    new XElement("font_weight", "bold"),
+                    new XElement("label_position", "top"),
+                    new XElement("font_family", "arial, helvetica, sans-serif"),
+                    new XElement("font_size", "8pt"),
+                    new XElement("x", field.X),
+                    new XElement("y", field.Y),
+                    new XElement("display_length", field.DisplayLength));
+        }
+
+        // yield return 位于普通字段循环之后，保证新建和覆盖时边框始终是最后一个 Field。
+        yield return BuildBorderFieldItem(fields);
+    }
+
+    /// <summary>
+    /// 构造不绑定 Property 的 HTML 边框字段。X/Y 固定为 10/20，
+    /// HTML 高度使用当前 Form 计算高度加 50，宽度固定为 830px。
+    /// </summary>
+    private static XElement BuildBorderFieldItem(IReadOnlyList<ArasFormFieldLayout> fields)
+    {
+        var borderHeight = CalculateFormHeight(fields) + BorderHeightOffset;
+        var htmlCode = FormattableString.Invariant(
+            $"<div style=\"height:{borderHeight}px;width:{BorderHtmlWidth}px;border:1px solid\"> </div>");
+
+        return new XElement("Item",
+            new XAttribute("type", "Field"),
+            new XAttribute("action", "add"),
+            new XElement("name", "width_HTML"),
+            new XElement("label", "表单基础信息"),
+            new XElement("field_type", "html"),
+            new XElement("display_length_unit", "px"),
+            new XElement("is_visible", "1"),
+            new XElement("font_weight", "bold"),
+            new XElement("label_position", "top"),
+            new XElement("font_family", "arial, helvetica, sans-serif"),
+            new XElement("font_size", "8pt"),
+            new XElement("x", BorderFieldX),
+            new XElement("y", BorderFieldY),
+            new XElement("z_index", BorderFieldZIndex),
+            new XElement("html_code", htmlCode),
+            new XElement("display_length", BorderHtmlWidth));
+    }
 
     /// <summary>按四列布局计算窗体宽度，并为最右侧控件保留额外边距。</summary>
     private static int CalculateFormWidth() =>
