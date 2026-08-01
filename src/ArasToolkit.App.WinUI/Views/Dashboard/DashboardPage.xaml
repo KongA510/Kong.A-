@@ -156,7 +156,8 @@
                                             <Border Width="36" Height="36" CornerRadius="8"
                                                     Background="{ThemeResource AccentFillColorSecondaryBrush}">
                                                 <FontIcon Glyph="{Binding Icon}" FontSize="17"
-                                                          Foreground="{ThemeResource AccentBrush}"
+                                                          FontFamily="Segoe Fluent Icons"
+                                                          Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                             <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="15"

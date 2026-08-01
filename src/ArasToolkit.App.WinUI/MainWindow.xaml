@@ -25,23 +25,31 @@
                         CompactPaneLength="48"
                         CompactModeThresholdWidth="720"
                         ExpandedModeThresholdWidth="1080"
-                        PaneTitle="个人工具箱"
                         AlwaysShowHeader="False"
                         Background="Transparent"
                         ItemInvoked="NavView_ItemInvoked"
                         Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibility}}">
             <NavigationView.PaneHeader>
-                <StackPanel Orientation="Horizontal" Spacing="10" Margin="8,8,0,12">
+                <Grid x:Name="AppPaneHeader"
+                      Margin="4,6,8,12"
+                      ColumnSpacing="10"
+                      Visibility="{Binding IsPaneOpen, ElementName=NavView, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="32" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
                     <Border Width="32" Height="32" CornerRadius="8"
                             Background="{ThemeResource AccentFillColorDefaultBrush}">
-                        <FontIcon Glyph="&#xE943;" FontSize="16" Foreground="White"
-                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <SymbolIcon Symbol="AllApps"
+                                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
                     </Border>
-                    <StackPanel VerticalAlignment="Center">
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="Aras Toolkit" FontWeight="SemiBold" />
                         <TextBlock Text="WinUI 3" Style="{ThemeResource CaptionText}" />
                     </StackPanel>
-                </StackPanel>
+                </Grid>
             </NavigationView.PaneHeader>
             <Frame x:Name="ContentFrame" Background="Transparent" />
         </NavigationView>
