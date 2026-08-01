@@ -345,7 +345,21 @@ public class ArasLoginViewModel : ObservableObject
         try
         {
             var enabled = await _loginConfigService.GetEnabledAsync(CurrentUserContext.CurrentUserId);
-            if (enabled == null) return;
+            if (enabled == null)
+            {
+                StatusMessage = "当前用户未设置默认 Aras 连接";
+                return;
+            }
+
+            var current = _connectionService.CurrentConnection;
+            if (current != null &&
+                string.Equals(current.Url?.TrimEnd('/'), enabled.Url.TrimEnd('/'), StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(current.Database, enabled.DatabaseName, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(current.Username, enabled.Username, StringComparison.OrdinalIgnoreCase))
+            {
+                StatusMessage = $"已连接默认配置: {enabled.Username}@{enabled.DatabaseName}";
+                return;
+            }
 
             var info = new LoginInfo
             {
@@ -358,12 +372,14 @@ public class ArasLoginViewModel : ObservableObject
                 IsEnabled = true
             };
 
+            StatusMessage = $"正在连接默认配置: {enabled.Username}@{enabled.DatabaseName}...";
             await _loginService.LoginAsync(info);
-            StatusMessage = $"自动连接: {enabled.Username}@{enabled.DatabaseName}";
+            StatusMessage = $"已连接默认配置: {enabled.Username}@{enabled.DatabaseName}";
         }
         catch (Exception ex)
         {
             // 自动连接失败不弹窗，仅记录日志
+            StatusMessage = "默认 Aras 连接失败，请在“Aras连接”中检查配置";
             System.Diagnostics.Debug.WriteLine($"[ArasLogin] 自动连接失败: {ex.Message}");
             await _errorLogService.LogErrorAsync("Aras登录-自动连接", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);

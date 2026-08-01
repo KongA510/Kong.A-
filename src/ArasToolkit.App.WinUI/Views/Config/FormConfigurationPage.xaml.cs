@@ -16,11 +16,18 @@ public sealed partial class FormConfigurationPage : Page
         ViewModel = App.Services.GetRequiredService<FormConfigurationViewModel>();
         DataContext = ViewModel;
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         Loaded -= OnLoaded;
         await ViewModel.InitializeAsync();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        Unloaded -= OnUnloaded;
+        ViewModel.Dispose();
     }
 }

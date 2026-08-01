@@ -18,7 +18,7 @@
 
                 <InfoBar IsOpen="{Binding HasError}" IsClosable="False" Severity="Error"
                          Title="操作失败" Message="{Binding ErrorMessage}" />
-                <InfoBar IsOpen="{Binding HasStatus}" IsClosable="False" Severity="Success"
+                <InfoBar IsOpen="{Binding HasStatus}" IsClosable="False" Severity="Informational"
                          Title="当前状态" Message="{Binding StatusMessage}" />
 
                 <Border Style="{ThemeResource SimpleCard}">

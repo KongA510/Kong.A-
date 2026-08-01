@@ -4,15 +4,18 @@ using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
+using Microsoft.UI.Dispatching;
 
 namespace ArasToolkit.App.WinUI.ViewModels;
 
 /// <summary>Aras 经典窗体配置页面 ViewModel。</summary>
-public sealed class FormConfigurationViewModel : ObservableObject
+public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
 {
     private readonly IFormConfigurationService _formService;
     private readonly IDialogService _dialogService;
     private readonly IErrorLogService _errorLogService;
+    private readonly IArasConnectionService _connectionService;
+    private readonly DispatcherQueue? _dispatcherQueue;
 
     private ArasItemTypeInfo? _selectedItemType;
     private string _formName = string.Empty;
@@ -23,15 +26,21 @@ public sealed class FormConfigurationViewModel : ObservableObject
     private bool _setAsDefaultView = true;
     private bool _initialized;
     private string _lastSuggestedFormName = string.Empty;
+    private bool _reloadPending;
+    private bool _disposed;
 
     public FormConfigurationViewModel(
         IFormConfigurationService formService,
         IDialogService dialogService,
-        IErrorLogService errorLogService)
+        IErrorLogService errorLogService,
+        IArasConnectionService connectionService)
     {
         _formService = formService;
         _dialogService = dialogService;
         _errorLogService = errorLogService;
+        _connectionService = connectionService;
+        _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+        _connectionService.ConnectionChanged += OnConnectionChanged;
 
         RefreshItemTypesCommand = new RelayCommand(async _ => await LoadItemTypesAsync(), _ => !IsBusy);
         LoadPropertiesCommand = new RelayCommand(async _ => await LoadPropertiesAsync(),
@@ -147,6 +156,20 @@ public sealed class FormConfigurationViewModel : ObservableObject
 
     private async Task LoadItemTypesAsync()
     {
+        if (!_connectionService.IsConnected)
+        {
+            ClearConnectionData();
+            ClearMessages();
+            StatusMessage = "尚未连接 Aras；当前用户的默认连接成功后将自动加载对象类。";
+            return;
+        }
+
+        if (IsBusy)
+        {
+            _reloadPending = true;
+            return;
+        }
+
         try
         {
             IsBusy = true;
@@ -159,16 +182,27 @@ public sealed class FormConfigurationViewModel : ObservableObject
                 ItemTypes.Add(itemType);
 
             SelectedItemType = ItemTypes.FirstOrDefault();
-            StatusMessage = $"已加载 {ItemTypes.Count} 个对象类，请选择对象类并加载属性。";
+            var current = _connectionService.CurrentConnection;
+            var connectionName = current == null
+                ? "当前 Aras 连接"
+                : $"{current.Username}@{current.Database}";
+            StatusMessage = $"已通过默认连接 {connectionName} 加载 {ItemTypes.Count} 个对象类。";
         }
         catch (Exception ex)
         {
+            StatusMessage = string.Empty;
             ErrorMessage = $"对象类加载失败：{ex.Message}";
             await LogViewModelErrorAsync("窗体配置-加载对象类", ex);
         }
         finally
         {
             IsBusy = false;
+
+            if (_reloadPending && _connectionService.IsConnected && !_disposed)
+            {
+                _reloadPending = false;
+                await LoadItemTypesAsync();
+            }
         }
     }
 
@@ -176,6 +210,13 @@ public sealed class FormConfigurationViewModel : ObservableObject
     {
         if (SelectedItemType == null)
             return;
+
+        if (!_connectionService.IsConnected)
+        {
+            StatusMessage = string.Empty;
+            ErrorMessage = "Aras 连接已断开，请先在“Aras连接”中恢复当前用户的默认连接。";
+            return;
+        }
 
         try
         {
@@ -194,6 +235,7 @@ public sealed class FormConfigurationViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            StatusMessage = string.Empty;
             ErrorMessage = $"属性加载失败：{ex.Message}";
             await LogViewModelErrorAsync("窗体配置-加载属性", ex);
         }
@@ -227,6 +269,13 @@ public sealed class FormConfigurationViewModel : ObservableObject
     {
         if (SelectedItemType == null)
             return;
+
+        if (!_connectionService.IsConnected)
+        {
+            StatusMessage = string.Empty;
+            ErrorMessage = "Aras 连接已断开，无法写入窗体配置。";
+            return;
+        }
 
         BuildPreview();
         if (LayoutFields.Count == 0)
@@ -266,6 +315,7 @@ public sealed class FormConfigurationViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            StatusMessage = string.Empty;
             ErrorMessage = $"窗体写入失败：{ex.Message}";
             await LogViewModelErrorAsync("窗体配置-写入窗体", ex);
         }
@@ -292,6 +342,66 @@ public sealed class FormConfigurationViewModel : ObservableObject
         {
             // 错误日志服务失败不能覆盖原业务异常。
         }
+    }
+
+    private void OnConnectionChanged()
+    {
+        if (_disposed)
+            return;
+
+        if (_dispatcherQueue == null)
+            return;
+
+        if (_dispatcherQueue.HasThreadAccess)
+        {
+            _ = RefreshForConnectionChangeAsync();
+            return;
+        }
+
+        _dispatcherQueue.TryEnqueue(() => _ = RefreshForConnectionChangeAsync());
+    }
+
+    private async Task RefreshForConnectionChangeAsync()
+    {
+        if (!_initialized || _disposed)
+            return;
+
+        if (!_connectionService.IsConnected)
+        {
+            ClearConnectionData();
+            ErrorMessage = string.Empty;
+            StatusMessage = "Aras 连接已断开；连接当前用户的默认配置后将自动重新加载。";
+            return;
+        }
+
+        if (IsBusy)
+        {
+            _reloadPending = true;
+            return;
+        }
+
+        await LoadItemTypesAsync();
+    }
+
+    private void ClearConnectionData()
+    {
+        ItemTypes.Clear();
+        SelectedItemType = null;
+        Properties.Clear();
+        LayoutFields.Clear();
+        OnPropertyChanged(nameof(PropertySummary));
+        OnPropertyChanged(nameof(LayoutSummary));
+        RefreshCommands();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        _connectionService.ConnectionChanged -= OnConnectionChanged;
+        GC.SuppressFinalize(this);
     }
 
     private void RefreshCommands()
