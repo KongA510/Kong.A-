@@ -10,7 +10,7 @@ using Microsoft.UI.Xaml.Controls;
 namespace ArasToolkit.App.WinUI.Views;
 
 /// <summary>
-/// 对象类配置页（WinUI 3）— 模板下载/文件导入/进度/历史表格。
+/// 对象类汇入页（WinUI 3）— 模板下载/文件导入/进度/历史表格。
 /// </summary>
 public sealed partial class ObjectClassConfigPage : Page
 {

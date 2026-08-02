@@ -44,7 +44,7 @@
 
         <!-- Row 0: 标题区 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="📦 对象类配置" FontSize="24" FontWeight="Bold" Foreground="#111827" />
+            <TextBlock Text="📥 对象类汇入" FontSize="24" FontWeight="Bold" Foreground="#111827" />
             <TextBlock Text="通过 Excel 批量创建 Aras 对象类和关系类" FontSize="13" Foreground="#6B7280" Margin="0,4,0,0" />
         </StackPanel>
 

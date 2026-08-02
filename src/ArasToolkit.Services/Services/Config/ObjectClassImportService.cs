@@ -14,7 +14,7 @@ using OfficeOpenXml;
 namespace ArasToolkit.Services.Services;
 
 /// <summary>
-/// 对象类配置导入服务 — Excel模板生成 + 批量汇入Aras
+/// 对象类汇入服务 — Excel模板生成 + 批量汇入Aras
 ///
 /// 导入流程:
 /// 1. 读取 Excel 文件（Sheet1=对象类, Sheet2=关系类）
@@ -175,7 +175,7 @@ public class ObjectClassImportService : IObjectClassImportService
         try
         {
             // 写入日志头
-            await writer.WriteLineAsync("===== 对象类配置导入日志 =====").ConfigureAwait(false);
+            await writer.WriteLineAsync("===== 对象类汇入日志 =====").ConfigureAwait(false);
             await writer.WriteLineAsync($"文件: {Path.GetFileName(filePath)}").ConfigureAwait(false);
             await writer.WriteLineAsync($"开始时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}").ConfigureAwait(false);
             await writer.WriteLineAsync($"导入模式: {importMode}").ConfigureAwait(false);
@@ -356,7 +356,7 @@ public class ObjectClassImportService : IObjectClassImportService
 
             // 记录敏感操作日志
             await _operationLogService.LogAsync("Import", "ObjectClassImportLog", log.Id,
-                $"对象类配置导入: 对象类{sheet1Success}条 / 关系类{sheet2Success}条")
+                $"对象类汇入: 对象类{sheet1Success}条 / 关系类{sheet2Success}条")
                 .ConfigureAwait(false);
 
             result.IsSuccess = true;
@@ -396,7 +396,7 @@ public class ObjectClassImportService : IObjectClassImportService
                 .ConfigureAwait(false);
 
             // 写入错误日志系统
-            await _errorLogService.LogErrorAsync("对象类配置-导入", ex.Message,
+            await _errorLogService.LogErrorAsync("对象类汇入-导入", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace).ConfigureAwait(false);
         }
         finally

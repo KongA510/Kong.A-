@@ -8,7 +8,7 @@ using ArasToolkit.Core.Models;
 namespace ArasToolkit.Core.Interfaces;
 
 /// <summary>
-/// 对象类配置导入服务接口 — Excel模板下载 + Aras批量汇入 + 历史记录查询
+/// 对象类汇入服务接口 — Excel模板下载 + Aras批量汇入 + 历史记录查询
 /// </summary>
 public interface IObjectClassImportService
 {

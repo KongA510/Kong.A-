@@ -12,7 +12,7 @@ using ArasToolkit.Core.Models;
 namespace ArasToolkit.App.WinUI.ViewModels;
 
 /// <summary>
-/// 对象类配置页面 ViewModel
+/// 对象类汇入页面 ViewModel
 /// 负责: Excel模板下载、文件选择、批量导入Aras、导入历史查询
 /// </summary>
 public class ObjectClassConfigViewModel : ObservableObject
@@ -274,7 +274,7 @@ public class ObjectClassConfigViewModel : ObservableObject
     {
         try
         {
-            var filePath = await _fileDialogService.PickSaveFileAsync("对象类配置模板.xlsx", ".xlsx");
+            var filePath = await _fileDialogService.PickSaveFileAsync("对象类汇入模板.xlsx", ".xlsx");
             if (filePath == null) return;
 
             IsLoading = true;
@@ -285,7 +285,7 @@ public class ObjectClassConfigViewModel : ObservableObject
         catch (Exception ex)
         {
             ErrorMessage = $"模板保存失败: {ex.Message}";
-            _ = _errorLogService.LogErrorAsync("对象类配置-下载模板", ex.Message,
+            _ = _errorLogService.LogErrorAsync("对象类汇入-下载模板", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
@@ -376,7 +376,7 @@ public class ObjectClassConfigViewModel : ObservableObject
         {
             StatusMessage = "导入已取消";
             ErrorMessage = "导入已被用户取消，已完成的行已保存到 Aras 系统。";
-            await _errorLogService.LogErrorAsync("对象类配置-导入取消", "用户取消导入",
+            await _errorLogService.LogErrorAsync("对象类汇入-导入取消", "用户取消导入",
                 ErrorLog.LevelP1, null);
             CurrentPage = 1;
             await LoadHistoryAsync();
@@ -384,7 +384,7 @@ public class ObjectClassConfigViewModel : ObservableObject
         catch (Exception ex)
         {
             ErrorMessage = $"导入失败: {ex.Message}";
-            await _errorLogService.LogErrorAsync("对象类配置-导入", ex.Message,
+            await _errorLogService.LogErrorAsync("对象类汇入-导入", ex.Message,
                 ErrorLog.LevelP1, ex.StackTrace);
         }
         finally
