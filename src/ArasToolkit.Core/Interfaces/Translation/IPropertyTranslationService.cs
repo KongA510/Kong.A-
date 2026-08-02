@@ -18,7 +18,12 @@ public class PropertyItem
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    /// <summary>Aras 默认英文标签（label / en）。</summary>
     public string Label { get; set; } = string.Empty;
+    /// <summary>Aras 简体中文国际化标签（i18n:label / zc）。</summary>
+    public string LabelZc { get; set; } = string.Empty;
+    /// <summary>Aras 繁体中文国际化标签（i18n:label / zt）。</summary>
+    public string LabelZt { get; set; } = string.Empty;
     public string DataType { get; set; } = string.Empty;
     public string ItemTypeName { get; set; } = string.Empty;
     public bool IsSelected { get; set; } = true;

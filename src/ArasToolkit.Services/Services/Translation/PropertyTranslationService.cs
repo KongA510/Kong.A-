@@ -11,6 +11,7 @@ public sealed class PropertyTranslationService : IPropertyTranslationService
 {
     private const string TaskType = "字段翻译";
     private const string OutputDir = "Config/PropertyTranslations";
+    private const string DefaultLabelLanguages = "en,zc,zt";
 
     private readonly ArasConnectionService _connectionService;
     private readonly IAiDispatcherService _aiDispatcher;
@@ -59,6 +60,7 @@ public sealed class PropertyTranslationService : IPropertyTranslationService
                         new XElement("Item",
                             new XAttribute("type", "Property"),
                             new XAttribute("action", "get"),
+                            new XAttribute("language", DefaultLabelLanguages),
                             new XAttribute("select", "id,name,label,data_type,sort_order")))));
             var result = innovator.applyAML(aml.ToString(SaveOptions.DisableFormatting));
             ArasTranslationSupport.ThrowIfError(result, "读取对象类字段失败");
@@ -76,7 +78,9 @@ public sealed class PropertyTranslationService : IPropertyTranslationService
                 {
                     Id = property.getID(),
                     Name = property.getProperty("name", string.Empty),
-                    Label = property.getProperty("label", string.Empty),
+                    Label = property.getProperty("label", string.Empty, "en"),
+                    LabelZc = property.getProperty("label", string.Empty, "zc"),
+                    LabelZt = property.getProperty("label", string.Empty, "zt"),
                     DataType = property.getProperty("data_type", string.Empty),
                     ItemTypeName = itemTypeName,
                     IsSelected = true
@@ -141,9 +145,7 @@ public sealed class PropertyTranslationService : IPropertyTranslationService
                 foreach (var property in selected)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var original = string.IsNullOrWhiteSpace(property.Label)
-                        ? property.Name
-                        : property.Label;
+                    var original = GetSourceLabel(property, sourceLanguage);
                     var translated = await ArasTranslationSupport.TranslateTextAsync(
                         _aiDispatcher,
                         original,
@@ -158,6 +160,7 @@ public sealed class PropertyTranslationService : IPropertyTranslationService
                         property.Id,
                         target,
                         new Dictionary<string, string> { ["label"] = translated });
+                    SetLocalizedLabel(property, target.LanguageCode, translated);
 
                     records.Add(ArasTranslationSupport.CreateRecord(
                         task, property.Id, property.Name, original, translated, target));
@@ -224,17 +227,21 @@ public sealed class PropertyTranslationService : IPropertyTranslationService
             using var package = new ExcelPackage();
             var worksheet = package.Workbook.Worksheets.Add("字段翻译");
             worksheet.Cells[1, 1].Value = "字段名称";
-            worksheet.Cells[1, 2].Value = "原标签";
-            worksheet.Cells[1, 3].Value = "翻译结果";
-            worksheet.Cells[1, 4].Value = "数据类型";
-            worksheet.Cells[1, 5].Value = "对象类";
+            worksheet.Cells[1, 2].Value = "英文标签(label/en)";
+            worksheet.Cells[1, 3].Value = "简体中文标签(i18n/zc)";
+            worksheet.Cells[1, 4].Value = "繁体中文标签(i18n/zt)";
+            worksheet.Cells[1, 5].Value = "翻译结果";
+            worksheet.Cells[1, 6].Value = "数据类型";
+            worksheet.Cells[1, 7].Value = "对象类";
             for (var index = 0; index < properties.Count; index++)
             {
                 worksheet.Cells[index + 2, 1].Value = properties[index].Name;
                 worksheet.Cells[index + 2, 2].Value = properties[index].Label;
-                worksheet.Cells[index + 2, 3].Value = properties[index].TranslationPreview;
-                worksheet.Cells[index + 2, 4].Value = properties[index].DataType;
-                worksheet.Cells[index + 2, 5].Value = properties[index].ItemTypeName;
+                worksheet.Cells[index + 2, 3].Value = properties[index].LabelZc;
+                worksheet.Cells[index + 2, 4].Value = properties[index].LabelZt;
+                worksheet.Cells[index + 2, 5].Value = properties[index].TranslationPreview;
+                worksheet.Cells[index + 2, 6].Value = properties[index].DataType;
+                worksheet.Cells[index + 2, 7].Value = properties[index].ItemTypeName;
             }
 
             worksheet.Cells.AutoFitColumns();
@@ -279,4 +286,33 @@ public sealed class PropertyTranslationService : IPropertyTranslationService
         => string.IsNullOrWhiteSpace(current)
             ? $"{language}: {translated}"
             : $"{current}；{language}: {translated}";
+
+    private static string GetSourceLabel(PropertyItem property, string sourceLanguage)
+    {
+        var label = sourceLanguage.Trim() switch
+        {
+            "简体中文" or "中文" or "zc" => property.LabelZc,
+            "繁体中文" or "繁體中文" or "zt" => property.LabelZt,
+            "英文" or "英语" or "English" or "en" => property.Label,
+            _ => string.Empty
+        };
+
+        return string.IsNullOrWhiteSpace(label) ? property.Name : label;
+    }
+
+    private static void SetLocalizedLabel(PropertyItem property, string languageCode, string value)
+    {
+        switch (languageCode.ToLowerInvariant())
+        {
+            case "en":
+                property.Label = value;
+                break;
+            case "zc":
+                property.LabelZc = value;
+                break;
+            case "zt":
+                property.LabelZt = value;
+                break;
+        }
+    }
 }
