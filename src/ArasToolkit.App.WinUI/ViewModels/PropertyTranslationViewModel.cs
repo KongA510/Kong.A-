@@ -52,7 +52,7 @@ public sealed class PropertyTranslationViewModel : ObservableObject
     public ObservableCollection<ItemTypeItem> FilteredItemTypes { get; } = [];
     public ObservableCollection<PropertyItem> Properties { get; } = [];
     public ObservableCollection<string> SourceLanguages { get; } =
-        ["简体中文", "繁体中文", "英文", "日文", "韩文", "法文", "德文", "西班牙文"];
+        ["简体中文", "繁体中文", "英文"];
 
     public ItemTypeItem? SelectedItemType
     {
@@ -196,7 +196,7 @@ public sealed class PropertyTranslationViewModel : ObservableObject
             Properties.Clear();
             foreach (var property in properties) Properties.Add(property);
             NotifyCollectionState();
-            StatusMessage = $"已加载 {Properties.Count} 个字段，默认全部选中。";
+            StatusMessage = $"已加载 {Properties.Count} 个字段及英文、简体中文、繁体中文标签，默认全部选中。";
         }
         catch (Exception ex)
         {

@@ -68,8 +68,11 @@ public static class ServiceCollectionExtensions
         // 注册 Aras 登录配置服务（单例，DB存储替代JSON）
         services.AddSingleton<IArasLoginConfigService, ArasLoginConfigService>();
 
-        // 注册对象类配置导入服务（单例）
+        // 注册对象类汇入服务（单例）
         services.AddSingleton<IObjectClassImportService, ObjectClassImportService>();
+
+        // 注册对象类默认权限、可创建者和生命周期基础设定服务（单例）
+        services.AddSingleton<IObjectClassConfigurationService, ObjectClassConfigurationService>();
 
         // 注册List配置导入服务（单例）
         services.AddSingleton<IListImportService, ListImportService>();
