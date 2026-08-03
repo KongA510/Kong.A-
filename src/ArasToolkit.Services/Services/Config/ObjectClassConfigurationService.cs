@@ -270,10 +270,16 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
             itemType.Name,
             BuildPermissionRules(settings, false),
             identityIds);
-        if (FindRelationshipId(
-                innovator, "Allowed Permission", itemType.Id, permissionId) != null)
+        var allowedPermissionId = FindRelationshipId(
+            innovator, "Allowed Permission", itemType.Id, permissionId);
+        if (allowedPermissionId != null)
         {
-            return $"权限页签已包含 {itemType.Name}，详细权限已更新";
+            aml.Add(new XElement("Item",
+                new XAttribute("type", "Allowed Permission"),
+                new XAttribute("action", "edit"),
+                new XAttribute("id", allowedPermissionId),
+                new XElement("is_default", "1")));
+            return $"权限页签已包含 {itemType.Name}，已更新详细权限并标记为默认";
         }
 
         aml.Add(new XElement("Item",
@@ -281,8 +287,9 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
             new XAttribute("action", "add"),
             new XAttribute("id", innovator.getNewID()),
             new XElement("source_id", itemType.Id),
+            new XElement("is_default", "1"),
             new XElement("related_id", permissionId)));
-        return $"已将 {itemType.Name} 添加到权限页签，未设为默认值";
+        return $"已将 {itemType.Name} 添加到权限页签并标记为默认";
     }
 
     private string AppendCanAdd(

@@ -57,7 +57,7 @@
                 <StackPanel>
                     <TextBlock Text="2  选择一键基础设定" FontSize="16" FontWeight="SemiBold" />
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <CheckBox Content="添加到权限页签" IsChecked="{Binding Options.ConfigureDefaultPermission}" Margin="0,0,28,0" />
+                        <CheckBox Content="添加到权限页签并设为默认" IsChecked="{Binding Options.ConfigureDefaultPermission}" Margin="0,0,28,0" />
                         <CheckBox Content="可创建者设定" IsChecked="{Binding Options.ConfigureCanAdd}" Margin="0,0,28,0" />
                         <CheckBox Content="生命周期与状态权限设定" IsChecked="{Binding Options.ConfigureLifecycle}" />
                     </StackPanel>
