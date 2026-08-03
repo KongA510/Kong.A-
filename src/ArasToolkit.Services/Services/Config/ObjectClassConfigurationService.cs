@@ -13,6 +13,7 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
 {
     private const string SettingsRelativePath = "Config/AppSettings/objectClassConfiguration.json";
     private const string LabelLanguages = "en,zc,zt";
+    private const string LifecycleStatePermissionProperty = "state_permission_id";
     private static readonly XNamespace I18n = "http://www.aras.com/I18N/";
 
     private static readonly LifecycleStateDefinition[] LifecycleStates =
@@ -321,9 +322,7 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
         ObjectClassConfigurationSettings settings,
         IReadOnlyDictionary<string, string> identityIds)
     {
-        if (FindItemIdByName(innovator, "Life Cycle Map", itemType.Name) != null)
-            return $"同名生命周期 {itemType.Name} 已存在，跳过";
-
+        var mapId = FindItemIdByName(innovator, "Life Cycle Map", itemType.Name);
         var statePermissionIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var state in LifecycleStates)
         {
@@ -338,7 +337,20 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
                 identityIds);
         }
 
-        var mapId = innovator.getNewID();
+        if (mapId != null)
+        {
+            var existingStateIds = LifecycleStates.ToDictionary(
+                state => state.Name,
+                state => FindLifecycleStateId(innovator, mapId, state.Name)
+                         ?? throw new InvalidOperationException(
+                             $"生命周期 {itemType.Name} 缺少状态 {state.Name}，无法安全补挂状态权限"),
+                StringComparer.OrdinalIgnoreCase);
+            AppendLifecycleStatePermissionLinks(
+                aml, existingStateIds, statePermissionIds);
+            return $"已补齐同名生命周期 {itemType.Name} 的四个状态权限";
+        }
+
+        mapId = innovator.getNewID();
         var stateIds = LifecycleStates.ToDictionary(
             state => state.Name,
             _ => innovator.getNewID(),
@@ -381,7 +393,7 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
                 new XElement("released", state.IsReleased ? "1" : "0"),
                 new XElement("not_lockable", state.IsNotLockable ? "1" : "0"),
                 new XElement("image", "../images/LifeCycleState.svg"),
-                new XElement("permission_id", statePermissionIds[state.Name])));
+                new XElement(LifecycleStatePermissionProperty, statePermissionIds[state.Name])));
         }
 
         aml.Add(new XElement("Item",
@@ -406,6 +418,21 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
             new XAttribute("action", "add"),
             new XElement("source_id", itemType.Id),
             new XElement("related_id", mapId)));
+    }
+
+    private static void AppendLifecycleStatePermissionLinks(
+        XElement aml,
+        IReadOnlyDictionary<string, string> stateIds,
+        IReadOnlyDictionary<string, string> statePermissionIds)
+    {
+        foreach (var state in LifecycleStates)
+        {
+            aml.Add(new XElement("Item",
+                new XAttribute("type", "Life Cycle State"),
+                new XAttribute("action", "edit"),
+                new XAttribute("id", stateIds[state.Name]),
+                new XElement(LifecycleStatePermissionProperty, statePermissionIds[state.Name])));
+        }
     }
 
     private string AppendPermissionConfiguration(
@@ -574,6 +601,21 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
                 new XAttribute("select", "id"),
                 new XElement("source_id", sourceId),
                 new XElement("related_id", relatedId)));
+        return FindFirstItemIdOrNull(innovator, aml);
+    }
+
+    private static string? FindLifecycleStateId(
+        Innovator innovator,
+        string mapId,
+        string stateName)
+    {
+        var aml = new XElement("AML",
+            new XElement("Item",
+                new XAttribute("type", "Life Cycle State"),
+                new XAttribute("action", "get"),
+                new XAttribute("select", "id"),
+                new XElement("source_id", mapId),
+                new XElement("name", stateName)));
         return FindFirstItemIdOrNull(innovator, aml);
     }
 
