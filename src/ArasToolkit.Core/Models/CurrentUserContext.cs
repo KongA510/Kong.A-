@@ -1,4 +1,4 @@
-namespace ArasToolkit.Core.Models;
+﻿namespace ArasToolkit.Core.Models;
 
 /// <summary>
 /// 当前应用用户信息
@@ -8,6 +8,7 @@ public class AppUserInfo
     public string Id { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string? DisplayName { get; set; }
+    public string Role { get; set; } = "User";
     public bool IsAdmin { get; set; }
 }
 
@@ -25,4 +26,7 @@ public static class CurrentUserContext
 
     /// <summary>是否为管理员</summary>
     public static bool IsAdmin => Current?.IsAdmin ?? false;
+
+    /// <summary>当前用户角色</summary>
+    public static string CurrentRole => Current?.Role ?? "User";
 }

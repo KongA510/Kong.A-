@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using ArasToolkit.Core.Extensions;
@@ -89,7 +89,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "窗体翻译", Description = "翻译 Form Field 标签与说明", Icon = "\uE8A7" },
         new() { Name = "窗体配置", Description = "按四列坐标规范生成 Aras 经典窗体", Icon = "\uE8B9" },
         new() { Name = "对象类汇入", Description = "通过 Excel 批量创建 Aras 对象类和关系类", Icon = "\uE8B5" },
-        new() { Name = "对象类配置", Description = "批量设定默认权限、可创建者和标准生命周期", Icon = "\uE7B8" },
+        new() { Name = "对象类配置", Description = "批量配置权限页签、可创建者和标准生命周期", Icon = "\uE7B8" },
         new() { Name = "List配置", Description = "批量创建Aras List主档和菜单项", Icon = "\uE8FD" },
         new() { Name = "属性配置", Description = "批量创建Aras对象类属性定义", Icon = "\uE90F" },
         new() { Name = "数据汇入", Description = "Aras 数据汇入工具", Icon = "\uE8B5" },
@@ -102,6 +102,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "Aras翻译日志", Description = "字段、表单、窗体翻译任务与明细", Icon = "\uE81C" },
         new() { Name = "个人任务记录", Description = "个人待办任务管理与追踪", Icon = "\uE73E" },
         new() { Name = "我的资料", Description = "文件资源管理器", Icon = "\uE8B7" },
+        new() { Name = "用户管理", Description = "管理员创建用户与角色分配", Icon = "\uE716" },
    };
 
     public ObservableCollection<DashboardMetric> ArasMetrics { get; } = [];

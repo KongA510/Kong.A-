@@ -1,0 +1,191 @@
+﻿<Page
+    x:Class="ArasToolkit.App.WinUI.Views.UserManagePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Page.Resources>
+        <Style x:Key="IconBtn" TargetType="Button">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="320" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ===== 左侧：用户列表 ===== -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 顶栏 -->
+            <Border Grid.Row="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    Padding="20,14" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="用户管理" FontSize="20" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="（仅管理员可见）" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <Button Content="刷新" Command="{Binding LoadCommand}" Padding="14,6"
+                            HorizontalAlignment="Right"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource BorderBrush}" FontSize="13" />
+                </Grid>
+            </Border>
+
+            <!-- 表头 -->
+            <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    Padding="20,8" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="140" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="70" />
+                        <ColumnDefinition Width="140" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="用户名" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextSecondaryBrush}" />
+                    <TextBlock Grid.Column="1" Text="显示名称" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextSecondaryBrush}" />
+                    <TextBlock Grid.Column="2" Text="角色" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextSecondaryBrush}" />
+                    <TextBlock Grid.Column="3" Text="状态" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextSecondaryBrush}" />
+                    <TextBlock Grid.Column="4" Text="创建时间" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextSecondaryBrush}" />
+                    <TextBlock Grid.Column="5" Text="操作" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextSecondaryBrush}" />
+                </Grid>
+            </Border>
+
+            <!-- 用户列表 -->
+            <ListView Grid.Row="2" ItemsSource="{Binding Users}" SelectionMode="None"
+                      Style="{ThemeResource TableListView}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Padding="20,10" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Username}" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="{Binding RoleDisplay}" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="3" Text="{Binding StatusDisplay}" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="4" Text="{Binding CreatorOn, Converter={StaticResource StringFormat}, ConverterParameter='{}{0:yyyy-MM-dd HH:mm}'}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <Button Style="{ThemeResource IconBtn}" ToolTipService.ToolTip="编辑"
+                                        Tag="{Binding}" Click="EditButton_Click">
+                                    <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons" FontSize="13" />
+                                </Button>
+                                <Button Style="{ThemeResource IconBtn}" ToolTipService.ToolTip="重置密码"
+                                        Tag="{Binding}" Click="ResetPwdButton_Click">
+                                    <TextBlock Text="&#xE8D6;" FontFamily="Segoe Fluent Icons" FontSize="13" />
+                                </Button>
+                                <Button Style="{ThemeResource IconBtn}" ToolTipService.ToolTip="启用/禁用"
+                                        Tag="{Binding}" Click="ToggleActiveButton_Click">
+                                    <TextBlock Text="&#xE776;" FontFamily="Segoe Fluent Icons" FontSize="13" />
+                                </Button>
+                                <Button Style="{ThemeResource IconBtn}" ToolTipService.ToolTip="删除"
+                                        Tag="{Binding}" Click="DeleteButton_Click">
+                                    <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="13" Foreground="#EF4444" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <!-- 状态栏 -->
+            <Border Grid.Row="3" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    Padding="20,8" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,1,0,0">
+                <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" />
+            </Border>
+        </Grid>
+
+        <!-- ===== 右侧：新建/编辑表单 ===== -->
+        <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1,0,0,0" Padding="24,20">
+            <StackPanel>
+                <TextBlock Text="{Binding FormTitle}" FontSize="16" FontWeight="SemiBold"
+                           Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,0,0,20" />
+
+                <!-- 用户名（编辑时只读） -->
+                <TextBlock Text="用户名" Style="{ThemeResource FieldLabel}" />
+                <TextBox Text="{Binding FormUsername, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{ThemeResource DarkTextBox}" Margin="0,0,0,14"
+                         IsReadOnly="{Binding IsEditMode}" />
+
+                <!-- 密码（仅新建） -->
+                <StackPanel Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="密码" Style="{ThemeResource FieldLabel}" />
+                    <PasswordBox Password="{Binding FormPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{ThemeResource DarkPasswordBox}" Margin="0,0,0,14" />
+                </StackPanel>
+
+                <!-- 显示名称 -->
+                <TextBlock Text="显示名称" Style="{ThemeResource FieldLabel}" />
+                <TextBox Text="{Binding FormDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{ThemeResource DarkTextBox}" Margin="0,0,0,14" />
+
+                <!-- 角色 -->
+                <TextBlock Text="角色" Style="{ThemeResource FieldLabel}" />
+                <ComboBox SelectedItem="{Binding FormRole, Mode=TwoWay}" Width="200" Margin="0,0,0,24">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                    <x:String>Admin</x:String>
+                    <x:String>User</x:String>
+                    <x:String>Viewer</x:String>
+                </ComboBox>
+
+                <!-- 操作按钮 -->
+                <StackPanel Spacing="8">
+                    <Button Content="创建用户" Command="{Binding CreateUserCommand}"
+                            Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibility}}"
+                            Background="#6366F1" Foreground="White" BorderThickness="0"
+                            Height="38" HorizontalAlignment="Stretch" FontSize="14" />
+                    <Button Content="保存修改" Command="{Binding SaveEditCommand}"
+                            Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibility}}"
+                            Background="#6366F1" Foreground="White" BorderThickness="0"
+                            Height="38" HorizontalAlignment="Stretch" FontSize="14" />
+                    <Button Content="取消编辑" Command="{Binding CancelEditCommand}"
+                            Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibility}}"
+                            Background="Transparent" BorderBrush="{ThemeResource BorderBrush}"
+                            Height="38" HorizontalAlignment="Stretch" FontSize="14" />
+                </StackPanel>
+
+                <!-- 角色说明 -->
+                <TextBlock Text="角色说明：" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,28,0,6" />
+                <TextBlock Text="Admin — 管理员，可管理用户和所有功能" FontSize="12"
+                           Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,0,0,3" TextWrapping="Wrap" />
+                <TextBlock Text="User — 普通用户，可使用所有业务功能" FontSize="12"
+                           Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,0,0,3" TextWrapping="Wrap" />
+                <TextBlock Text="Viewer — 只读用户，仅可查看不可修改" FontSize="12"
+                           Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

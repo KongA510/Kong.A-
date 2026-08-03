@@ -2,7 +2,7 @@ using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.Core.Interfaces;
 
-/// <summary>对象类默认权限、可创建者和生命周期的一键基础设定服务。</summary>
+/// <summary>对象类权限页签、可创建者和生命周期的一键基础设定服务。</summary>
 public interface IObjectClassConfigurationService
 {
     Task<List<ObjectClassConfigurationItem>> QueryItemTypesAsync(

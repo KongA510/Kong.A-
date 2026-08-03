@@ -8,11 +8,12 @@ using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.Services.Services;
 
-/// <summary>对象类默认权限、可创建者与标准四状态生命周期的一键设定。</summary>
+/// <summary>对象类权限页签、可创建者与标准四状态生命周期的一键设定。</summary>
 public sealed class ObjectClassConfigurationService : IObjectClassConfigurationService
 {
     private const string SettingsRelativePath = "Config/AppSettings/objectClassConfiguration.json";
     private const string LabelLanguages = "en,zc,zt";
+    private const string LifecycleStatePermissionProperty = "state_permission_id";
     private static readonly XNamespace I18n = "http://www.aras.com/I18N/";
 
     private static readonly LifecycleStateDefinition[] LifecycleStates =
@@ -189,23 +190,34 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
 
                 try
                 {
+                    var aml = new XElement("AML",
+                        new XAttribute(XNamespace.Xmlns + "i18n", I18n));
                     var messages = new List<string>();
                     if (options.ConfigureDefaultPermission)
                     {
-                        messages.Add(EnsureDefaultPermission(
-                            innovator, itemType, normalized, identityIds));
+                        messages.Add(AppendDefaultPermission(
+                            innovator, aml, itemType, normalized, identityIds));
                     }
 
                     if (options.ConfigureCanAdd)
                     {
-                        messages.Add(EnsureCanAdd(
-                            innovator, itemType, normalized, identityIds));
+                        messages.Add(AppendCanAdd(
+                            innovator, aml, itemType, normalized, identityIds));
                     }
 
                     if (options.ConfigureLifecycle)
                     {
-                        messages.Add(EnsureLifecycle(
-                            innovator, itemType, normalized, identityIds));
+                        messages.Add(AppendLifecycle(
+                            innovator, aml, itemType, normalized, identityIds));
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (aml.Elements("Item").Any())
+                    {
+                        // Aras 将同一 <AML> 中的所有写入作为一次服务端事务；
+                        // 任一 Item 失败时，Permission/Access/生命周期/挂载关系整体回滚。
+                        Apply(innovator, aml,
+                            $"配置 {itemType.Name} 的权限、可创建者与生命周期事务失败");
                     }
 
                     itemType.OperationSummary = string.Join("；", messages);
@@ -245,33 +257,44 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
         }
     }
 
-    private string EnsureDefaultPermission(
+    private string AppendDefaultPermission(
         Innovator innovator,
+        XElement aml,
         ObjectClassConfigurationItem itemType,
         ObjectClassConfigurationSettings settings,
         IReadOnlyDictionary<string, string> identityIds)
     {
-        if (itemType.HasDefaultPermission)
-            return $"默认权限已存在({itemType.DefaultPermissionName})，跳过";
-
-        var permissionId = EnsurePermission(
+        var permissionId = AppendPermissionConfiguration(
             innovator,
+            aml,
             itemType.Name,
             BuildPermissionRules(settings, false),
             identityIds);
-        var edit = new XElement("AML",
-            new XElement("Item",
-                new XAttribute("type", "ItemType"),
+        var allowedPermissionId = FindRelationshipId(
+            innovator, "Allowed Permission", itemType.Id, permissionId);
+        if (allowedPermissionId != null)
+        {
+            aml.Add(new XElement("Item",
+                new XAttribute("type", "Allowed Permission"),
                 new XAttribute("action", "edit"),
-                new XAttribute("id", itemType.Id),
-                new XElement("default_permission", permissionId)));
-        Apply(innovator, edit, $"设定 {itemType.Name} 默认权限失败");
-        itemType.DefaultPermissionName = itemType.Name;
-        return $"默认权限已设为 {itemType.Name}";
+                new XAttribute("id", allowedPermissionId),
+                new XElement("is_default", "1")));
+            return $"权限页签已包含 {itemType.Name}，已更新详细权限并标记为默认";
+        }
+
+        aml.Add(new XElement("Item",
+            new XAttribute("type", "Allowed Permission"),
+            new XAttribute("action", "add"),
+            new XAttribute("id", innovator.getNewID()),
+            new XElement("source_id", itemType.Id),
+            new XElement("is_default", "1"),
+            new XElement("related_id", permissionId)));
+        return $"已将 {itemType.Name} 添加到权限页签并标记为默认";
     }
 
-    private string EnsureCanAdd(
+    private string AppendCanAdd(
         Innovator innovator,
+        XElement aml,
         ObjectClassConfigurationItem itemType,
         ObjectClassConfigurationSettings settings,
         IReadOnlyDictionary<string, string> identityIds)
@@ -284,13 +307,12 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
             if (FindRelationshipId(innovator, "Can Add", itemType.Id, identityId) != null)
                 continue;
 
-            var add = new XElement("AML",
-                new XElement("Item",
-                    new XAttribute("type", "Can Add"),
-                    new XAttribute("action", "add"),
-                    new XElement("source_id", itemType.Id),
-                    new XElement("related_id", identityId)));
-            Apply(innovator, add, $"为 {itemType.Name} 添加可创建者 {role} 失败");
+            aml.Add(new XElement("Item",
+                new XAttribute("type", "Can Add"),
+                new XAttribute("action", "add"),
+                new XAttribute("id", innovator.getNewID()),
+                new XElement("source_id", itemType.Id),
+                new XElement("related_id", identityId)));
             added++;
         }
 
@@ -299,55 +321,66 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
             : $"已添加 {added} 个可创建者";
     }
 
-    private string EnsureLifecycle(
+    private string AppendLifecycle(
         Innovator innovator,
+        XElement aml,
         ObjectClassConfigurationItem itemType,
         ObjectClassConfigurationSettings settings,
         IReadOnlyDictionary<string, string> identityIds)
     {
-        if (FindItemIdByName(innovator, "Life Cycle Map", itemType.Name) != null)
-            return $"同名生命周期 {itemType.Name} 已存在，跳过";
-
+        var mapId = FindItemIdByName(innovator, "Life Cycle Map", itemType.Name);
         var statePermissionIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var state in LifecycleStates)
         {
             var isReadOnlyState = !string.Equals(
                 state.Name, "Preliminary", StringComparison.OrdinalIgnoreCase);
             var permissionName = $"{itemType.Name} - {state.Name}";
-            statePermissionIds[state.Name] = EnsurePermission(
+            statePermissionIds[state.Name] = AppendPermissionConfiguration(
                 innovator,
+                aml,
                 permissionName,
                 BuildPermissionRules(settings, isReadOnlyState),
                 identityIds);
         }
 
-        var mapId = innovator.getNewID();
+        if (mapId != null)
+        {
+            var existingStateIds = LifecycleStates.ToDictionary(
+                state => state.Name,
+                state => FindLifecycleStateId(innovator, mapId, state.Name)
+                         ?? throw new InvalidOperationException(
+                             $"生命周期 {itemType.Name} 缺少状态 {state.Name}，无法安全补挂状态权限"),
+                StringComparer.OrdinalIgnoreCase);
+            AppendLifecycleStatePermissionLinks(
+                aml, existingStateIds, statePermissionIds);
+            return $"已补齐同名生命周期 {itemType.Name} 的四个状态权限";
+        }
+
+        mapId = innovator.getNewID();
         var stateIds = LifecycleStates.ToDictionary(
             state => state.Name,
             _ => innovator.getNewID(),
             StringComparer.OrdinalIgnoreCase);
         var transitionRoleId = identityIds[ParseRoles(settings.TransitionRole).Single()];
-        var aml = BuildLifecycleAml(
-            itemType, mapId, stateIds, statePermissionIds, transitionRoleId);
-        Apply(innovator, aml, $"创建并挂载 {itemType.Name} 生命周期失败");
+        AppendLifecycleItems(
+            aml, itemType, mapId, stateIds, statePermissionIds, transitionRoleId);
         return "已创建四状态生命周期、四套状态权限与五条转换";
     }
 
-    private static XElement BuildLifecycleAml(
+    private static void AppendLifecycleItems(
+        XElement aml,
         ObjectClassConfigurationItem itemType,
         string mapId,
         IReadOnlyDictionary<string, string> stateIds,
         IReadOnlyDictionary<string, string> statePermissionIds,
         string transitionRoleId)
     {
-        var aml = new XElement("AML",
-            new XAttribute(XNamespace.Xmlns + "i18n", I18n),
-            new XElement("Item",
-                new XAttribute("type", "Life Cycle Map"),
-                new XAttribute("action", "add"),
-                new XAttribute("id", mapId),
-                new XElement("name", itemType.Name),
-                new XElement("description", $"{itemType.Name} 标准四状态生命周期")));
+        aml.Add(new XElement("Item",
+            new XAttribute("type", "Life Cycle Map"),
+            new XAttribute("action", "add"),
+            new XAttribute("id", mapId),
+            new XElement("name", itemType.Name),
+            new XElement("description", $"{itemType.Name} 标准四状态生命周期")));
 
         for (var index = 0; index < LifecycleStates.Length; index++)
         {
@@ -366,7 +399,7 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
                 new XElement("released", state.IsReleased ? "1" : "0"),
                 new XElement("not_lockable", state.IsNotLockable ? "1" : "0"),
                 new XElement("image", "../images/LifeCycleState.svg"),
-                new XElement("permission_id", statePermissionIds[state.Name])));
+                new XElement(LifecycleStatePermissionProperty, statePermissionIds[state.Name])));
         }
 
         aml.Add(new XElement("Item",
@@ -391,61 +424,72 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
             new XAttribute("action", "add"),
             new XElement("source_id", itemType.Id),
             new XElement("related_id", mapId)));
-        return aml;
     }
 
-    private string EnsurePermission(
+    private static void AppendLifecycleStatePermissionLinks(
+        XElement aml,
+        IReadOnlyDictionary<string, string> stateIds,
+        IReadOnlyDictionary<string, string> statePermissionIds)
+    {
+        foreach (var state in LifecycleStates)
+        {
+            aml.Add(new XElement("Item",
+                new XAttribute("type", "Life Cycle State"),
+                new XAttribute("action", "edit"),
+                new XAttribute("id", stateIds[state.Name]),
+                new XElement(LifecycleStatePermissionProperty, statePermissionIds[state.Name])));
+        }
+    }
+
+    private string AppendPermissionConfiguration(
         Innovator innovator,
+        XElement aml,
         string permissionName,
         IReadOnlyDictionary<string, bool> roleRules,
         IReadOnlyDictionary<string, string> identityIds)
     {
-        var permissionId = FindItemIdByName(innovator, "Permission", permissionName);
-        if (permissionId == null)
+        var existingPermissionId = FindItemIdByName(innovator, "Permission", permissionName);
+        var isNewPermission = existingPermissionId == null;
+        var permissionId = existingPermissionId ?? innovator.getNewID();
+        if (isNewPermission)
         {
-            var add = new XElement("AML",
-                new XElement("Item",
-                    new XAttribute("type", "Permission"),
-                    new XAttribute("action", "add"),
-                    new XElement("name", permissionName)));
-            var added = Apply(innovator, add, $"创建权限 {permissionName} 失败");
-            permissionId = added.getID();
-            if (string.IsNullOrWhiteSpace(permissionId))
-                throw new InvalidOperationException($"创建权限 {permissionName} 后未返回 ID。");
+            aml.Add(new XElement("Item",
+                new XAttribute("type", "Permission"),
+                new XAttribute("action", "add"),
+                new XAttribute("id", permissionId),
+                new XElement("name", permissionName)));
         }
 
         foreach (var (role, fullControl) in roleRules)
         {
-            EnsureAccess(
-                innovator,
-                permissionId,
-                identityIds[role],
-                fullControl,
-                $"{permissionName}/{role}");
+            var identityId = identityIds[role];
+            var accessId = isNewPermission
+                ? null
+                : FindRelationshipId(innovator, "Access", permissionId, identityId);
+            aml.Add(BuildAccessItem(
+                innovator, permissionId, identityId, accessId, fullControl));
         }
 
         return permissionId;
     }
 
-    private static void EnsureAccess(
+    private static XElement BuildAccessItem(
         Innovator innovator,
         string permissionId,
         string identityId,
-        bool fullControl,
-        string context)
+        string? accessId,
+        bool fullControl)
     {
-        var accessId = FindRelationshipId(innovator, "Access", permissionId, identityId);
-        var access = new XElement("Item",
+        return new XElement("Item",
             new XAttribute("type", "Access"),
             new XAttribute("action", accessId == null ? "add" : "edit"),
-            accessId == null ? null : new XAttribute("id", accessId),
+            new XAttribute("id", accessId ?? innovator.getNewID()),
             accessId == null ? new XElement("source_id", permissionId) : null,
             accessId == null ? new XElement("related_id", identityId) : null,
             new XElement("can_discover", "1"),
             new XElement("can_get", "1"),
             new XElement("can_update", fullControl ? "1" : "0"),
             new XElement("can_delete", fullControl ? "1" : "0"));
-        Apply(innovator, new XElement("AML", access), $"设定权限明细 {context} 失败");
     }
 
     private static Dictionary<string, bool> BuildPermissionRules(
@@ -547,8 +591,7 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
                 new XAttribute("action", "get"),
                 new XAttribute("select", "id"),
                 new XElement("name", name)));
-        var result = Apply(innovator, aml, $"查询 {itemType} {name} 失败");
-        return result.getItemCount() > 0 ? result.getItemByIndex(0).getID() : null;
+        return FindFirstItemIdOrNull(innovator, aml);
     }
 
     private static string? FindRelationshipId(
@@ -564,8 +607,36 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
                 new XAttribute("select", "id"),
                 new XElement("source_id", sourceId),
                 new XElement("related_id", relatedId)));
-        var result = Apply(innovator, aml, $"查询 {relationshipType} 关系失败");
-        return result.getItemCount() > 0 ? result.getItemByIndex(0).getID() : null;
+        return FindFirstItemIdOrNull(innovator, aml);
+    }
+
+    private static string? FindLifecycleStateId(
+        Innovator innovator,
+        string mapId,
+        string stateName)
+    {
+        var aml = new XElement("AML",
+            new XElement("Item",
+                new XAttribute("type", "Life Cycle State"),
+                new XAttribute("action", "get"),
+                new XAttribute("select", "id"),
+                new XElement("source_id", mapId),
+                new XElement("name", stateName)));
+        return FindFirstItemIdOrNull(innovator, aml);
+    }
+
+    /// <summary>
+    /// Aras 在 get 无匹配项时可能返回 Error Item。存在性预检将这种结果统一视为“不存在”，
+    /// 不让正常的新增分支在查询阶段中断。后续写入失败仍由 Apply 抛出并回滚整个 AML。
+    /// </summary>
+    private static string? FindFirstItemIdOrNull(Innovator innovator, XElement aml)
+    {
+        var result = innovator.applyAML(aml.ToString(SaveOptions.DisableFormatting));
+        if (result.isError() || result.getItemCount() <= 0)
+            return null;
+
+        var id = result.getItemByIndex(0).getID();
+        return string.IsNullOrWhiteSpace(id) ? null : id;
     }
 
     private static Item Apply(Innovator innovator, XElement aml, string context)

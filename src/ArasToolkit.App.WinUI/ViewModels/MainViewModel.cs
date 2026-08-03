@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
@@ -86,13 +86,14 @@ public class MainViewModel : ObservableObject
         var sysConfig = new MenuItemInfo { Name = "系统配置", Icon = "Cog", CardIcon = "\uE713", Description = "Aras系统配置工具集" };
         sysConfig.Children.Add(new MenuItemInfo { Name = "窗体配置", Icon = "Cog", CardIcon = "\uE8B9", Description = "按规范生成 Aras 经典窗体字段布局" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "对象类汇入", Icon = "DatabaseImport", CardIcon = "\uE8B5", Description = "通过 Excel 批量创建 Aras 对象类和关系类" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "对象类配置", Icon = "CubeOutline", CardIcon = "\uE7B8", Description = "批量设定默认权限、可创建者和标准生命周期" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "对象类配置", Icon = "CubeOutline", CardIcon = "\uE7B8", Description = "批量配置权限页签、可创建者和标准生命周期" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "List配置", Icon = "FormatListBulleted", CardIcon = "\uE8FD", Description = "批量创建Aras List主档和菜单项" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "属性配置", Icon = "Tune", CardIcon = "\uE90F", Description = "批量创建Aras对象类属性定义" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "\uE8B5", Description = "Excel数据导入Aras系统" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "生命周期配置", Icon = "Refresh", CardIcon = "\uE895", Description = "批量创建Aras对象类的生命周期状态定义" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "权限配置", Icon = "ShieldAccount", CardIcon = "\uE72E", Description = "Aras权限配置工具" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "数据库导出", Icon = "DatabaseExport", CardIcon = "\uE898", Description = "执行SQL查询并导出为Excel文件" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "用户管理", Icon = "AccountGroup", CardIcon = "\uE716", Description = "管理员创建用户与角色分配" });
         MenuItems.Add(sysConfig);
 
         // ===== 二级菜单：系统日志 =====

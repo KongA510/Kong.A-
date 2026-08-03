@@ -10,7 +10,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
         <StackPanel Margin="24" MinWidth="1050">
             <TextBlock Text="⚙ 对象类配置" FontSize="24" FontWeight="Bold" Foreground="#111827" />
-            <TextBlock Text="批量设定默认权限、可创建者和标准四状态生命周期"
+            <TextBlock Text="批量添加权限页签、设定可创建者和标准四状态生命周期"
                        FontSize="13" Foreground="#6B7280" Margin="0,4,0,16" />
 
             <Border Style="{StaticResource CardStyle}" Padding="16" Margin="0,0,0,12">
@@ -57,7 +57,7 @@
                 <StackPanel>
                     <TextBlock Text="2  选择一键基础设定" FontSize="16" FontWeight="SemiBold" />
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <CheckBox Content="默认权限设定" IsChecked="{Binding Options.ConfigureDefaultPermission}" Margin="0,0,28,0" />
+                        <CheckBox Content="添加到权限页签并设为默认" IsChecked="{Binding Options.ConfigureDefaultPermission}" Margin="0,0,28,0" />
                         <CheckBox Content="可创建者设定" IsChecked="{Binding Options.ConfigureCanAdd}" Margin="0,0,28,0" />
                         <CheckBox Content="生命周期与状态权限设定" IsChecked="{Binding Options.ConfigureLifecycle}" />
                     </StackPanel>

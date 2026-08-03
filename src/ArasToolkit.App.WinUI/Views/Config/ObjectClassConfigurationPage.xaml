@@ -7,7 +7,7 @@
         <StackPanel Margin="30,24,30,36" MinWidth="1100" Spacing="16">
             <StackPanel Spacing="4">
                 <TextBlock Text="对象类配置" Style="{ThemeResource PageTitleText}" />
-                <TextBlock Text="批量设定对象类默认权限、可创建者，以及含状态权限的标准四状态生命周期。"
+                <TextBlock Text="批量添加对象类权限页签、设定可创建者，以及配置含状态权限的标准四状态生命周期。"
                            Style="{ThemeResource PageSubtitleText}" />
             </StackPanel>
 
@@ -124,11 +124,11 @@
                 <StackPanel Spacing="14">
                     <TextBlock Text="2  选择一键基础设定" Style="{ThemeResource SectionTitleText}" />
                     <StackPanel Orientation="Horizontal" Spacing="30">
-                        <CheckBox Content="默认权限设定" IsChecked="{Binding Options.ConfigureDefaultPermission, Mode=TwoWay}" />
+                        <CheckBox Content="添加到权限页签并设为默认" IsChecked="{Binding Options.ConfigureDefaultPermission, Mode=TwoWay}" />
                         <CheckBox Content="可创建者设定" IsChecked="{Binding Options.ConfigureCanAdd, Mode=TwoWay}" />
                         <CheckBox Content="生命周期与状态权限设定" IsChecked="{Binding Options.ConfigureLifecycle, Mode=TwoWay}" />
                     </StackPanel>
-                    <TextBlock Text="默认权限仅在对象类尚未设定时创建同名 Permission；同名生命周期已存在时整项跳过。"
+                    <TextBlock Text="创建或复用同名 Permission，通过 Allowed Permission 页签的 is_default 标记设为默认，不直接修改 ItemType.default_permission；同名生命周期会补齐四个状态权限。"
                                Style="{ThemeResource CaptionText}" />
                 </StackPanel>
             </Border>
