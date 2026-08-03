@@ -1,6 +1,8 @@
 ﻿using System.Text.Json;
+using System.Data;
 using ArasToolkit.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace ArasToolkit.Services.Data;
 
@@ -178,6 +180,8 @@ public class ArasToolkitDbContext : DbContext
              entity.Property(e => e.Username).HasColumnName("username").IsRequired().HasMaxLength(100);
              entity.Property(e => e.Password).HasColumnName("password").IsRequired().HasMaxLength(100);
              entity.Property(e => e.DisplayName).HasColumnName("display_name").HasMaxLength(100);
+             entity.Property(e => e.Role).HasColumnName("role").IsRequired().HasMaxLength(50);
+             entity.Property(e => e.IsActive).HasColumnName("is_active");
              entity.Property(e => e.IsAdmin).HasColumnName("is_admin");
              entity.Property(e => e.Avatar).HasColumnName("avatar").HasMaxLength(500);
              entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
@@ -481,6 +485,7 @@ public class ArasToolkitDbContext : DbContext
     /// </summary>
     public async Task EnsureSchemaAsync()
     {
+        await using var transaction = await Database.BeginTransactionAsync();
         try
         {
             var sql = @"
@@ -601,21 +606,82 @@ public class ArasToolkitDbContext : DbContext
                          username NVARCHAR(100) NOT NULL,
                          password NVARCHAR(100) NOT NULL,
                          display_name NVARCHAR(100) NULL,
+                         role NVARCHAR(50) NOT NULL CONSTRAINT DF_app_user_role DEFAULT N'User',
+                         is_active BIT NOT NULL CONSTRAINT DF_app_user_is_active DEFAULT 1,
                          is_admin BIT NOT NULL DEFAULT 0,
                          avatar NVARCHAR(500) NULL,
                          creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                      );
                  END
-                 ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='app_user' AND COLUMN_NAME='creator_on')
+
+                 IF COL_LENGTH(N'dbo.app_user', N'creator_on') IS NULL
                  BEGIN
                      ALTER TABLE app_user ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                  END
 
-                -- ===== ????: v1.0.7 ?????? =====
+                 IF COL_LENGTH(N'dbo.app_user', N'role') IS NULL
+                 BEGIN
+                     ALTER TABLE app_user ADD role NVARCHAR(50) NULL;
+                 END
+
+                 EXEC sys.sp_executesql N'
+                     UPDATE app_user
+                     SET role = CASE WHEN is_admin = 1 THEN N''Admin'' ELSE N''User'' END
+                     WHERE role IS NULL OR LTRIM(RTRIM(role)) = N'''';
+
+                     ALTER TABLE app_user ALTER COLUMN role NVARCHAR(50) NOT NULL;';
+
+                 IF NOT EXISTS
+                 (
+                     SELECT 1
+                     FROM sys.default_constraints dc
+                     INNER JOIN sys.columns c
+                         ON c.object_id = dc.parent_object_id
+                        AND c.column_id = dc.parent_column_id
+                     WHERE dc.parent_object_id = OBJECT_ID(N'dbo.app_user')
+                       AND c.name = N'role'
+                 )
+                     EXEC sys.sp_executesql N'
+                         ALTER TABLE app_user
+                             ADD CONSTRAINT DF_app_user_role DEFAULT N''User'' FOR role;';
+
+                 IF COL_LENGTH(N'dbo.app_user', N'is_active') IS NULL
+                 BEGIN
+                     ALTER TABLE app_user ADD is_active BIT NULL;
+                 END
+
+                 EXEC sys.sp_executesql N'
+                     UPDATE app_user SET is_active = 1 WHERE is_active IS NULL;
+                     ALTER TABLE app_user ALTER COLUMN is_active BIT NOT NULL;';
+
+                 IF NOT EXISTS
+                 (
+                     SELECT 1
+                     FROM sys.default_constraints dc
+                     INNER JOIN sys.columns c
+                         ON c.object_id = dc.parent_object_id
+                        AND c.column_id = dc.parent_column_id
+                     WHERE dc.parent_object_id = OBJECT_ID(N'dbo.app_user')
+                       AND c.name = N'is_active'
+                 )
+                     EXEC sys.sp_executesql N'
+                         ALTER TABLE app_user
+                             ADD CONSTRAINT DF_app_user_is_active DEFAULT 1 FOR is_active;';
+
+                 EXEC sys.sp_executesql N'
+                     UPDATE app_user
+                     SET role = N''Admin''
+                     WHERE is_admin = 1 AND role <> N''Admin'';
+
+                     UPDATE app_user
+                     SET is_admin = 1
+                     WHERE role = N''Admin'' AND is_admin = 0;';
+
+                -- ===== 更新日志：v1.0.7 用户管理改造 =====
                 IF NOT EXISTS (SELECT 1 FROM changelog WHERE version = '1.0.7')
                 BEGIN
                     INSERT INTO changelog (version, release_date, type, description, author, creator_on)
-                    VALUES ('1.0.7', GETDATE(), N'??', N'????????????????+?????Admin/User/Viewer????????????????', N'????', GETDATE());
+                    VALUES ('1.0.7', GETDATE(), N'新增', N'用户管理改造：移除注册，改为管理员创建用户并支持 Admin/User/Viewer 角色及启用状态。', N'开发团队', GETDATE());
                 END
 
                 -- ===== data_import_config 表 =====
@@ -883,19 +949,44 @@ public class ArasToolkitDbContext : DbContext
                     CREATE TABLE translation_task (
                         id NVARCHAR(12) NOT NULL PRIMARY KEY,
                         task_name NVARCHAR(200) NOT NULL,
-                        query_mode NVARCHAR(50) NULL,
-                        query_condition NVARCHAR(1000) NULL,
+                        task_type NVARCHAR(50) NOT NULL DEFAULT N'',
+                        query_mode NVARCHAR(50) NOT NULL DEFAULT N'',
+                        query_condition NVARCHAR(MAX) NULL,
                         source_language NVARCHAR(50) NULL,
-                        target_languages NVARCHAR(200) NULL,
-                        total_fields INT NOT NULL DEFAULT 0,
-                        translated_fields INT NOT NULL DEFAULT 0,
-                        progress_text NVARCHAR(100) NULL,
+                        target_languages NVARCHAR(500) NULL,
+                        total_count INT NOT NULL DEFAULT 0,
+                        completed_count INT NOT NULL DEFAULT 0,
                         status NVARCHAR(50) NOT NULL DEFAULT 'Pending',
                         output_file_path NVARCHAR(1000) NULL,
-                        user_id NVARCHAR(100) NULL,
-                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                        ai_model_id NVARCHAR(12) NULL,
+                        error_message NVARCHAR(MAX) NULL,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE(),
+                        completed_on DATETIME2 NULL
                     );
                 END
+
+                IF COL_LENGTH(N'dbo.translation_task', N'task_type') IS NULL
+                    ALTER TABLE translation_task ADD task_type NVARCHAR(50) NOT NULL DEFAULT N'' WITH VALUES;
+                IF COL_LENGTH(N'dbo.translation_task', N'total_count') IS NULL
+                BEGIN
+                    ALTER TABLE translation_task ADD total_count INT NOT NULL DEFAULT 0 WITH VALUES;
+                    IF COL_LENGTH(N'dbo.translation_task', N'total_fields') IS NOT NULL
+                        EXEC sys.sp_executesql N'
+                            UPDATE translation_task SET total_count = total_fields;';
+                END
+                IF COL_LENGTH(N'dbo.translation_task', N'completed_count') IS NULL
+                BEGIN
+                    ALTER TABLE translation_task ADD completed_count INT NOT NULL DEFAULT 0 WITH VALUES;
+                    IF COL_LENGTH(N'dbo.translation_task', N'translated_fields') IS NOT NULL
+                        EXEC sys.sp_executesql N'
+                            UPDATE translation_task SET completed_count = translated_fields;';
+                END
+                IF COL_LENGTH(N'dbo.translation_task', N'ai_model_id') IS NULL
+                    ALTER TABLE translation_task ADD ai_model_id NVARCHAR(12) NULL;
+                IF COL_LENGTH(N'dbo.translation_task', N'error_message') IS NULL
+                    ALTER TABLE translation_task ADD error_message NVARCHAR(MAX) NULL;
+                IF COL_LENGTH(N'dbo.translation_task', N'completed_on') IS NULL
+                    ALTER TABLE translation_task ADD completed_on DATETIME2 NULL;
 
                 -- ===== translation_record 表 =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='translation_record')
@@ -903,14 +994,52 @@ public class ArasToolkitDbContext : DbContext
                     CREATE TABLE translation_record (
                         id NVARCHAR(12) NOT NULL PRIMARY KEY,
                         task_id NVARCHAR(12) NOT NULL,
-                        field_id NVARCHAR(50) NULL,
+                        item_type NVARCHAR(100) NULL,
+                        item_id NVARCHAR(50) NULL,
+                        item_name NVARCHAR(200) NULL,
                         field_name NVARCHAR(200) NULL,
-                        original_label NVARCHAR(500) NULL,
-                        translated_label NVARCHAR(500) NULL,
-                        target_language NVARCHAR(50) NULL,
+                        original_text NVARCHAR(MAX) NULL,
+                        translated_text NVARCHAR(MAX) NULL,
+                        language NVARCHAR(50) NULL,
+                        status NVARCHAR(50) NOT NULL DEFAULT N'Completed',
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
                 END
+
+                IF COL_LENGTH(N'dbo.translation_record', N'item_type') IS NULL
+                    ALTER TABLE translation_record ADD item_type NVARCHAR(100) NULL;
+                IF COL_LENGTH(N'dbo.translation_record', N'item_id') IS NULL
+                BEGIN
+                    ALTER TABLE translation_record ADD item_id NVARCHAR(50) NULL;
+                    IF COL_LENGTH(N'dbo.translation_record', N'field_id') IS NOT NULL
+                        EXEC sys.sp_executesql N'
+                            UPDATE translation_record SET item_id = field_id;';
+                END
+                IF COL_LENGTH(N'dbo.translation_record', N'item_name') IS NULL
+                    ALTER TABLE translation_record ADD item_name NVARCHAR(200) NULL;
+                IF COL_LENGTH(N'dbo.translation_record', N'original_text') IS NULL
+                BEGIN
+                    ALTER TABLE translation_record ADD original_text NVARCHAR(MAX) NULL;
+                    IF COL_LENGTH(N'dbo.translation_record', N'original_label') IS NOT NULL
+                        EXEC sys.sp_executesql N'
+                            UPDATE translation_record SET original_text = original_label;';
+                END
+                IF COL_LENGTH(N'dbo.translation_record', N'translated_text') IS NULL
+                BEGIN
+                    ALTER TABLE translation_record ADD translated_text NVARCHAR(MAX) NULL;
+                    IF COL_LENGTH(N'dbo.translation_record', N'translated_label') IS NOT NULL
+                        EXEC sys.sp_executesql N'
+                            UPDATE translation_record SET translated_text = translated_label;';
+                END
+                IF COL_LENGTH(N'dbo.translation_record', N'language') IS NULL
+                BEGIN
+                    ALTER TABLE translation_record ADD language NVARCHAR(50) NULL;
+                    IF COL_LENGTH(N'dbo.translation_record', N'target_language') IS NOT NULL
+                        EXEC sys.sp_executesql N'
+                            UPDATE translation_record SET language = target_language;';
+                END
+                IF COL_LENGTH(N'dbo.translation_record', N'status') IS NULL
+                    ALTER TABLE translation_record ADD status NVARCHAR(50) NOT NULL DEFAULT N'Completed' WITH VALUES;
                 -- ===== task_load_analysis_record 表 =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='task_load_analysis_record')
                 BEGIN
@@ -927,10 +1056,76 @@ public class ArasToolkitDbContext : DbContext
                 END
 ";
             await Database.ExecuteSqlRawAsync(sql);
+            await ValidateMappedColumnsAsync();
+            await transaction.CommitAsync();
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync();
             System.Diagnostics.Debug.WriteLine($"[Schema] 表结构同步失败: {ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 校验 EF 实体映射的每个表和列均已存在，防止同步 SQL 遗漏新字段却误报成功。
+    /// </summary>
+    private async Task ValidateMappedColumnsAsync()
+    {
+        var connection = Database.GetDbConnection();
+        var shouldCloseConnection = connection.State != ConnectionState.Open;
+
+        if (shouldCloseConnection)
+            await Database.OpenConnectionAsync();
+
+        try
+        {
+            var actualColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS;
+                """;
+
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                actualColumns.Add($"{reader.GetString(0)}.{reader.GetString(1)}.{reader.GetString(2)}");
+            }
+
+            var missingColumns = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entityType in Model.GetEntityTypes())
+            {
+                var tableName = entityType.GetTableName();
+                if (string.IsNullOrWhiteSpace(tableName))
+                    continue;
+
+                var mappedSchema = entityType.GetSchema();
+                var databaseSchema = string.IsNullOrWhiteSpace(mappedSchema) ? "dbo" : mappedSchema;
+                var tableIdentifier = StoreObjectIdentifier.Table(tableName, mappedSchema);
+
+                foreach (var property in entityType.GetProperties())
+                {
+                    var columnName = property.GetColumnName(tableIdentifier);
+                    if (string.IsNullOrWhiteSpace(columnName))
+                        continue;
+
+                    var key = $"{databaseSchema}.{tableName}.{columnName}";
+                    if (!actualColumns.Contains(key))
+                        missingColumns.Add(key);
+                }
+            }
+
+            if (missingColumns.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    $"数据库同步后仍缺少 EF 映射列: {string.Join(", ", missingColumns)}");
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+                await Database.CloseConnectionAsync();
         }
     }
 }

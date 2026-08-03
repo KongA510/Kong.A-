@@ -66,7 +66,8 @@ public class AppUserService : IAppUserService
     }
 
     /// <summary>
-    /// 同步数据库表结构 + 插入默认管理员
+    /// 手动同步数据库表结构 + 按需创建引导管理员。
+    /// 该方法不在登录流程中调用，表结构仍由设置页手动同步。
     /// </summary>
     public async Task EnsureSchemaAsync()
     {
@@ -74,42 +75,7 @@ public class AppUserService : IAppUserService
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
 
-            var sql = @"
-                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='app_user')
-                BEGIN
-                    CREATE TABLE app_user (
-                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
-                        username NVARCHAR(100) NOT NULL,
-                        password NVARCHAR(100) NOT NULL,
-                        display_name NVARCHAR(100) NULL,
-                        role NVARCHAR(50) NOT NULL DEFAULT 'User',
-                        is_active BIT NOT NULL DEFAULT 1,
-                        is_admin BIT NOT NULL DEFAULT 0,
-                        avatar NVARCHAR(500) NULL,
-                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
-                    );
-                END
-
-                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='app_user' AND COLUMN_NAME='creator_on')
-                BEGIN
-                    ALTER TABLE app_user ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
-                END
-
-                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='app_user' AND COLUMN_NAME='role')
-                BEGIN
-                    ALTER TABLE app_user ADD role NVARCHAR(50) NOT NULL DEFAULT 'User';
-                END
-
-                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='app_user' AND COLUMN_NAME='is_active')
-                BEGIN
-                    ALTER TABLE app_user ADD is_active BIT NOT NULL DEFAULT 1;
-                END
-
-                -- 同步 is_admin 与 role 的一致性
-                UPDATE app_user SET role = 'Admin' WHERE is_admin = 1 AND (role IS NULL OR role = 'User');
-                UPDATE app_user SET is_admin = 1 WHERE role = 'Admin' AND is_admin = 0;
-            ";
-            await context.Database.ExecuteSqlRawAsync(sql);
+            await context.EnsureSchemaAsync();
 
             // 仅在部署方显式提供一次性引导密码时创建管理员，避免内置已知口令。
             var adminExists = await context.Set<AppUser>().AnyAsync(u => u.Username == "admin");
@@ -132,7 +98,9 @@ public class AppUserService : IAppUserService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[AppUserService] Schema同步失败: {ex.Message}");
+            await _errorLogService.LogErrorAsync("用户管理-表结构同步", ex.Message,
+                "P0-致命", ex.StackTrace);
+            throw;
         }
     }
 
