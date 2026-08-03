@@ -8,7 +8,7 @@ using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.Services.Services;
 
-/// <summary>对象类默认权限、可创建者与标准四状态生命周期的一键设定。</summary>
+/// <summary>对象类权限页签、可创建者与标准四状态生命周期的一键设定。</summary>
 public sealed class ObjectClassConfigurationService : IObjectClassConfigurationService
 {
     private const string SettingsRelativePath = "Config/AppSettings/objectClassConfiguration.json";
@@ -193,8 +193,6 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
                     var aml = new XElement("AML",
                         new XAttribute(XNamespace.Xmlns + "i18n", I18n));
                     var messages = new List<string>();
-                    var shouldRefreshDefaultPermission =
-                        options.ConfigureDefaultPermission && !itemType.HasDefaultPermission;
                     if (options.ConfigureDefaultPermission)
                     {
                         messages.Add(AppendDefaultPermission(
@@ -221,9 +219,6 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
                         Apply(innovator, aml,
                             $"配置 {itemType.Name} 的权限、可创建者与生命周期事务失败");
                     }
-
-                    if (shouldRefreshDefaultPermission)
-                        itemType.DefaultPermissionName = itemType.Name;
 
                     itemType.OperationSummary = string.Join("；", messages);
                     batchResult.SuccessCount++;
@@ -269,21 +264,25 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
         ObjectClassConfigurationSettings settings,
         IReadOnlyDictionary<string, string> identityIds)
     {
-        if (itemType.HasDefaultPermission)
-            return $"默认权限已存在({itemType.DefaultPermissionName})，跳过";
-
         var permissionId = AppendPermissionConfiguration(
             innovator,
             aml,
             itemType.Name,
             BuildPermissionRules(settings, false),
             identityIds);
+        if (FindRelationshipId(
+                innovator, "Allowed Permission", itemType.Id, permissionId) != null)
+        {
+            return $"权限页签已包含 {itemType.Name}，详细权限已更新";
+        }
+
         aml.Add(new XElement("Item",
-            new XAttribute("type", "ItemType"),
-            new XAttribute("action", "edit"),
-            new XAttribute("id", itemType.Id),
-            new XElement("default_permission", permissionId)));
-        return $"默认权限已设为 {itemType.Name}";
+            new XAttribute("type", "Allowed Permission"),
+            new XAttribute("action", "add"),
+            new XAttribute("id", innovator.getNewID()),
+            new XElement("source_id", itemType.Id),
+            new XElement("related_id", permissionId)));
+        return $"已将 {itemType.Name} 添加到权限页签，未设为默认值";
     }
 
     private string AppendCanAdd(
