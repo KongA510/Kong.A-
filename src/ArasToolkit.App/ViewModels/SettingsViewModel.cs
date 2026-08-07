@@ -171,12 +171,12 @@ public class SettingsViewModel : ObservableObject
             var json = JsonSerializer.Serialize(new { sql = ConnectionString },
                 new JsonSerializerOptions { WriteIndented = true });
 
-            // 保存到输出目录（运行时生效）
-            var outputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DBSeeting.json");
+            // 仅保存到被 Git 忽略的本地配置，避免连接凭据进入版本库。
+            var outputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DBSeeting.local.json");
             await File.WriteAllTextAsync(outputPath, json);
 
-            // 保存到源码目录（构建后不丢失）
-            var sourcePath = FindSourceConfigPath();
+            // 保存到源码目录中的本地配置（构建后不丢失）。
+            var sourcePath = FindSourceConfigPath("DBSeeting.local.json");
             if (sourcePath != null)
             {
                 await File.WriteAllTextAsync(sourcePath, json);
@@ -201,20 +201,24 @@ public class SettingsViewModel : ObservableObject
         }
     }
 
-    /// <summary>从 DBSeeting.json 读取当前连接字符串</summary>
+    /// <summary>优先从本地配置读取连接字符串，未配置时回退到仓库默认配置。</summary>
     private static string ReadConnectionString()
     {
         try
         {
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var configPath = Path.Combine(baseDir, "DBSeeting.json");
-
-            if (!File.Exists(configPath))
+            var candidatePaths = new[]
             {
-                configPath = FindSourceConfigPath();
-                if (configPath == null || !File.Exists(configPath))
-                    return "";
-            }
+                Path.Combine(baseDir, "DBSeeting.local.json"),
+                Path.Combine(baseDir, "DBSeeting.json"),
+                FindSourceConfigPath("DBSeeting.local.json"),
+                FindSourceConfigPath("DBSeeting.json")
+            };
+
+            var configPath = candidatePaths.FirstOrDefault(path =>
+                path != null && File.Exists(path));
+            if (configPath == null)
+                return "";
 
             var json = File.ReadAllText(configPath);
             using var doc = JsonDocument.Parse(json);
@@ -226,14 +230,14 @@ public class SettingsViewModel : ObservableObject
         }
     }
 
-    /// <summary>向上遍历寻找解决方案根目录，定位源码中的 DBSeeting.json</summary>
-    private static string? FindSourceConfigPath()
+    /// <summary>向上遍历寻找解决方案根目录，定位指定的源码配置文件。</summary>
+    private static string? FindSourceConfigPath(string fileName)
     {
         var dir = AppDomain.CurrentDomain.BaseDirectory;
         for (int i = 0; i < 10; i++)
         {
             if (File.Exists(Path.Combine(dir, "ArasToolkit.slnx")))
-                return Path.Combine(dir, "src", "ArasToolkit.Core", "DBSeeting.json");
+                return Path.Combine(dir, "src", "ArasToolkit.Core", fileName);
             var parent = Directory.GetParent(dir);
             if (parent == null) break;
             dir = parent.FullName;
