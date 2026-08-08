@@ -22,6 +22,8 @@ public sealed class FormConfigurationService : IFormConfigurationService
     public const int VerticalSpacing = 50;
     public const int ItemDisplayLength = 135;
     public const int TextDisplayLength = 150;
+    public const int DefaultTextAreaRows = 100;
+    public const int DefaultTextAreaColumns = 340;
 
     // HTML 边框字段固定放在所有数据字段之后，并以负层级显示在控件背后。
     private const int BorderFieldX = 10;
@@ -238,9 +240,26 @@ public sealed class FormConfigurationService : IFormConfigurationService
                 X = StartX + column * HorizontalSpacing,
                 Y = StartY + row * VerticalSpacing,
                 DisplayLength = isItem ? ItemDisplayLength : TextDisplayLength,
-                Sequence = index + 1
+                Sequence = index + 1,
+                TextAreaRows = DefaultTextAreaRows,
+                TextAreaColumns = DefaultTextAreaColumns
             };
         }).ToList();
+    }
+
+    /// <summary>按当前集合顺序重新编号并计算四列布局坐标。</summary>
+    public void ReflowLayout(IList<ArasFormFieldLayout> fields)
+    {
+        ArgumentNullException.ThrowIfNull(fields);
+
+        for (var index = 0; index < fields.Count; index++)
+        {
+            var row = index / ColumnsPerRow;
+            var column = index % ColumnsPerRow;
+            fields[index].Sequence = index + 1;
+            fields[index].X = StartX + column * HorizontalSpacing;
+            fields[index].Y = StartY + row * VerticalSpacing;
+        }
     }
 
     /// <summary>
@@ -526,7 +545,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
     {
         foreach (var field in fields)
         {
-            yield return new XElement("Item",
+            var fieldItem = new XElement("Item",
                     new XAttribute("type", "Field"),
                     new XAttribute("action", "add"),
                     new XElement("name", field.Name),
@@ -542,6 +561,15 @@ public sealed class FormConfigurationService : IFormConfigurationService
                     new XElement("x", field.X),
                     new XElement("y", field.Y),
                     new XElement("display_length", field.DisplayLength));
+
+            if (field.IsTextField)
+            {
+                fieldItem.Add(
+                    new XElement("textarea_rows", field.TextAreaRows),
+                    new XElement("textarea_cols", field.TextAreaColumns));
+            }
+
+            yield return fieldItem;
         }
 
         // yield return 位于普通字段循环之后，保证新建和覆盖时边框始终是最后一个 Field。
@@ -605,6 +633,9 @@ public sealed class FormConfigurationService : IFormConfigurationService
             throw new InvalidOperationException("至少需要选择一个属性才能生成窗体。");
         if (request.Fields.Any(field => string.IsNullOrWhiteSpace(field.PropertyId)))
             throw new InvalidOperationException("存在未关联 Aras Property ID 的字段，无法生成窗体。");
+        if (request.Fields.Any(field => field.IsTextField &&
+                                        (field.TextAreaRows <= 0 || field.TextAreaColumns <= 0)))
+            throw new InvalidOperationException("Text 控件的行数和列数必须大于 0。");
     }
 
     /// <summary>

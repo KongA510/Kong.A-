@@ -50,6 +50,21 @@ public class InverseBoolConverter : IValueConverter
         => value is bool b ? !b : true;
 }
 
+/// <summary>整数 ↔ NumberBox 使用的 double，反向时取整并保证至少为 1。</summary>
+public class IntToDoubleConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+        => value is int number ? (double)number : 1d;
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+    {
+        if (value is not double number || double.IsNaN(number) || double.IsInfinity(number))
+            return 1;
+
+        return Math.Max(1, (int)Math.Round(number, MidpointRounding.AwayFromZero));
+    }
+}
+
 /// <summary>十六进制颜色字符串 → Windows.UI.Color。</summary>
 public class StringToColorConverter : IValueConverter
 {

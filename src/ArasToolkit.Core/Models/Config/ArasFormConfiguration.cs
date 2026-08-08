@@ -36,17 +36,54 @@ public sealed class ArasFormProperty : ObservableObject
 }
 
 /// <summary>经典 Aras 窗体中一个字段的布局结果。</summary>
-public sealed class ArasFormFieldLayout
+public sealed class ArasFormFieldLayout : ObservableObject
 {
+    private int _x;
+    private int _y;
+    private int _sequence;
+    private int _textAreaRows = 100;
+    private int _textAreaColumns = 340;
+
     public string PropertyId { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public string Label { get; init; } = string.Empty;
     public string DataType { get; init; } = string.Empty;
     public string FieldType { get; init; } = string.Empty;
-    public int X { get; init; }
-    public int Y { get; init; }
+    public int X
+    {
+        get => _x;
+        set => SetProperty(ref _x, value);
+    }
+
+    public int Y
+    {
+        get => _y;
+        set => SetProperty(ref _y, value);
+    }
+
     public int DisplayLength { get; init; }
-    public int Sequence { get; init; }
+
+    public int Sequence
+    {
+        get => _sequence;
+        set => SetProperty(ref _sequence, value);
+    }
+
+    /// <summary>Text 控件的 textarea_rows；非 Text 控件不会写入 AML。</summary>
+    public int TextAreaRows
+    {
+        get => _textAreaRows;
+        set => SetProperty(ref _textAreaRows, Math.Max(1, value));
+    }
+
+    /// <summary>Text 控件的 textarea_cols；非 Text 控件不会写入 AML。</summary>
+    public int TextAreaColumns
+    {
+        get => _textAreaColumns;
+        set => SetProperty(ref _textAreaColumns, Math.Max(1, value));
+    }
+
+    public bool IsTextField => FieldType.Equals("text", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>创建或覆盖 Aras 窗体的请求。</summary>
