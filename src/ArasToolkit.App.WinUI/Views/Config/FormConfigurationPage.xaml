@@ -18,7 +18,7 @@
 
                 <InfoBar IsOpen="True" IsClosable="False" Severity="Informational"
                          Title="默认布局规则"
-                         Message="自动读取未勾选“搜索中隐藏”的属性；起点 X=50、Y=50；每行四个。预览中除字段名称外均可调整；属性类型 text 默认映射为 Text Area，行数 100、列数 340。" />
+                         Message="常规字段每行四个；属性类型 text 默认映射为 Text Area 并排列在最后，每行两个，X=50/450、Y 间隔 150。预览中除字段名称外均可调整。" />
 
                 <InfoBar IsOpen="{Binding HasError}" IsClosable="False" Severity="Error"
                          Title="操作失败" Message="{Binding ErrorMessage}" />

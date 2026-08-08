@@ -151,7 +151,7 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
     public bool HasStatus => !string.IsNullOrWhiteSpace(StatusMessage);
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
     public string PropertySummary => $"已加载 {Properties.Count} 个未勾选“搜索中隐藏”的属性";
-    public string LayoutSummary => $"预览 {LayoutFields.Count} 个字段 · 四列布局 · 起点 (50, 50)";
+    public string LayoutSummary => $"预览 {LayoutFields.Count} 个字段 · 常规四列 / Text Area 两列 · 起点 (50, 50)";
 
     public ICommand RefreshItemTypesCommand { get; }
     public ICommand LoadPropertiesCommand { get; }

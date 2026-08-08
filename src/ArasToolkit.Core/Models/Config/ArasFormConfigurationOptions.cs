@@ -49,7 +49,7 @@ public static class ArasFormConfigurationOptions
     [
         new("黑色", "#333333"),
         new("蓝色", "#0000ff"),
-        new("红色", "#DC2626"),
+        new("红色", "#ff0000"),
         new("绿色", "#16A34A"),
         new("橙色", "#F97316"),
         new("紫色", "#7C3AED"),

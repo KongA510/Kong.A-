@@ -20,6 +20,9 @@ public sealed class FormConfigurationService : IFormConfigurationService
     public const int ColumnsPerRow = 4;
     public const int HorizontalSpacing = 200;
     public const int VerticalSpacing = 50;
+    public const int TextAreaColumnsPerRow = 2;
+    public const int TextAreaHorizontalSpacing = 400;
+    public const int TextAreaVerticalSpacing = 150;
     public const int ItemDisplayLength = 135;
     public const int TextDisplayLength = 150;
     public const int DefaultTextAreaRows = 100;
@@ -220,32 +223,72 @@ public sealed class FormConfigurationService : IFormConfigurationService
             .ThenBy(property => property.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return ordered.Select((property, index) =>
+        var regularProperties = ordered
+            .Where(property => !IsTextAreaProperty(property))
+            .ToList();
+        var textAreaProperties = ordered
+            .Where(IsTextAreaProperty)
+            .ToList();
+        var layouts = new List<ArasFormFieldLayout>(ordered.Count);
+
+        for (var index = 0; index < regularProperties.Count; index++)
         {
             // 每行四个控件：索引除以四得到行号，取模得到列号。
             var row = index / ColumnsPerRow;
             var column = index % ColumnsPerRow;
-            var isItem = property.DataType.Equals("item", StringComparison.OrdinalIgnoreCase);
-            var label = PreferredLabels.TryGetValue(property.Name, out var preferredLabel)
-                ? preferredLabel
-                : property.DisplayLabel;
+            layouts.Add(CreateLayout(
+                regularProperties[index],
+                StartX + column * HorizontalSpacing,
+                StartY + row * VerticalSpacing,
+                layouts.Count + 1));
+        }
 
-            return new ArasFormFieldLayout
-            {
-                PropertyId = property.Id,
-                Name = property.Name,
-                Label = label,
-                DataType = property.DataType,
-                FieldType = ArasFormConfigurationOptions.GetDefaultFieldType(property.DataType),
-                X = StartX + column * HorizontalSpacing,
-                Y = StartY + row * VerticalSpacing,
-                DisplayLength = isItem ? ItemDisplayLength : TextDisplayLength,
-                Sequence = index + 1,
-                TextAreaRows = DefaultTextAreaRows,
-                TextAreaColumns = DefaultTextAreaColumns
-            };
-        }).ToList();
+        // text 属性作为大文本框放在常规字段之后，每行两个，横向 X=50/450，纵向间隔 150。
+        var regularRowCount = (regularProperties.Count + ColumnsPerRow - 1) / ColumnsPerRow;
+        var textAreaStartY = StartY + regularRowCount * VerticalSpacing;
+        for (var index = 0; index < textAreaProperties.Count; index++)
+        {
+            var row = index / TextAreaColumnsPerRow;
+            var column = index % TextAreaColumnsPerRow;
+            layouts.Add(CreateLayout(
+                textAreaProperties[index],
+                StartX + column * TextAreaHorizontalSpacing,
+                textAreaStartY + row * TextAreaVerticalSpacing,
+                layouts.Count + 1));
+        }
+
+        return layouts;
     }
+
+    private static ArasFormFieldLayout CreateLayout(
+        ArasFormProperty property,
+        int x,
+        int y,
+        int sequence)
+    {
+        var isItem = property.DataType.Equals("item", StringComparison.OrdinalIgnoreCase);
+        var label = PreferredLabels.TryGetValue(property.Name, out var preferredLabel)
+            ? preferredLabel
+            : property.DisplayLabel;
+
+        return new ArasFormFieldLayout
+        {
+            PropertyId = property.Id,
+            Name = property.Name,
+            Label = label,
+            DataType = property.DataType,
+            FieldType = ArasFormConfigurationOptions.GetDefaultFieldType(property.DataType),
+            X = x,
+            Y = y,
+            DisplayLength = isItem ? ItemDisplayLength : TextDisplayLength,
+            Sequence = sequence,
+            TextAreaRows = DefaultTextAreaRows,
+            TextAreaColumns = DefaultTextAreaColumns
+        };
+    }
+
+    private static bool IsTextAreaProperty(ArasFormProperty property) =>
+        property.DataType.Trim().Equals("text", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>按当前集合顺序重新编号；保留用户编辑后的坐标与其它字段设置。</summary>
     public void NormalizeLayoutOrder(IList<ArasFormFieldLayout> fields)
