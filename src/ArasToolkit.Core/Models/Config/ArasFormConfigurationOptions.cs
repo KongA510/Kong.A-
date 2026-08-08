@@ -58,8 +58,8 @@ public static class ArasFormConfigurationOptions
         new("白色", "#FFFFFF")
     ];
 
-    public static IReadOnlyList<string> FieldTypeDisplayOptions { get; } = FieldTypes
-        .Select(option => option.DisplayText)
+    public static IReadOnlyList<string> FieldTypeLabels { get; } = FieldTypes
+        .Select(option => option.Label)
         .ToArray();
 
     public static IReadOnlyList<string> FontColorDisplayOptions { get; } = FontColors
@@ -91,11 +91,11 @@ public static class ArasFormConfigurationOptions
     private static readonly FrozenDictionary<string, string> CanonicalFontColors = FontColors
         .ToFrozenDictionary(option => option.Value, option => option.Value, StringComparer.OrdinalIgnoreCase);
 
-    private static readonly FrozenDictionary<string, string> FieldTypeDisplayToValue = FieldTypes
-        .ToFrozenDictionary(option => option.DisplayText, option => option.Value, StringComparer.OrdinalIgnoreCase);
+    private static readonly FrozenDictionary<string, string> FieldTypeLabelToValue = FieldTypes
+        .ToFrozenDictionary(option => option.Label, option => option.Value, StringComparer.OrdinalIgnoreCase);
 
-    private static readonly FrozenDictionary<string, string> FieldTypeValueToDisplay = FieldTypes
-        .ToFrozenDictionary(option => option.Value, option => option.DisplayText, StringComparer.OrdinalIgnoreCase);
+    private static readonly FrozenDictionary<string, string> FieldTypeValueToLabel = FieldTypes
+        .ToFrozenDictionary(option => option.Value, option => option.Label, StringComparer.OrdinalIgnoreCase);
 
     private static readonly FrozenDictionary<string, string> FontColorDisplayToValue = FontColors
         .ToFrozenDictionary(option => option.DisplayText, option => option.Value, StringComparer.OrdinalIgnoreCase);
@@ -127,16 +127,16 @@ public static class ArasFormConfigurationOptions
             : DefaultFontColor;
     }
 
-    public static string GetFieldTypeDisplayText(string? fieldType)
+    public static string GetFieldTypeLabel(string? fieldType)
     {
         var normalized = NormalizeFieldType(fieldType);
-        return FieldTypeValueToDisplay[normalized];
+        return FieldTypeValueToLabel[normalized];
     }
 
-    public static string GetFieldTypeFromDisplayText(string? displayText)
+    public static string GetFieldTypeFromLabel(string? label)
     {
-        var key = displayText?.Trim() ?? string.Empty;
-        return FieldTypeDisplayToValue.TryGetValue(key, out var value)
+        var key = label?.Trim() ?? string.Empty;
+        return FieldTypeLabelToValue.TryGetValue(key, out var value)
             ? value
             : DefaultFieldType;
     }

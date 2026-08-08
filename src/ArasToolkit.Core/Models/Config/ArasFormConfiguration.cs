@@ -61,7 +61,7 @@ public sealed class ArasFormFieldLayout : ObservableObject
             if (SetProperty(ref _fieldType, normalized))
             {
                 OnPropertyChanged(nameof(IsTextAreaField));
-                OnPropertyChanged(nameof(FieldTypeDisplayText));
+                OnPropertyChanged(nameof(FieldTypeLabel));
             }
         }
     }
@@ -125,10 +125,10 @@ public sealed class ArasFormFieldLayout : ObservableObject
         ArasFormConfigurationOptions.TextAreaFieldType,
         StringComparison.OrdinalIgnoreCase);
 
-    public string FieldTypeDisplayText
+    public string FieldTypeLabel
     {
-        get => ArasFormConfigurationOptions.GetFieldTypeDisplayText(FieldType);
-        set => FieldType = ArasFormConfigurationOptions.GetFieldTypeFromDisplayText(value);
+        get => ArasFormConfigurationOptions.GetFieldTypeLabel(FieldType);
+        set => FieldType = ArasFormConfigurationOptions.GetFieldTypeFromLabel(value);
     }
 
     public string FontColorDisplayText
@@ -137,7 +137,7 @@ public sealed class ArasFormFieldLayout : ObservableObject
         set => FontColor = ArasFormConfigurationOptions.GetFontColorFromDisplayText(value);
     }
 
-    public IReadOnlyList<string> AvailableFieldTypes => ArasFormConfigurationOptions.FieldTypeDisplayOptions;
+    public IReadOnlyList<string> AvailableFieldTypes => ArasFormConfigurationOptions.FieldTypeLabels;
     public IReadOnlyList<string> AvailableFontColors => ArasFormConfigurationOptions.FontColorDisplayOptions;
 }
 
