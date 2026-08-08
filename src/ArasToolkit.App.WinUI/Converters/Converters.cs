@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
+using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.App.WinUI.Converters;
 
@@ -299,4 +300,28 @@ public class DateTimeOffsetConverter : IValueConverter
         if (value is DateTimeOffset dto) return dto.DateTime;
         return null!;
     }
+}
+
+/// <summary>数据比对差异类型 → 语义颜色；Solid 参数用于图例和强调线。</summary>
+public class DiffKindToBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var kind = value is DataDiffKind typed && Enum.IsDefined(typed)
+            ? typed
+            : Enum.TryParse<DataDiffKind>(value?.ToString(), out var parsed) ? parsed : DataDiffKind.Equal;
+        var color = kind switch
+        {
+            DataDiffKind.Removed => Color.FromArgb(255, 220, 38, 38),
+            DataDiffKind.Modified => Color.FromArgb(255, 202, 138, 4),
+            DataDiffKind.Added => Color.FromArgb(255, 234, 88, 12),
+            _ => Color.FromArgb(0, 0, 0, 0)
+        };
+        if (parameter?.ToString() != "Solid" && kind != DataDiffKind.Equal)
+            color = Color.FromArgb(30, color.R, color.G, color.B);
+        return new SolidColorBrush(color);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
 }

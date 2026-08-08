@@ -96,6 +96,16 @@ public class MainViewModel : ObservableObject
         sysConfig.Children.Add(new MenuItemInfo { Name = "用户管理", Icon = "AccountGroup", CardIcon = "\uE716", Description = "管理员创建用户与角色分配" });
         MenuItems.Add(sysConfig);
 
+        // ===== 二级菜单：其他功能 =====
+        var otherTools = new MenuItemInfo { Name = "其他功能", Icon = "DeveloperTools", CardIcon = "\uEC7A", Description = "XML、JSON 格式处理与 .NET 实体转换工具集" };
+        otherTools.Children.Add(new MenuItemInfo { Name = "XML格式化", Icon = "Code", CardIcon = "\uE943", Description = "自动提取并格式化完整 XML 结构" });
+        otherTools.Children.Add(new MenuItemInfo { Name = "XML比对", Icon = "Compare", CardIcon = "\uE8AB", Description = "归一化 XML 并以颜色标记缺少与内容差异" });
+        otherTools.Children.Add(new MenuItemInfo { Name = "JSON格式化", Icon = "Code", CardIcon = "\uE943", Description = "校验并格式化 JSON 对象或数组" });
+        otherTools.Children.Add(new MenuItemInfo { Name = "JSON比对", Icon = "Compare", CardIcon = "\uE8AB", Description = "归一化 JSON 并以颜色标记结构差异" });
+        otherTools.Children.Add(new MenuItemInfo { Name = "JSON转实体类", Icon = "Class", CardIcon = "\uE7BA", Description = "按 .NET 规范生成实体类与序列化映射" });
+        otherTools.Children.Add(new MenuItemInfo { Name = "实体类转JSON", Icon = "Code", CardIcon = "\uE713", Description = "从 .NET 实体类生成 JSON 结构样例" });
+        MenuItems.Add(otherTools);
+
         // ===== 二级菜单：系统日志 =====
         var sysLog = new MenuItemInfo { Name = "系统日志", Icon = "History", CardIcon = "\uE8FD", Description = "系统日志与审计记录" };
         sysLog.Children.Add(new MenuItemInfo { Name = "更新日志", Icon = "History", CardIcon = "\uE81C", Description = "系统更新日志与版本记录" });

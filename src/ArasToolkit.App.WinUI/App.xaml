@@ -26,6 +26,7 @@
             <converters:OperationTypeToBrushConverter x:Key="OperationTypeToBrush" />
             <converters:ProgressToColorConverter x:Key="ProgressToColor" />
             <converters:DateTimeOffsetConverter x:Key="DateTimeOffset" />
+            <converters:DiffKindToBrushConverter x:Key="DiffKindToBrush" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

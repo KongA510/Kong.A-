@@ -85,6 +85,7 @@ public partial class App : Application
         services.AddTransient<FileExplorerViewModel>();
         services.AddTransient<ArasLoginViewModel>();
         services.AddTransient<UserManageViewModel>();
+        services.AddTransient<DataToolsViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -120,6 +121,12 @@ public partial class App : Application
         nav.Register("我的资料", typeof(FileExplorerPage));
         nav.Register("Aras连接", typeof(ArasLoginPage));
         nav.Register("用户管理", typeof(UserManagePage));
+        nav.Register("XML格式化", typeof(DataToolsPage));
+        nav.Register("XML比对", typeof(DataToolsPage));
+        nav.Register("JSON格式化", typeof(DataToolsPage));
+        nav.Register("JSON比对", typeof(DataToolsPage));
+        nav.Register("JSON转实体类", typeof(DataToolsPage));
+        nav.Register("实体类转JSON", typeof(DataToolsPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
