@@ -18,7 +18,7 @@
 
                 <InfoBar IsOpen="True" IsClosable="False" Severity="Informational"
                          Title="默认布局规则"
-                         Message="自动读取未勾选“搜索中隐藏”的属性；起点 X=50、Y=50；每行四个；横向间隔 200、纵向间隔 50。可拖动预览字段调整写入顺序；Text 控件默认行数 100、列数 340。" />
+                         Message="自动读取未勾选“搜索中隐藏”的属性；起点 X=50、Y=50；每行四个；横向间隔 200、纵向间隔 50。可拖动预览字段调整写入顺序；仅属性类型为 text 时启用行数与列数，默认 100 × 340。" />
 
                 <InfoBar IsOpen="{Binding HasError}" IsClosable="False" Severity="Error"
                          Title="操作失败" Message="{Binding ErrorMessage}" />
@@ -262,17 +262,17 @@
                                                        Style="{ThemeResource TableCellText}" />
                                             <NumberBox Grid.Column="7" Margin="2,0,6,0" MinWidth="0"
                                                        Minimum="1" SpinButtonPlacementMode="Hidden"
-                                                       Visibility="{Binding IsTextField, Converter={StaticResource BoolToVisibility}}"
+                                                       Visibility="{Binding IsTextAreaProperty, Converter={StaticResource BoolToVisibility}}"
                                                        Value="{Binding TextAreaRows, Mode=TwoWay, Converter={StaticResource IntToDouble}}" />
                                             <TextBlock Grid.Column="7" Text="—" HorizontalAlignment="Center"
-                                                       Visibility="{Binding IsTextField, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"
+                                                       Visibility="{Binding IsTextAreaProperty, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"
                                                        Style="{ThemeResource CaptionText}" />
                                             <NumberBox Grid.Column="8" Margin="2,0,6,0" MinWidth="0"
                                                        Minimum="1" SpinButtonPlacementMode="Hidden"
-                                                       Visibility="{Binding IsTextField, Converter={StaticResource BoolToVisibility}}"
+                                                       Visibility="{Binding IsTextAreaProperty, Converter={StaticResource BoolToVisibility}}"
                                                        Value="{Binding TextAreaColumns, Mode=TwoWay, Converter={StaticResource IntToDouble}}" />
                                             <TextBlock Grid.Column="8" Text="—" HorizontalAlignment="Center"
-                                                       Visibility="{Binding IsTextField, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"
+                                                       Visibility="{Binding IsTextAreaProperty, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"
                                                        Style="{ThemeResource CaptionText}" />
                                         </Grid>
                                     </DataTemplate>

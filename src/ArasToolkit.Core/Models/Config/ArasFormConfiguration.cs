@@ -69,21 +69,25 @@ public sealed class ArasFormFieldLayout : ObservableObject
         set => SetProperty(ref _sequence, value);
     }
 
-    /// <summary>Text 控件的 textarea_rows；非 Text 控件不会写入 AML。</summary>
+    /// <summary>Aras text 属性的 textarea_rows；其他属性不会写入 AML。</summary>
     public int TextAreaRows
     {
         get => _textAreaRows;
         set => SetProperty(ref _textAreaRows, Math.Max(1, value));
     }
 
-    /// <summary>Text 控件的 textarea_cols；非 Text 控件不会写入 AML。</summary>
+    /// <summary>Aras text 属性的 textarea_cols；其他属性不会写入 AML。</summary>
     public int TextAreaColumns
     {
         get => _textAreaColumns;
         set => SetProperty(ref _textAreaColumns, Math.Max(1, value));
     }
 
-    public bool IsTextField => FieldType.Equals("text", StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// 只有原始 Aras Property 的 data_type=text 才是多行文本。
+    /// string 虽然同样使用 field_type=text 渲染，但不应带 textarea 行列参数。
+    /// </summary>
+    public bool IsTextAreaProperty => DataType.Equals("text", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>创建或覆盖 Aras 窗体的请求。</summary>

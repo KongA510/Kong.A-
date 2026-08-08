@@ -562,7 +562,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
                     new XElement("y", field.Y),
                     new XElement("display_length", field.DisplayLength));
 
-            if (field.IsTextField)
+            if (field.IsTextAreaProperty)
             {
                 fieldItem.Add(
                     new XElement("textarea_rows", field.TextAreaRows),
@@ -633,9 +633,9 @@ public sealed class FormConfigurationService : IFormConfigurationService
             throw new InvalidOperationException("至少需要选择一个属性才能生成窗体。");
         if (request.Fields.Any(field => string.IsNullOrWhiteSpace(field.PropertyId)))
             throw new InvalidOperationException("存在未关联 Aras Property ID 的字段，无法生成窗体。");
-        if (request.Fields.Any(field => field.IsTextField &&
+        if (request.Fields.Any(field => field.IsTextAreaProperty &&
                                         (field.TextAreaRows <= 0 || field.TextAreaColumns <= 0)))
-            throw new InvalidOperationException("Text 控件的行数和列数必须大于 0。");
+            throw new InvalidOperationException("text 属性的行数和列数必须大于 0。");
     }
 
     /// <summary>
