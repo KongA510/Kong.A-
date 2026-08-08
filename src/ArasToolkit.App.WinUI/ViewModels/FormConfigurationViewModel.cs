@@ -293,10 +293,10 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
         BuildPreview();
     }
 
-    /// <summary>ListView 完成拖动后，以集合当前顺序重排行号与窗体坐标。</summary>
-    public void ReflowLayoutAfterReorder()
+    /// <summary>ListView 完成拖动后按集合顺序重排行号，保留用户编辑的坐标与样式。</summary>
+    public void NormalizeLayoutAfterReorder()
     {
-        _formService.ReflowLayout(LayoutFields);
+        _formService.NormalizeLayoutOrder(LayoutFields);
         OnPropertyChanged(nameof(LayoutSummary));
         StatusMessage = $"字段顺序已更新；将按当前顺序写入 {LayoutFields.Count} 个字段。";
     }

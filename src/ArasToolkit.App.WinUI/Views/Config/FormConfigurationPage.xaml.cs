@@ -57,7 +57,7 @@ public sealed partial class FormConfigurationPage : Page
         DragItemsCompletedEventArgs args)
     {
         if (args.DropResult == Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move)
-            ViewModel.ReflowLayoutAfterReorder();
+            ViewModel.NormalizeLayoutAfterReorder();
     }
 
     private void Page_SizeChanged(object sender, SizeChangedEventArgs e)

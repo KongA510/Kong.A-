@@ -50,7 +50,7 @@ public class InverseBoolConverter : IValueConverter
         => value is bool b ? !b : true;
 }
 
-/// <summary>整数 ↔ NumberBox 使用的 double，反向时取整并保证至少为 1。</summary>
+/// <summary>整数 ↔ NumberBox 使用的 double；参数 AllowZero 允许 0，否则至少为 1。</summary>
 public class IntToDoubleConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
@@ -58,10 +58,11 @@ public class IntToDoubleConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)
     {
+        var minimum = parameter?.ToString() == "AllowZero" ? 0 : 1;
         if (value is not double number || double.IsNaN(number) || double.IsInfinity(number))
-            return 1;
+            return minimum;
 
-        return Math.Max(1, (int)Math.Round(number, MidpointRounding.AwayFromZero));
+        return Math.Max(minimum, (int)Math.Round(number, MidpointRounding.AwayFromZero));
     }
 }
 
@@ -88,7 +89,7 @@ public class StringToColorConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>十六进制颜色字符串 → SolidColorBrush（15% 不透明度）。</summary>
+/// <summary>十六进制颜色字符串 → SolidColorBrush；参数 Solid 返回不透明色，否则返回 15% 背景色。</summary>
 public class StringToColorBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
@@ -100,7 +101,8 @@ public class StringToColorBrushConverter : IValueConverter
                 byte r = System.Convert.ToByte(hex.Substring(1, 2), 16);
                 byte g = System.Convert.ToByte(hex.Substring(3, 2), 16);
                 byte b = System.Convert.ToByte(hex.Substring(5, 2), 16);
-                return new SolidColorBrush(Color.FromArgb(38, r, g, b));
+                var alpha = parameter?.ToString() == "Solid" ? (byte)255 : (byte)38;
+                return new SolidColorBrush(Color.FromArgb(alpha, r, g, b));
             }
             catch { }
         }

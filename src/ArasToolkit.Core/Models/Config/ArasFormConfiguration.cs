@@ -41,27 +41,48 @@ public sealed class ArasFormFieldLayout : ObservableObject
     private int _x;
     private int _y;
     private int _sequence;
+    private int _displayLength = 150;
     private int _textAreaRows = 100;
     private int _textAreaColumns = 340;
+    private string _fieldType = ArasFormConfigurationOptions.DefaultFieldType;
+    private bool _isDisabled;
+    private string _fontColor = ArasFormConfigurationOptions.DefaultFontColor;
 
     public string PropertyId { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public string Label { get; init; } = string.Empty;
     public string DataType { get; init; } = string.Empty;
-    public string FieldType { get; init; } = string.Empty;
+    public string FieldType
+    {
+        get => _fieldType;
+        set
+        {
+            var normalized = ArasFormConfigurationOptions.NormalizeFieldType(value);
+            if (SetProperty(ref _fieldType, normalized))
+            {
+                OnPropertyChanged(nameof(IsTextAreaField));
+                OnPropertyChanged(nameof(FieldTypeDisplayText));
+            }
+        }
+    }
+
     public int X
     {
         get => _x;
-        set => SetProperty(ref _x, value);
+        set => SetProperty(ref _x, Math.Max(0, value));
     }
 
     public int Y
     {
         get => _y;
-        set => SetProperty(ref _y, value);
+        set => SetProperty(ref _y, Math.Max(0, value));
     }
 
-    public int DisplayLength { get; init; }
+    public int DisplayLength
+    {
+        get => _displayLength;
+        set => SetProperty(ref _displayLength, Math.Max(1, value));
+    }
 
     public int Sequence
     {
@@ -69,25 +90,55 @@ public sealed class ArasFormFieldLayout : ObservableObject
         set => SetProperty(ref _sequence, value);
     }
 
-    /// <summary>Aras text 属性的 textarea_rows；其他属性不会写入 AML。</summary>
+    /// <summary>textarea 控件的 textarea_rows；其他控件不会写入 AML。</summary>
     public int TextAreaRows
     {
         get => _textAreaRows;
         set => SetProperty(ref _textAreaRows, Math.Max(1, value));
     }
 
-    /// <summary>Aras text 属性的 textarea_cols；其他属性不会写入 AML。</summary>
+    /// <summary>textarea 控件的 textarea_cols；其他控件不会写入 AML。</summary>
     public int TextAreaColumns
     {
         get => _textAreaColumns;
         set => SetProperty(ref _textAreaColumns, Math.Max(1, value));
     }
 
-    /// <summary>
-    /// 只有原始 Aras Property 的 data_type=text 才是多行文本。
-    /// string 虽然同样使用 field_type=text 渲染，但不应带 textarea 行列参数。
-    /// </summary>
-    public bool IsTextAreaProperty => DataType.Equals("text", StringComparison.OrdinalIgnoreCase);
+    public bool IsDisabled
+    {
+        get => _isDisabled;
+        set => SetProperty(ref _isDisabled, value);
+    }
+
+    public string FontColor
+    {
+        get => _fontColor;
+        set
+        {
+            if (SetProperty(ref _fontColor, ArasFormConfigurationOptions.NormalizeFontColor(value)))
+                OnPropertyChanged(nameof(FontColorDisplayText));
+        }
+    }
+
+    /// <summary>当前选择的控件类型是否为多行文本。</summary>
+    public bool IsTextAreaField => FieldType.Equals(
+        ArasFormConfigurationOptions.TextAreaFieldType,
+        StringComparison.OrdinalIgnoreCase);
+
+    public string FieldTypeDisplayText
+    {
+        get => ArasFormConfigurationOptions.GetFieldTypeDisplayText(FieldType);
+        set => FieldType = ArasFormConfigurationOptions.GetFieldTypeFromDisplayText(value);
+    }
+
+    public string FontColorDisplayText
+    {
+        get => ArasFormConfigurationOptions.GetFontColorDisplayText(FontColor);
+        set => FontColor = ArasFormConfigurationOptions.GetFontColorFromDisplayText(value);
+    }
+
+    public IReadOnlyList<string> AvailableFieldTypes => ArasFormConfigurationOptions.FieldTypeDisplayOptions;
+    public IReadOnlyList<string> AvailableFontColors => ArasFormConfigurationOptions.FontColorDisplayOptions;
 }
 
 /// <summary>创建或覆盖 Aras 窗体的请求。</summary>

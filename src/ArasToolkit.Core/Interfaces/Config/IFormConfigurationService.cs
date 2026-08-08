@@ -15,7 +15,7 @@ public interface IFormConfigurationService
     IReadOnlyList<ArasFormFieldLayout> BuildDefaultLayout(
         IEnumerable<ArasFormProperty> properties);
 
-    void ReflowLayout(IList<ArasFormFieldLayout> fields);
+    void NormalizeLayoutOrder(IList<ArasFormFieldLayout> fields);
 
     Task<ArasFormConfigurationResult> ApplyAsync(
         ArasFormConfigurationRequest request,

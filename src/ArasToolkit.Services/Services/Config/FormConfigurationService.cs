@@ -236,7 +236,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
                 Name = property.Name,
                 Label = label,
                 DataType = property.DataType,
-                FieldType = MapFieldType(property.DataType),
+                FieldType = ArasFormConfigurationOptions.GetDefaultFieldType(property.DataType),
                 X = StartX + column * HorizontalSpacing,
                 Y = StartY + row * VerticalSpacing,
                 DisplayLength = isItem ? ItemDisplayLength : TextDisplayLength,
@@ -247,19 +247,13 @@ public sealed class FormConfigurationService : IFormConfigurationService
         }).ToList();
     }
 
-    /// <summary>按当前集合顺序重新编号并计算四列布局坐标。</summary>
-    public void ReflowLayout(IList<ArasFormFieldLayout> fields)
+    /// <summary>按当前集合顺序重新编号；保留用户编辑后的坐标与其它字段设置。</summary>
+    public void NormalizeLayoutOrder(IList<ArasFormFieldLayout> fields)
     {
         ArgumentNullException.ThrowIfNull(fields);
 
         for (var index = 0; index < fields.Count; index++)
-        {
-            var row = index / ColumnsPerRow;
-            var column = index % ColumnsPerRow;
             fields[index].Sequence = index + 1;
-            fields[index].X = StartX + column * HorizontalSpacing;
-            fields[index].Y = StartY + row * VerticalSpacing;
-        }
     }
 
     /// <summary>
@@ -507,7 +501,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
                 new XAttribute("action", "add"),
                 new XElement("name", request.FormName),
                 new XElement("label", request.FormLabel),
-                new XElement("width", CalculateFormWidth()),
+                new XElement("width", CalculateFormWidth(request.Fields)),
                 new XElement("height", CalculateFormHeight(request.Fields)),
                 new XElement("Relationships", BuildBodyItem(request.Fields))));
 
@@ -522,7 +516,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
             new XAttribute("action", "edit"),
             new XAttribute("id", formId),
             new XElement("label", request.FormLabel),
-            new XElement("width", CalculateFormWidth()),
+            new XElement("width", CalculateFormWidth(request.Fields)),
             new XElement("height", CalculateFormHeight(request.Fields)));
         if (relationships != null)
             item.Add(relationships);
@@ -554,7 +548,9 @@ public sealed class FormConfigurationService : IFormConfigurationService
                     new XElement("propertytype_id", field.PropertyId),
                     new XElement("display_length_unit", "px"),
                     new XElement("is_visible", "1"),
+                    new XElement("is_disabled", field.IsDisabled ? "1" : "0"),
                     new XElement("font_weight", "bold"),
+                    new XElement("font_color", field.FontColor),
                     new XElement("label_position", "top"),
                     new XElement("font_family", "arial, helvetica, sans-serif"),
                     new XElement("font_size", "8pt"),
@@ -562,7 +558,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
                     new XElement("y", field.Y),
                     new XElement("display_length", field.DisplayLength));
 
-            if (field.IsTextAreaProperty)
+            if (field.IsTextAreaField)
             {
                 fieldItem.Add(
                     new XElement("textarea_rows", field.TextAreaRows),
@@ -605,23 +601,15 @@ public sealed class FormConfigurationService : IFormConfigurationService
             new XElement("display_length", BorderHtmlWidth));
     }
 
-    /// <summary>按四列布局计算窗体宽度，并为最右侧控件保留额外边距。</summary>
-    private static int CalculateFormWidth() =>
-        StartX + (ColumnsPerRow - 1) * HorizontalSpacing + TextDisplayLength + 50;
+    /// <summary>根据用户编辑后的 X 与显示长度计算窗体宽度，并保留右侧边距。</summary>
+    private static int CalculateFormWidth(IReadOnlyList<ArasFormFieldLayout> fields) =>
+        fields.Count == 0
+            ? StartX + (ColumnsPerRow - 1) * HorizontalSpacing + TextDisplayLength + 50
+            : fields.Max(field => field.X + field.DisplayLength) + 50;
 
     /// <summary>按最后一行 Y 坐标计算窗体高度，并保留底部操作空间。</summary>
     private static int CalculateFormHeight(IReadOnlyList<ArasFormFieldLayout> fields) =>
         fields.Count == 0 ? 200 : fields.Max(field => field.Y) + 100;
-
-    /// <summary>把 Aras Property 数据类型映射为经典 Form Field 控件类型。</summary>
-    private static string MapFieldType(string dataType) => dataType.Trim().ToLowerInvariant() switch
-    {
-        "item" => "item",
-        "list" or "mv_list" or "filter list" => "dropdown",
-        "boolean" => "checkbox",
-        "date" => "date",
-        _ => "text"
-    };
 
     /// <summary>在生成 AML 前校验请求，防止写入无法绑定 Property 的无效 Field。</summary>
     private static void ValidateRequest(ArasFormConfigurationRequest request)
@@ -633,9 +621,15 @@ public sealed class FormConfigurationService : IFormConfigurationService
             throw new InvalidOperationException("至少需要选择一个属性才能生成窗体。");
         if (request.Fields.Any(field => string.IsNullOrWhiteSpace(field.PropertyId)))
             throw new InvalidOperationException("存在未关联 Aras Property ID 的字段，无法生成窗体。");
-        if (request.Fields.Any(field => field.IsTextAreaProperty &&
+        if (request.Fields.Any(field => !ArasFormConfigurationOptions.IsKnownFieldType(field.FieldType)))
+            throw new InvalidOperationException("存在不受支持的控件类型，无法生成窗体。");
+        if (request.Fields.Any(field => !ArasFormConfigurationOptions.IsKnownFontColor(field.FontColor)))
+            throw new InvalidOperationException("存在不受支持的标题颜色，无法生成窗体。");
+        if (request.Fields.Any(field => field.X < 0 || field.Y < 0 || field.DisplayLength <= 0))
+            throw new InvalidOperationException("字段的 X、Y 必须大于等于 0，显示长度必须大于 0。");
+        if (request.Fields.Any(field => field.IsTextAreaField &&
                                         (field.TextAreaRows <= 0 || field.TextAreaColumns <= 0)))
-            throw new InvalidOperationException("text 属性的行数和列数必须大于 0。");
+            throw new InvalidOperationException("Text Area 控件的行数和列数必须大于 0。");
     }
 
     /// <summary>
