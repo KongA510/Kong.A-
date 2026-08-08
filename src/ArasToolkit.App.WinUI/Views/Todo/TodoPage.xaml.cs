@@ -24,6 +24,16 @@ public sealed partial class TodoPage : Page
 
     private TodoViewModel? Vm => DataContext as TodoViewModel;
 
+    private void Page_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var compact = e.NewSize.Width < 760;
+        Grid.SetRow(HeaderTitlePanel, 0);
+        Grid.SetRow(HeaderActionsPanel, compact ? 1 : 0);
+        HeaderActionsPanel.HorizontalAlignment = compact ? HorizontalAlignment.Left : HorizontalAlignment.Right;
+        HeaderActionsPanel.Orientation = compact ? Orientation.Vertical : Orientation.Horizontal;
+        FilterToolbar.Orientation = compact ? Orientation.Vertical : Orientation.Horizontal;
+    }
+
     private void EditButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: PersonalTask item })

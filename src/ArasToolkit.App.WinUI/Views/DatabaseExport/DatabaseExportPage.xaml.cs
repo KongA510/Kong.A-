@@ -19,6 +19,13 @@ public sealed partial class DatabaseExportPage : Page
         DataContext = App.Services.GetRequiredService<DatabaseExportViewModel>();
     }
 
+    private void Page_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var orientation = e.NewSize.Width < 760 ? Orientation.Vertical : Orientation.Horizontal;
+        TemplateToolbar.Orientation = orientation;
+        ExportToolbar.Orientation = orientation;
+    }
+
     private void OpenLogFile_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string logPath && string.IsNullOrWhiteSpace(logPath) == false)

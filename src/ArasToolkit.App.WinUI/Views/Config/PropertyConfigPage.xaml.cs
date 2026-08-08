@@ -20,6 +20,9 @@ public sealed partial class PropertyConfigPage : Page
         DataContext = App.Services.GetRequiredService<PropertyConfigViewModel>();
     }
 
+    private void Page_SizeChanged(object sender, SizeChangedEventArgs e)
+        => ImportToolbar.Orientation = e.NewSize.Width < 760 ? Orientation.Vertical : Orientation.Horizontal;
+
     private static void OpenWithShell(string path)
     {
         try

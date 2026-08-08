@@ -1,7 +1,8 @@
 <Page
     x:Class="ArasToolkit.App.WinUI.Views.ChangelogPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    SizeChanged="Page_SizeChanged">
 
     <Grid Margin="32,28">
         <Grid.RowDefinitions>
@@ -32,15 +33,25 @@
         </Grid>
 
         <!-- 统计卡片 -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,16">
-            <Border Style="{ThemeResource CardStyle}" Width="160" Margin="0,0,12,0" Padding="16,14">
+        <Grid x:Name="StatsGrid" Grid.Row="1" Margin="0,0,0,16" ColumnSpacing="12" RowSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Border x:Name="TotalCard" Style="{ThemeResource CardStyle}" Padding="16,14">
                 <StackPanel>
                     <TextBlock Text="总计" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" />
                     <TextBlock Text="{Binding TotalCount}" FontSize="24" FontWeight="Bold"
                                Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,4,0,0" />
                 </StackPanel>
             </Border>
-            <Border Style="{ThemeResource CardStyle}" Width="160" Margin="0,0,12,0" Padding="16,14">
+            <Border x:Name="NewCard" Grid.Column="1" Style="{ThemeResource CardStyle}" Padding="16,14">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <Ellipse Width="8" Height="8" Fill="{ThemeResource SuccessBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
@@ -50,7 +61,7 @@
                                Foreground="{ThemeResource SuccessBrush}" Margin="0,4,0,0" />
                 </StackPanel>
             </Border>
-            <Border Style="{ThemeResource CardStyle}" Width="160" Margin="0,0,12,0" Padding="16,14">
+            <Border x:Name="FixCard" Grid.Column="2" Style="{ThemeResource CardStyle}" Padding="16,14">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <Ellipse Width="8" Height="8" Fill="{ThemeResource WarningBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
@@ -60,7 +71,7 @@
                                Foreground="{ThemeResource WarningBrush}" Margin="0,4,0,0" />
                 </StackPanel>
             </Border>
-            <Border Style="{ThemeResource CardStyle}" Width="160" Margin="0,0,12,0" Padding="16,14">
+            <Border x:Name="OptimizeCard" Grid.Column="3" Style="{ThemeResource CardStyle}" Padding="16,14">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <Ellipse Width="8" Height="8" Fill="#3B82F6" Margin="0,0,6,0" VerticalAlignment="Center" />
@@ -70,11 +81,11 @@
                                Foreground="#3B82F6" Margin="0,4,0,0" />
                 </StackPanel>
             </Border>
-        </StackPanel>
+        </Grid>
 
         <!-- 过滤工具栏 -->
         <Border Grid.Row="2" Style="{ThemeResource CardStyle}" Padding="16,12" Margin="0,0,0,12">
-            <StackPanel Orientation="Horizontal">
+            <StackPanel x:Name="FilterToolbar" Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="筛选类型：" VerticalAlignment="Center"
                            Foreground="{ThemeResource TextSecondaryBrush}" FontSize="13" Margin="0,0,12,0" />
                 <ComboBox ItemsSource="{Binding FilterTypes}"

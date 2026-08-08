@@ -1,7 +1,8 @@
 <Page
     x:Class="ArasToolkit.App.WinUI.Views.FieldTranslationPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    SizeChanged="Page_SizeChanged">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="30,24,30,30" Spacing="16">
             <StackPanel>
@@ -11,16 +12,20 @@
             </StackPanel>
 
             <Border Style="{ThemeResource SimpleCard}" Padding="16,12">
-                <Grid ColumnSpacing="24">
+                <Grid x:Name="ConnectionGrid" ColumnSpacing="24" RowSpacing="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel x:Name="ConnectionStatus" Grid.Column="0" Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE968;" FontSize="16" />
                         <TextBlock Text="{Binding ConnectionText}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <StackPanel x:Name="AiStatus" Grid.Column="1" Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE99A;" FontSize="16" />
                         <TextBlock Text="{Binding AiModelText}" VerticalAlignment="Center" />
                     </StackPanel>
@@ -30,8 +35,12 @@
             <Border Style="{ThemeResource SimpleCard}" Padding="20,16">
                 <StackPanel Spacing="12">
                     <TextBlock Text="1  选择对象类与关联窗体" FontSize="16" FontWeight="SemiBold" />
-                    <Grid ColumnSpacing="12" RowSpacing="10">
+                    <Grid x:Name="QueryGrid" ColumnSpacing="12" RowSpacing="10">
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -42,7 +51,7 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <ComboBox Grid.Row="0" Grid.Column="0" Header="Aras 对象类"
+                        <ComboBox x:Name="ItemTypeComboBox" Grid.Row="0" Grid.Column="0" Header="Aras 对象类"
                                   ItemsSource="{Binding FilteredItemTypes}"
                                   SelectedItem="{Binding SelectedItemType, Mode=TwoWay}"
                                   MaxDropDownHeight="360">
@@ -52,14 +61,14 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                        <TextBox Grid.Row="0" Grid.Column="1" Header="模糊筛选对象类"
+                        <TextBox x:Name="ItemTypeSearchBox" Grid.Row="0" Grid.Column="1" Header="模糊筛选对象类"
                                  PlaceholderText="输入名称或标签，仅筛选左侧列表"
                                  Text="{Binding ItemTypeSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <Button Grid.Row="0" Grid.Column="2" Content="刷新对象类" Command="{Binding LoadItemTypesCommand}"
+                        <Button x:Name="RefreshItemTypesButton" Grid.Row="0" Grid.Column="2" Content="刷新对象类" Command="{Binding LoadItemTypesCommand}"
                                 VerticalAlignment="Bottom" Height="34" />
-                        <Button Grid.Row="0" Grid.Column="3" Content="加载关联窗体" Command="{Binding LoadFormsCommand}"
+                        <Button x:Name="LoadFormsButton" Grid.Row="0" Grid.Column="3" Content="加载关联窗体" Command="{Binding LoadFormsCommand}"
                                 Style="{ThemeResource PrimaryButton}" VerticalAlignment="Bottom" Height="34" />
-                        <ComboBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                        <ComboBox x:Name="FormsComboBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                   Header="关联窗体" ItemsSource="{Binding Forms}"
                                   SelectedItem="{Binding SelectedForm, Mode=TwoWay}">
                             <ComboBox.ItemTemplate>
@@ -68,9 +77,9 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                        <Button Grid.Row="1" Grid.Column="3" Content="加载窗体字段" Command="{Binding LoadFieldsCommand}"
+                        <Button x:Name="LoadFieldsButton" Grid.Row="1" Grid.Column="3" Content="加载窗体字段" Command="{Binding LoadFieldsCommand}"
                                 Style="{ThemeResource PrimaryButton}" VerticalAlignment="Bottom" Height="34" />
-                        <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
+                        <TextBlock x:Name="FilterSummaryText" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
                                    Text="{Binding ItemTypeFilterSummary}" FontSize="12"
                                    Foreground="{ThemeResource TextSecondaryBrush}" />
                     </Grid>
@@ -102,10 +111,10 @@
                             BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,1" Padding="16,10">
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="44" />
-                                <ColumnDefinition Width="170" />
-                                <ColumnDefinition Width="190" />
-                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="0.5*" />
+                                <ColumnDefinition Width="1.7*" />
+                                <ColumnDefinition Width="1.9*" />
+                                <ColumnDefinition Width="2.2*" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="选择" Style="{ThemeResource TableHeaderText}" />
@@ -122,10 +131,10 @@
                                 <Border Padding="16,10" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1">
                                     <Grid ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="44" />
-                                            <ColumnDefinition Width="170" />
-                                            <ColumnDefinition Width="190" />
-                                            <ColumnDefinition Width="220" />
+                                            <ColumnDefinition Width="0.5*" />
+                                            <ColumnDefinition Width="1.7*" />
+                                            <ColumnDefinition Width="1.9*" />
+                                            <ColumnDefinition Width="2.2*" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"

@@ -5,7 +5,8 @@
 
     <Grid Background="{ThemeResource SystemBaseBrush}">
         <Border Style="{ThemeResource SimpleCard}"
-                Width="380"
+                MaxWidth="380"
+                Margin="20"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
                 Padding="36,32">
             <StackPanel>

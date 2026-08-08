@@ -1,7 +1,8 @@
 <Page
     x:Class="ArasToolkit.App.WinUI.Views.TextTranslationPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    SizeChanged="Page_SizeChanged">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
         <StackPanel>
             <TextBlock Text="文本翻译" FontSize="24" FontWeight="Bold" Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,0,0,4" />
@@ -9,48 +10,65 @@
 
             <Border Style="{ThemeResource SimpleCard}" Padding="20,16" Margin="0,0,0,16">
                 <StackPanel>
-                    <Grid Margin="0,0,0,12" ColumnSpacing="8">
+                    <Grid x:Name="SourceGrid" Margin="0,0,0,12" ColumnSpacing="8" RowSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" MaxWidth="340" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="源文件" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                        <TextBox Grid.Column="1" Text="{Binding SourceFilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Style="{ThemeResource DarkTextBox}" IsReadOnly="True" VerticalAlignment="Center" />
-                        <Button Grid.Column="2" Content="浏览..." Command="{Binding BrowseSourceCommand}" Style="{ThemeResource PrimaryButton}" Padding="16,5" />
-                        <Button Grid.Column="3" Content="开始翻译" Command="{Binding TranslateCommand}" Style="{ThemeResource PrimaryButton}" Padding="20,6" FontSize="14" FontWeight="SemiBold" MinWidth="140" IsEnabled="{Binding IsTranslating, Converter={StaticResource InverseBool}}" />
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock x:Name="SourceLabel" Grid.Column="0" Text="源文件" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <TextBox x:Name="SourcePathBox" Grid.Column="1" Text="{Binding SourceFilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Style="{ThemeResource DarkTextBox}" IsReadOnly="True" VerticalAlignment="Center" />
+                        <Button x:Name="BrowseSourceButton" Grid.Column="2" Content="浏览..." Command="{Binding BrowseSourceCommand}" Style="{ThemeResource PrimaryButton}" Padding="16,5" />
+                        <Button x:Name="TranslateButton" Grid.Column="3" Content="开始翻译" Command="{Binding TranslateCommand}" Style="{ThemeResource PrimaryButton}" Padding="20,6" FontSize="14" FontWeight="SemiBold" MinWidth="140" IsEnabled="{Binding IsTranslating, Converter={StaticResource InverseBool}}" />
                     </Grid>
 
-                    <Grid Margin="0,0,0,12" ColumnSpacing="8">
+                    <Grid x:Name="ModeGrid" Margin="0,0,0,12" ColumnSpacing="8" RowSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="160" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="翻译模式:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                        <ComboBox Grid.Column="1" ItemsSource="{Binding TemplateTypes}" SelectedItem="{Binding SelectedTemplateType, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}" />
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Visibility="{Binding IsCustomMode, Converter={StaticResource BoolToVisibility}}" Margin="12,0,0,0" Spacing="6">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock x:Name="ModeLabel" Grid.Column="0" Text="翻译模式:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <ComboBox x:Name="ModeComboBox" Grid.Column="1" ItemsSource="{Binding TemplateTypes}" SelectedItem="{Binding SelectedTemplateType, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}" />
+                        <StackPanel x:Name="SourceLanguagePanel" Grid.Column="2" Orientation="Horizontal" Visibility="{Binding IsCustomMode, Converter={StaticResource BoolToVisibility}}" Margin="12,0,0,0" Spacing="6">
                             <TextBlock Text="源语言:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
                             <ComboBox ItemsSource="{Binding SourceLanguages}" SelectedItem="{Binding SelectedSourceLanguage, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}" Width="120" />
                         </StackPanel>
-                        <Button Grid.Column="3" Content="下载模板" Command="{Binding DownloadTemplateCommand}" Padding="14,5" FontSize="12" Background="Transparent" Foreground="{ThemeResource TextSecondaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" />
+                        <Button x:Name="DownloadTemplateButton" Grid.Column="3" Content="下载模板" Command="{Binding DownloadTemplateCommand}" Padding="14,5" FontSize="12" Background="Transparent" Foreground="{ThemeResource TextSecondaryBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" />
                     </Grid>
 
                     <StackPanel Visibility="{Binding IsSourceCustomMode, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,12">
-                        <Grid Margin="0,0,0,8" ColumnSpacing="8">
+                        <Grid x:Name="SheetGrid" Margin="0,0,0,8" ColumnSpacing="8" RowSpacing="8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="200" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Sheet:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                            <ComboBox Grid.Column="1" ItemsSource="{Binding SheetNames}" SelectedItem="{Binding SelectedSheetName, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}" />
-                            <TextBlock Grid.Column="2" Text="（选完 Sheet 自动加载列）" FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock x:Name="SheetLabel" Grid.Column="0" Text="Sheet:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            <ComboBox x:Name="SheetComboBox" Grid.Column="1" ItemsSource="{Binding SheetNames}" SelectedItem="{Binding SelectedSheetName, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}" />
+                            <TextBlock x:Name="SheetHint" Grid.Column="2" Text="（选完 Sheet 自动加载列）" FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
                         </Grid>
 
-                        <Grid Margin="0,0,0,10" ColumnSpacing="6">
+                        <Grid x:Name="ColumnMappingGrid" Margin="0,0,0,10" ColumnSpacing="6" RowSpacing="8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="200" />
@@ -59,16 +77,24 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="140" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="数据列:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                            <ComboBox Grid.Column="1" ItemsSource="{Binding SourceColumns}" SelectedItem="{Binding SelectedSourceColumn, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock x:Name="SourceColumnLabel" Grid.Column="0" Text="数据列:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            <ComboBox x:Name="SourceColumnComboBox" Grid.Column="1" ItemsSource="{Binding SourceColumns}" SelectedItem="{Binding SelectedSourceColumn, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}">
                                 <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
                             </ComboBox>
-                            <TextBlock Grid.Column="2" Text="翻译列:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="12,0,0,0" />
-                            <ComboBox Grid.Column="3" ItemsSource="{Binding TargetColumns}" SelectedItem="{Binding SelectedTargetColumn, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}">
+                            <TextBlock x:Name="TargetColumnLabel" Grid.Column="2" Text="翻译列:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                            <ComboBox x:Name="TargetColumnComboBox" Grid.Column="3" ItemsSource="{Binding TargetColumns}" SelectedItem="{Binding SelectedTargetColumn, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}">
                                 <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
                             </ComboBox>
-                            <TextBlock Grid.Column="4" Text="目标语言:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="12,0,0,0" />
-                            <ComboBox Grid.Column="5" ItemsSource="{Binding TargetLanguages}" SelectedItem="{Binding SelectedTargetLanguage, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}" />
+                            <TextBlock x:Name="TargetLanguageLabel" Grid.Column="4" Text="目标语言:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                            <ComboBox x:Name="TargetLanguageComboBox" Grid.Column="5" ItemsSource="{Binding TargetLanguages}" SelectedItem="{Binding SelectedTargetLanguage, Mode=TwoWay}" Style="{ThemeResource DarkComboBox}" />
                         </Grid>
 
                         <Border Padding="10,8" CornerRadius="6" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1">
@@ -124,11 +150,11 @@
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="80" />
-                                <ColumnDefinition Width="60" />
-                                <ColumnDefinition Width="60" />
-                                <ColumnDefinition Width="140" />
-                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="0.8*" />
+                                <ColumnDefinition Width="0.6*" />
+                                <ColumnDefinition Width="0.6*" />
+                                <ColumnDefinition Width="1.4*" />
+                                <ColumnDefinition Width="0.8*" />
                                 <ColumnDefinition Width="16" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="源文件" Style="{ThemeResource TableHeaderText}" />
@@ -146,11 +172,11 @@
                                     <Grid ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="80" />
-                                            <ColumnDefinition Width="60" />
-                                            <ColumnDefinition Width="60" />
-                                            <ColumnDefinition Width="140" />
-                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="0.8*" />
+                                            <ColumnDefinition Width="0.6*" />
+                                            <ColumnDefinition Width="0.6*" />
+                                            <ColumnDefinition Width="1.4*" />
+                                            <ColumnDefinition Width="0.8*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{Binding SourceFileName}" Style="{ThemeResource TableCellText}" />
                                         <TextBlock Grid.Column="1" Text="{Binding TemplateType}" Style="{ThemeResource TableCellText}" />

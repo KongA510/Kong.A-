@@ -1,9 +1,10 @@
 <Page
     x:Class="ArasToolkit.App.WinUI.Views.DataImportPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    SizeChanged="Page_SizeChanged">
 
-    <Grid Margin="24,20" RowSpacing="10">
+    <Grid x:Name="PageLayout" Margin="24,20" RowSpacing="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -21,12 +22,12 @@
         <!-- 文件选择 + 范围设置 -->
         <Border Grid.Row="1" Style="{ThemeResource CardStyle}" Padding="16,12">
             <StackPanel Spacing="8">
-                <StackPanel Orientation="Horizontal" Spacing="8">
+                <StackPanel x:Name="FileToolbar" Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="文件: " FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding FileName}" FontSize="13" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
                     <Button Content="浏览" Command="{Binding BrowseFileCommand}" Style="{ThemeResource PrimaryButton}" Height="28" Padding="12,0" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel x:Name="RangeToolbar" Orientation="Horizontal" Spacing="6">
                     <TextBlock Text="Sheet:" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
                     <ComboBox ItemsSource="{Binding SheetNames}" SelectedItem="{Binding SelectedSheetName, Mode=TwoWay}"
                               Style="{ThemeResource DarkComboBox}" Width="140" />
@@ -70,14 +71,18 @@
         </Border>
 
         <!-- 数据预览 + AML 编辑器（左右分栏） -->
-        <Grid Grid.Row="3" ColumnSpacing="8">
+        <Grid x:Name="WorkspaceGrid" Grid.Row="3" ColumnSpacing="8" RowSpacing="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="5*" />
                 <ColumnDefinition Width="4*" />
             </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="0" />
+            </Grid.RowDefinitions>
 
             <!-- 左：数据预览（代码后台动态渲染表格） -->
-            <Border Grid.Column="0" Style="{ThemeResource SimpleCard}" Padding="0">
+            <Border x:Name="PreviewPanel" Grid.Column="0" Style="{ThemeResource SimpleCard}" Padding="0">
                 <Grid>
                     <ScrollViewer x:Name="PreviewScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="PreviewContainer" Orientation="Vertical" />
@@ -89,7 +94,7 @@
             </Border>
 
             <!-- 右：AML 编辑器 + 预览 -->
-            <Border Grid.Column="1" Style="{ThemeResource CardStyle}" Padding="16,14">
+            <Border x:Name="AmlPanel" Grid.Column="1" Style="{ThemeResource CardStyle}" Padding="16,14">
                 <Grid RowSpacing="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
