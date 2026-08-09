@@ -1,8 +1,7 @@
 <Page
     x:Class="ArasToolkit.App.WinUI.Views.ClassStructureImportPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Background="{ThemeResource PageBackgroundBrush}">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="32,24,32,36" Spacing="16">

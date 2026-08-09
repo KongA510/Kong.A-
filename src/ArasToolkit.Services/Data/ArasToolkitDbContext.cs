@@ -3,6 +3,7 @@ using System.Data;
 using ArasToolkit.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace ArasToolkit.Services.Data;
 
@@ -1082,6 +1083,10 @@ public class ArasToolkitDbContext : DbContext
         {
             var actualColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             await using var command = connection.CreateCommand();
+            var currentTransaction = Database.CurrentTransaction;
+            if (currentTransaction != null)
+                command.Transaction = currentTransaction.GetDbTransaction();
+
             command.CommandText = """
                 SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME
                 FROM INFORMATION_SCHEMA.COLUMNS;
