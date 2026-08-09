@@ -14,6 +14,12 @@ public class PropertyImportResult
     /// <summary>失败行数（计算值）</summary>
     public int Sheet1Failed => Sheet1Total - Sheet1Count;
 
+    /// <summary>实际新增的属性数量。</summary>
+    public int AddedCount { get; set; }
+
+    /// <summary>实际覆盖的属性数量。</summary>
+    public int UpdatedCount { get; set; }
+
     /// <summary>失败明细列表</summary>
     public List<string> FailedDetails { get; set; } = new();
 

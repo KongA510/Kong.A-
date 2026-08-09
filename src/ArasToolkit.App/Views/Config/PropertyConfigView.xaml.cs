@@ -4,6 +4,8 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using ArasToolkit.Core.Entities;
+using ArasToolkit.Core.Models;
+using ArasToolkit.App.ViewModels;
 
 namespace ArasToolkit.App.Views;
 
@@ -23,6 +25,44 @@ public partial class PropertyConfigView : UserControl
             Debug.WriteLine($"[PropertyConfigView] 初始化失败: {ex.Message}");
             throw;
         }
+    }
+
+    private async void UserControl_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is PropertyConfigViewModel viewModel)
+            await viewModel.InitializeAsync();
+    }
+
+    private void UserControl_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is PropertyConfigViewModel viewModel)
+            viewModel.Dispose();
+    }
+
+    private void ShowAml_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: PropertyImportPreviewRow row } || !row.HasAmlPreview)
+            return;
+
+        var textBox = new TextBox
+        {
+            Text = row.AmlPreview,
+            IsReadOnly = true,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            FontFamily = new System.Windows.Media.FontFamily("Cascadia Mono"),
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
+        var window = new Window
+        {
+            Title = $"第 {row.ExcelRowNumber} 行 · {row.Name} · {row.PlannedAction}",
+            Content = textBox,
+            Width = 820,
+            Height = 480,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Owner = Window.GetWindow(this)
+        };
+        window.ShowDialog();
     }
 
     /// <summary>

@@ -1,277 +1,468 @@
-using System;
 using System.Collections.ObjectModel;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Input;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
+using Microsoft.UI.Dispatching;
 
 namespace ArasToolkit.App.WinUI.ViewModels;
 
-/// <summary>
-/// 属性配置页面 ViewModel
-/// 负责: Excel模板下载、文件选择、批量导入Aras、导入历史分页查询
-/// 功能与对象类配置、List配置完全一致，仅 AML 部分由调用方自行维护
-/// </summary>
-public class PropertyConfigViewModel : ObservableObject
+/// <summary>属性配置四段式工作台 ViewModel。</summary>
+public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
 {
+    private const int PageSize = 20;
+
     private readonly IPropertyImportService _importService;
     private readonly IErrorLogService _errorLogService;
     private readonly IFileDialogService _fileDialogService;
+    private readonly IDialogService _dialogService;
+    private readonly IArasConnectionService _connectionService;
+    private readonly DispatcherQueue? _dispatcherQueue;
 
-    // ===== 文件选择 =====
-    private string _selectedFilePath = "";
-
-    // ===== 状态显示 =====
-    private string _statusMessage = "";
-    private string _errorMessage = "";
-
-    // ===== 导入控制 =====
-    private bool _isImporting;
-    private bool _isLoading;
-    private CancellationTokenSource? _cts;
-
-    // ===== 导入进度 =====
-    private ImportProgressInfo? _importProgress;
-
-    // ===== 导入结果 =====
-    private PropertyImportResult? _lastResult;
-
-    // ===== 导入模式 =====
+    private string _selectedFilePath = string.Empty;
+    private ArasItemTypeInfo? _selectedItemType;
+    private string _itemTypeSearchText = string.Empty;
     private string _importMode = "覆盖";
-
-    // ===== 分页 =====
+    private string _statusMessage = string.Empty;
+    private string _errorMessage = string.Empty;
+    private bool _isBusy;
+    private bool _isImporting;
+    private bool _initialized;
+    private bool _disposed;
+    private bool _reloadPending;
+    private PropertyImportPreview? _preview;
+    private PropertyImportResult? _lastResult;
+    private ImportProgressInfo? _importProgress;
+    private CancellationTokenSource? _cancellationSource;
     private int _currentPage = 1;
-    private const int PageSize = 20;
     private int _totalCount;
 
     public PropertyConfigViewModel(
         IPropertyImportService importService,
         IErrorLogService errorLogService,
-        IFileDialogService fileDialogService)
+        IFileDialogService fileDialogService,
+        IDialogService dialogService,
+        IArasConnectionService connectionService)
     {
         _importService = importService;
         _errorLogService = errorLogService;
         _fileDialogService = fileDialogService;
-        HistoryRecords = new ObservableCollection<PropertyImportLog>();
+        _dialogService = dialogService;
+        _connectionService = connectionService;
+        _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+        _connectionService.ConnectionChanged += OnConnectionChanged;
 
-        // 命令初始化
-        DownloadTemplateCommand = new RelayCommand(async _ => await DownloadTemplateAsync());
-        BrowseFileCommand = new RelayCommand(async _ => await BrowseFileAsync());
+        DownloadTemplateCommand = new RelayCommand(async _ => await DownloadTemplateAsync(), _ => !IsBusy);
+        BrowseFileCommand = new RelayCommand(async _ => await BrowseFileAsync(), _ => !IsBusy);
+        RefreshItemTypesCommand = new RelayCommand(async _ => await LoadItemTypesAsync(), _ => !IsBusy);
+        PrepareAmlCommand = new RelayCommand(async _ => await PrepareAmlAsync(),
+            _ => CanPrepare);
         ExecuteImportCommand = new RelayCommand(async _ => await ExecuteImportAsync(),
-            _ => !IsImporting && !string.IsNullOrWhiteSpace(SelectedFilePath));
+            _ => CanExecuteImport);
         CancelImportCommand = new RelayCommand(_ => CancelImport(), _ => IsImporting);
-        RefreshHistoryCommand = new RelayCommand(async _ => await LoadHistoryAsync());
+        RefreshHistoryCommand = new RelayCommand(async _ => await LoadHistoryAsync(), _ => !IsBusy);
         PrevPageCommand = new RelayCommand(async _ => await GoToPageAsync(CurrentPage - 1),
-            _ => CurrentPage > 1);
+            _ => CurrentPage > 1 && !IsBusy);
         NextPageCommand = new RelayCommand(async _ => await GoToPageAsync(CurrentPage + 1),
-            _ => CurrentPage < TotalPages);
-
-        _ = LoadHistoryAsync();
+            _ => CurrentPage < TotalPages && !IsBusy);
     }
 
-    // ==================== 绑定属性 ====================
+    public ObservableCollection<ArasItemTypeInfo> ItemTypes { get; } = [];
+    public ObservableCollection<ArasItemTypeInfo> FilteredItemTypes { get; } = [];
+    public ObservableCollection<PropertyImportPreviewRow> PreviewRows { get; } = [];
+    public ObservableCollection<PropertyImportLog> HistoryRecords { get; } = [];
+    public IReadOnlyList<string> ImportModeOptions { get; } = ["覆盖", "新增"];
 
     public string SelectedFilePath
     {
         get => _selectedFilePath;
-        set
+        private set
         {
-            if (SetProperty(ref _selectedFilePath, value))
-            {
-                OnPropertyChanged(nameof(FileName));
-                StatusMessage = string.IsNullOrEmpty(value) ? "" : $"已选择: {Path.GetFileName(value)}";
-                (ExecuteImportCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            }
+            if (!SetProperty(ref _selectedFilePath, value))
+                return;
+            OnPropertyChanged(nameof(FileName));
+            OnPropertyChanged(nameof(HasSelectedFile));
+            InvalidatePreparation();
+            RefreshCommands();
         }
     }
 
-    public string FileName =>
-        string.IsNullOrEmpty(SelectedFilePath) ? "(未选择文件)" : Path.GetFileName(SelectedFilePath);
+    public string FileName => string.IsNullOrWhiteSpace(SelectedFilePath)
+        ? "尚未选择模板"
+        : Path.GetFileName(SelectedFilePath);
+    public bool HasSelectedFile => !string.IsNullOrWhiteSpace(SelectedFilePath);
 
-    public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
-    public string ErrorMessage { get => _errorMessage; set => SetProperty(ref _errorMessage, value); }
+    public ArasItemTypeInfo? SelectedItemType
+    {
+        get => _selectedItemType;
+        set
+        {
+            if (!SetProperty(ref _selectedItemType, value))
+                return;
+            InvalidatePreparation();
+            OnPropertyChanged(nameof(SelectedObjectSummary));
+            RefreshCommands();
+        }
+    }
+
+    public string ItemTypeSearchText
+    {
+        get => _itemTypeSearchText;
+        set
+        {
+            if (SetProperty(ref _itemTypeSearchText, value))
+                ApplyItemTypeFilter(value);
+        }
+    }
+
+    public string ImportMode
+    {
+        get => _importMode;
+        set
+        {
+            if (!SetProperty(ref _importMode, value))
+                return;
+            InvalidatePreparation();
+            OnPropertyChanged(nameof(ModeDescription));
+            RefreshCommands();
+        }
+    }
+
+    public string ModeDescription => ImportMode == "新增"
+        ? "新增：对象类中已存在同名属性时停止预检，不做覆盖。"
+        : "覆盖：以 source_id + 属性名称唯一匹配；命中后编辑，未命中则新增。";
+
+    public string SelectedObjectSummary => SelectedItemType == null
+        ? "尚未选择系统对象类"
+        : $"目标 source_id：{SelectedItemType.DisplayName}";
+
+    public PropertyImportPreview? Preview
+    {
+        get => _preview;
+        private set
+        {
+            if (!SetProperty(ref _preview, value))
+                return;
+            OnPropertyChanged(nameof(HasPreview));
+            OnPropertyChanged(nameof(IsPrepared));
+            OnPropertyChanged(nameof(PreviewSummary));
+            OnPropertyChanged(nameof(HasInvalidRows));
+            RefreshCommands();
+        }
+    }
+
+    public bool HasPreview => PreviewRows.Count > 0;
+    public bool IsPrepared => Preview?.IsPrepared == true;
+    public bool HasInvalidRows => Preview?.InvalidCount > 0;
+    public string PreviewSummary => Preview?.Summary ?? "选择模板后将在此显示逐行校验结果";
+    public bool CanPrepare => HasSelectedFile && SelectedItemType != null && !IsBusy;
+    public bool CanExecuteImport => Preview?.CanImport == true && !IsBusy;
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            if (!SetProperty(ref _isBusy, value))
+                return;
+            OnPropertyChanged(nameof(CanPrepare));
+            OnPropertyChanged(nameof(CanExecuteImport));
+            RefreshCommands();
+        }
+    }
 
     public bool IsImporting
     {
         get => _isImporting;
-        set
+        private set
         {
-            if (SetProperty(ref _isImporting, value))
-            {
-                (ExecuteImportCommand as RelayCommand)?.RaiseCanExecuteChanged();
-                (CancelImportCommand as RelayCommand)?.RaiseCanExecuteChanged();
-                OnPropertyChanged(nameof(IsProgressIndeterminate));
-            }
+            if (!SetProperty(ref _isImporting, value))
+                return;
+            (CancelImportCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            OnPropertyChanged(nameof(IsProgressIndeterminate));
         }
     }
 
-    public bool IsLoading { get => _isLoading; set => SetProperty(ref _isLoading, value); }
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        private set
+        {
+            if (SetProperty(ref _statusMessage, value))
+                OnPropertyChanged(nameof(HasStatus));
+        }
+    }
+
+    public string ErrorMessage
+    {
+        get => _errorMessage;
+        private set
+        {
+            if (SetProperty(ref _errorMessage, value))
+                OnPropertyChanged(nameof(HasError));
+        }
+    }
+
+    public bool HasStatus => !string.IsNullOrWhiteSpace(StatusMessage);
+    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
     public PropertyImportResult? LastResult
     {
         get => _lastResult;
-        set
+        private set
         {
-            if (SetProperty(ref _lastResult, value))
-            {
-                OnPropertyChanged(nameof(HasResult));
-                OnPropertyChanged(nameof(HasFailures));
-            }
+            if (!SetProperty(ref _lastResult, value))
+                return;
+            OnPropertyChanged(nameof(HasResult));
+            OnPropertyChanged(nameof(HasFailures));
+            OnPropertyChanged(nameof(ResultSummary));
         }
     }
 
     public bool HasResult => LastResult != null;
-    public bool HasFailures => LastResult?.HasFailures ?? false;
-    public ObservableCollection<PropertyImportLog> HistoryRecords { get; }
+    public bool HasFailures => LastResult?.HasFailures == true;
+    public string ResultSummary => LastResult == null
+        ? string.Empty
+        : $"成功 {LastResult.Sheet1Count}/{LastResult.Sheet1Total} · 新增 {LastResult.AddedCount} · 覆盖 {LastResult.UpdatedCount} · 失败 {LastResult.Sheet1Failed}";
 
-    // ===== 导入模式 =====
-    public string ImportMode { get => _importMode; set => SetProperty(ref _importMode, value); }
-    public List<string> ImportModeOptions { get; } = ["新增", "覆盖"];
-
-    // ===== 导入进度 =====
     public ImportProgressInfo? ImportProgress
     {
         get => _importProgress;
-        set
+        private set
         {
-            if (SetProperty(ref _importProgress, value))
-            {
-                OnPropertyChanged(nameof(ProgressPercentage));
-                OnPropertyChanged(nameof(ProgressText));
-                OnPropertyChanged(nameof(ImportErrorCount));
-                OnPropertyChanged(nameof(IsProgressIndeterminate));
-            }
+            if (!SetProperty(ref _importProgress, value))
+                return;
+            OnPropertyChanged(nameof(ProgressPercentage));
+            OnPropertyChanged(nameof(ProgressText));
+            OnPropertyChanged(nameof(ImportErrorCount));
+            OnPropertyChanged(nameof(IsProgressIndeterminate));
         }
     }
 
     public double ProgressPercentage => ImportProgress?.Percentage ?? 0;
-    public string ProgressText => ImportProgress?.StatusText ?? "";
+    public string ProgressText => ImportProgress?.StatusText ?? "正在准备逐条提交...";
     public int ImportErrorCount => ImportProgress?.ErrorCount ?? 0;
-    public bool IsProgressIndeterminate => ImportProgress == null && IsImporting;
+    public bool IsProgressIndeterminate => IsImporting && ImportProgress == null;
 
-    // ===== 分页 =====
     public int CurrentPage
     {
         get => _currentPage;
-        set { if (SetProperty(ref _currentPage, value)) RefreshPagingCommands(); }
+        private set
+        {
+            if (SetProperty(ref _currentPage, value))
+                RefreshPagingCommands();
+        }
     }
 
     public int TotalPages => _totalCount == 0 ? 1 : (int)Math.Ceiling((double)_totalCount / PageSize);
-
     public int TotalCount
     {
         get => _totalCount;
-        set { SetProperty(ref _totalCount, value); OnPropertyChanged(nameof(TotalPages)); }
+        private set
+        {
+            if (!SetProperty(ref _totalCount, value))
+                return;
+            OnPropertyChanged(nameof(TotalPages));
+            OnPropertyChanged(nameof(PageInfo));
+        }
     }
-
     public string PageInfo => $"第 {CurrentPage}/{TotalPages} 页，共 {TotalCount} 条";
-
-    // ==================== 命令 ====================
 
     public ICommand DownloadTemplateCommand { get; }
     public ICommand BrowseFileCommand { get; }
+    public ICommand RefreshItemTypesCommand { get; }
+    public ICommand PrepareAmlCommand { get; }
     public ICommand ExecuteImportCommand { get; }
     public ICommand CancelImportCommand { get; }
     public ICommand RefreshHistoryCommand { get; }
     public ICommand PrevPageCommand { get; }
     public ICommand NextPageCommand { get; }
 
-    // ==================== 分页辅助 ====================
-
-    private void RefreshPagingCommands()
+    public async Task InitializeAsync()
     {
-        (PrevPageCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        (NextPageCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        OnPropertyChanged(nameof(TotalPages));
-        OnPropertyChanged(nameof(PageInfo));
-    }
-
-    private async Task GoToPageAsync(int page)
-    {
-        if (page < 1 || page > TotalPages) return;
-        CurrentPage = page;
+        if (_initialized)
+            return;
+        _initialized = true;
+        await LoadItemTypesAsync();
         await LoadHistoryAsync();
     }
 
-    // ==================== 业务方法 ====================
+    public void SelectItemTypeFromSearch(ArasItemTypeInfo itemType)
+    {
+        SelectedItemType = itemType;
+        ItemTypeSearchText = itemType.DisplayName;
+    }
 
     private async Task DownloadTemplateAsync()
     {
         try
         {
+            ClearMessages();
             var filePath = await _fileDialogService.PickSaveFileAsync("属性配置模板.xlsx", ".xlsx");
-            if (filePath == null) return;
+            if (filePath == null)
+                return;
 
-            IsLoading = true;
-            File.WriteAllBytes(filePath, _importService.GenerateTemplate());
-            StatusMessage = $"模板已保存: {filePath}";
+            IsBusy = true;
+            await File.WriteAllBytesAsync(filePath, _importService.GenerateTemplate());
+            StatusMessage = $"模板已保存：{filePath}";
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"模板保存失败: {ex.Message}";
-            _ = _errorLogService.LogErrorAsync("属性配置-下载模板", ex.Message,
-                ErrorLog.LevelP1, ex.StackTrace);
+            ErrorMessage = $"模板保存失败：{ex.Message}";
+            await LogViewModelErrorAsync("属性配置-下载模板", ex);
         }
-        finally { IsLoading = false; }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private async Task BrowseFileAsync()
     {
-        var filePath = await _fileDialogService.PickOpenFileAsync("选择要导入的属性配置 Excel 文件", ".xlsx", ".xls");
-        if (filePath != null)
+        try
+        {
+            ClearMessages();
+            var filePath = await _fileDialogService.PickOpenFileAsync(
+                "选择属性配置模板", ".xlsx");
+            if (filePath == null)
+                return;
+
             SelectedFilePath = filePath;
+            IsBusy = true;
+            StatusMessage = "正在读取并校验模板...";
+            SetPreview(await _importService.PreviewAsync(filePath));
+            StatusMessage = PreviewSummary;
+        }
+        catch (Exception ex)
+        {
+            SetPreview(null);
+            ErrorMessage = $"模板读取失败：{ex.Message}";
+            await LogViewModelErrorAsync("属性配置-选择模板", ex);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task LoadItemTypesAsync()
+    {
+        if (!_connectionService.IsConnected)
+        {
+            ItemTypes.Clear();
+            FilteredItemTypes.Clear();
+            SelectedItemType = null;
+            StatusMessage = "尚未连接 Aras；连接当前用户的默认配置后将自动加载系统对象类。";
+            return;
+        }
+
+        if (IsBusy)
+        {
+            _reloadPending = true;
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            ClearMessages();
+            StatusMessage = "正在从 Aras 加载系统已有对象类...";
+            var itemTypes = await _importService.GetItemTypesAsync();
+            ItemTypes.Clear();
+            foreach (var itemType in itemTypes)
+                ItemTypes.Add(itemType);
+            ApplyItemTypeFilter(ItemTypeSearchText);
+            StatusMessage = $"已加载 {ItemTypes.Count} 个系统对象类，请选择本次导入目标。";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"对象类加载失败：{ex.Message}";
+            await LogViewModelErrorAsync("属性配置-加载对象类", ex);
+        }
+        finally
+        {
+            IsBusy = false;
+            if (_reloadPending && _connectionService.IsConnected && !_disposed)
+            {
+                _reloadPending = false;
+                await LoadItemTypesAsync();
+            }
+        }
+    }
+
+    private async Task PrepareAmlAsync()
+    {
+        if (SelectedItemType == null || string.IsNullOrWhiteSpace(SelectedFilePath))
+            return;
+
+        try
+        {
+            IsBusy = true;
+            ClearMessages();
+            LastResult = null;
+            StatusMessage = $"正在为 {SelectedItemType.DisplayName} 解析引用并组装 AML...";
+            var preview = await _importService.PrepareAsync(
+                SelectedFilePath, SelectedItemType.Id, SelectedItemType.Name, ImportMode);
+            SetPreview(preview);
+            StatusMessage = preview.CanImport
+                ? $"AML 已组装完成：{preview.ValidCount} 行可逐条提交。"
+                : $"AML 组装完成，但有 {preview.InvalidCount} 行需要修正。";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"AML 组装失败：{ex.Message}";
+            await LogViewModelErrorAsync("属性配置-组装AML", ex);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private async Task ExecuteImportAsync()
     {
-        if (string.IsNullOrWhiteSpace(SelectedFilePath))
-        {
-            ErrorMessage = "请先选择要导入的 Excel 文件";
+        if (SelectedItemType == null || Preview?.CanImport != true)
             return;
-        }
-        if (!File.Exists(SelectedFilePath))
-        {
-            ErrorMessage = "所选文件不存在，请重新选择";
+
+        var confirmed = await _dialogService.ConfirmAsync(
+            "确认逐条写入 Aras",
+            $"目标对象类：{SelectedItemType.DisplayName}\n模式：{ImportMode}\n属性：{Preview.Rows.Count} 条\n\n开始后每一条成功请求都会立即保存；取消不会回滚已经成功的属性。是否继续？",
+            "开始逐条提交",
+            "返回检查");
+        if (!confirmed)
             return;
-        }
-
-        IsImporting = true;
-        ErrorMessage = "";
-        ImportProgress = null;
-        StatusMessage = "正在准备导入...";
-        LastResult = null;
-
-        _cts = new CancellationTokenSource();
-        var token = _cts.Token;
 
         try
         {
-            var progress = new Progress<ImportProgressInfo>(p =>
-            {
-                ImportProgress = p;
-                StatusMessage = p.StatusText;
-            });
+            IsBusy = true;
+            IsImporting = true;
+            ClearMessages();
+            LastResult = null;
+            ImportProgress = null;
+            foreach (var row in PreviewRows)
+                row.SubmitStatus = "待提交";
 
-            var mode = ImportMode;
-            var path = SelectedFilePath;
+            _cancellationSource = new CancellationTokenSource();
+            var progress = new Progress<ImportProgressInfo>(UpdateProgress);
+            LastResult = await _importService.ImportAsync(
+                SelectedFilePath,
+                SelectedItemType.Id,
+                SelectedItemType.Name,
+                ImportMode,
+                progress,
+                _cancellationSource.Token);
 
-            LastResult = await Task.Run(
-                () => _importService.ImportAsync(path, mode, progress, token),
-                token);
-
+            ApplyFinalRowStatuses(LastResult);
             if (LastResult.IsSuccess)
             {
                 StatusMessage = LastResult.HasFailures
-                    ? $"导入完成（部分失败）: 属性{LastResult.Sheet1Count}/{LastResult.Sheet1Total}"
-                    : $"导入成功: 属性{LastResult.Sheet1Count}条";
+                    ? $"逐条提交完成，部分失败：{ResultSummary}"
+                    : $"逐条提交完成：{ResultSummary}";
             }
             else
             {
-                ErrorMessage = LastResult.ErrorMessage ?? "导入失败（未知错误）";
+                ErrorMessage = LastResult.ErrorMessage ?? "导入未完成。";
             }
 
             CurrentPage = 1;
@@ -279,24 +470,45 @@ public class PropertyConfigViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "导入已取消";
-            ErrorMessage = "导入已被用户取消，已完成的行已保存到 Aras 系统。";
-            await _errorLogService.LogErrorAsync("属性配置-导入取消", "用户取消导入",
-                ErrorLog.LevelP1, null);
-            CurrentPage = 1;
-            await LoadHistoryAsync();
+            ErrorMessage = "导入已取消；取消前成功提交的属性已保存在 Aras。";
+            await LogViewModelErrorAsync("属性配置-取消导入",
+                new OperationCanceledException("用户取消属性配置导入"));
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"导入失败: {ex.Message}";
-            await _errorLogService.LogErrorAsync("属性配置-导入", ex.Message,
-                ErrorLog.LevelP1, ex.StackTrace);
+            ErrorMessage = $"导入失败：{ex.Message}";
+            await LogViewModelErrorAsync("属性配置-导入", ex);
         }
         finally
         {
             IsImporting = false;
-            _cts?.Dispose();
-            _cts = null;
+            IsBusy = false;
+            _cancellationSource?.Dispose();
+            _cancellationSource = null;
+        }
+    }
+
+    private void UpdateProgress(ImportProgressInfo progress)
+    {
+        ImportProgress = progress;
+        StatusMessage = progress.StatusText;
+        var current = PreviewRows.FirstOrDefault(row =>
+            row.Name.Equals(progress.ItemName, StringComparison.OrdinalIgnoreCase));
+        if (current != null && progress.Phase is "覆盖现有属性" or "新增属性")
+            current.SubmitStatus = "正在提交";
+    }
+
+    private void ApplyFinalRowStatuses(PropertyImportResult result)
+    {
+        foreach (var row in PreviewRows)
+        {
+            var failed = result.FailedDetails.Any(detail =>
+                detail.Contains($"[行{row.ExcelRowNumber}]", StringComparison.Ordinal));
+            row.SubmitStatus = failed
+                ? "提交失败"
+                : row.PlannedAction.StartsWith("覆盖", StringComparison.Ordinal)
+                    ? "已覆盖"
+                    : "已新增";
         }
     }
 
@@ -304,12 +516,12 @@ public class PropertyConfigViewModel : ObservableObject
     {
         try
         {
-            _cts?.Cancel();
-            StatusMessage = "正在取消导入...";
+            _cancellationSource?.Cancel();
+            StatusMessage = "正在停止后续提交；已成功的属性不会回滚...";
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[PropertyConfig] 取消导入异常: {ex.Message}");
+            _ = LogViewModelErrorAsync("属性配置-请求取消", ex);
         }
     }
 
@@ -320,14 +532,144 @@ public class PropertyConfigViewModel : ObservableObject
             var (items, total) = await _importService.GetHistoryAsync(
                 CurrentUserContext.CurrentUserId, CurrentPage, PageSize);
             HistoryRecords.Clear();
-            foreach (var item in items) HistoryRecords.Add(item);
+            foreach (var item in items)
+                HistoryRecords.Add(item);
             TotalCount = total;
             RefreshPagingCommands();
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"加载历史记录失败: {ex.Message}";
-            System.Diagnostics.Debug.WriteLine($"[PropertyConfig] 加载历史失败: {ex.Message}");
+            ErrorMessage = $"导入历史加载失败：{ex.Message}";
+            await LogViewModelErrorAsync("属性配置-加载历史", ex);
         }
+    }
+
+    private async Task GoToPageAsync(int page)
+    {
+        if (page < 1 || page > TotalPages)
+            return;
+        CurrentPage = page;
+        await LoadHistoryAsync();
+    }
+
+    private void SetPreview(PropertyImportPreview? preview)
+    {
+        PreviewRows.Clear();
+        if (preview != null)
+        {
+            foreach (var row in preview.Rows)
+                PreviewRows.Add(row);
+        }
+        Preview = preview;
+        OnPropertyChanged(nameof(HasPreview));
+        OnPropertyChanged(nameof(PreviewSummary));
+        OnPropertyChanged(nameof(HasInvalidRows));
+    }
+
+    private void InvalidatePreparation()
+    {
+        if (Preview == null)
+            return;
+        Preview.IsPrepared = false;
+        foreach (var row in PreviewRows)
+        {
+            row.AmlPreview = string.Empty;
+            row.PlannedAction = row.IsValid ? "待组装" : "校验失败";
+            row.SubmitStatus = "待提交";
+        }
+        OnPropertyChanged(nameof(IsPrepared));
+        OnPropertyChanged(nameof(PreviewSummary));
+        RefreshCommands();
+    }
+
+    private void ApplyItemTypeFilter(string? searchText)
+    {
+        FilteredItemTypes.Clear();
+        if (string.IsNullOrWhiteSpace(searchText))
+            return;
+
+        var terms = searchText.Split(' ',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var itemType in ItemTypes.Where(item => terms.All(term =>
+                     item.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                     item.Label.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                     item.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase))).Take(30))
+        {
+            FilteredItemTypes.Add(itemType);
+        }
+    }
+
+    private void OnConnectionChanged()
+    {
+        if (_disposed || _dispatcherQueue == null)
+            return;
+        if (_dispatcherQueue.HasThreadAccess)
+            _ = RefreshForConnectionChangeAsync();
+        else
+            _dispatcherQueue.TryEnqueue(() => _ = RefreshForConnectionChangeAsync());
+    }
+
+    private async Task RefreshForConnectionChangeAsync()
+    {
+        if (!_initialized || _disposed)
+            return;
+        if (!_connectionService.IsConnected)
+        {
+            ItemTypes.Clear();
+            FilteredItemTypes.Clear();
+            SelectedItemType = null;
+            StatusMessage = "Aras 连接已断开；恢复默认连接后将自动重新加载对象类。";
+            return;
+        }
+        await LoadItemTypesAsync();
+    }
+
+    private void ClearMessages()
+    {
+        StatusMessage = string.Empty;
+        ErrorMessage = string.Empty;
+    }
+
+    private async Task LogViewModelErrorAsync(string functionName, Exception exception)
+    {
+        try
+        {
+            await _errorLogService.LogErrorAsync(functionName, exception.Message,
+                ErrorLog.LevelP1, exception.StackTrace);
+        }
+        catch
+        {
+            // 错误日志失败不能覆盖原业务异常。
+        }
+    }
+
+    private void RefreshCommands()
+    {
+        (DownloadTemplateCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (BrowseFileCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (RefreshItemTypesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (PrepareAmlCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExecuteImportCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (RefreshHistoryCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        RefreshPagingCommands();
+    }
+
+    private void RefreshPagingCommands()
+    {
+        (PrevPageCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (NextPageCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        OnPropertyChanged(nameof(TotalPages));
+        OnPropertyChanged(nameof(PageInfo));
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+        _disposed = true;
+        _connectionService.ConnectionChanged -= OnConnectionChanged;
+        _cancellationSource?.Cancel();
+        _cancellationSource?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
