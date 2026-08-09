@@ -1,0 +1,152 @@
+<Page
+    x:Class="ArasToolkit.App.WinUI.Views.ClassStructureImportPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource PageBackgroundBrush}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,36" Spacing="16">
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="5">
+                    <TextBlock Text="类结构汇入" Style="{ThemeResource PageTitleText}" />
+                    <TextBlock Text="用 Excel 路径重新组装多级 class 节点，并完整覆盖所选 ItemType 的 class_structure。"
+                               Style="{ThemeResource CaptionText}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Border Grid.Column="1" Padding="12,7" CornerRadius="16" Background="#EEF2FF" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ConnectionText}" Foreground="#4F46E5" FontWeight="SemiBold" />
+                </Border>
+            </Grid>
+
+            <Border Padding="14,12" CornerRadius="8" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1">
+                <TextBlock Text="覆盖式汇入：旧 class_structure 不参与合并。请先核对模板预览和目标对象类。"
+                           Foreground="#9A3412" TextWrapping="Wrap" />
+            </Border>
+
+            <Border Style="{ThemeResource SimpleCard}">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="30" Height="30" CornerRadius="15" Background="#6366F1">
+                            <TextBlock Text="1" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="准备路径模板" FontSize="17" FontWeight="SemiBold" />
+                            <TextBlock Text="模板每行代表一条完整路径；第1级从“模组 / 芯片”开始，不填写 Document。"
+                                       Style="{ThemeResource CaptionText}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Content="下载汇入模板" Command="{Binding DownloadTemplateCommand}" Style="{ThemeResource PrimaryButton}" />
+                        <Button Grid.Column="1" Content="选择已填写模板" Command="{Binding BrowseFileCommand}" />
+                        <Border Grid.Column="2" Padding="12,8" CornerRadius="7" Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1">
+                            <TextBlock Text="{Binding SelectedFileName}" TextTrimming="CharacterEllipsis" />
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Style="{ThemeResource SimpleCard}">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="30" Height="30" CornerRadius="15" Background="#6366F1">
+                                <TextBlock Text="2" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock Text="选择覆盖目标" FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="按对象类名称或中英文标签模糊查询，只能选择一个 ItemType。"
+                                           Style="{ThemeResource CaptionText}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding QueryKeyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     PlaceholderText="例如：Document、文档" />
+                            <Button Grid.Column="1" Content="查询" Command="{Binding QueryCommand}" />
+                        </Grid>
+                        <ListView ItemsSource="{Binding ItemTypes}"
+                                  SelectedItem="{Binding SelectedItemType, Mode=TwoWay}"
+                                  SelectionMode="Single" Height="230">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Padding="6,4" Spacing="2">
+                                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Id}" Style="{ThemeResource CaptionText}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <TextBlock Text="{Binding SelectedTargetText}" Foreground="#4F46E5" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Style="{ThemeResource SimpleCard}">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="30" Height="30" CornerRadius="15" Background="#6366F1">
+                                <TextBlock Text="3" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock Text="核对组装预览" FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="共享路径前缀会合并；同级显示顺序遵循模板首次出现顺序。"
+                                           Style="{ThemeResource CaptionText}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                        <Border Padding="10,7" CornerRadius="7" Background="#EEF2FF">
+                            <TextBlock Text="{Binding PreviewSummary}" Foreground="#4338CA" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        </Border>
+                        <ScrollViewer Height="230" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                            <Border Padding="12" Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="7">
+                                <TextBlock Text="{Binding PreviewTreeText}" FontFamily="Consolas" FontSize="13" />
+                            </Border>
+                        </ScrollViewer>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Style="{ThemeResource SimpleCard}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="5" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="#DC2626" TextWrapping="Wrap" />
+                        <ProgressBar IsIndeterminate="True"
+                                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" Height="3" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="覆盖并汇入类结构" Command="{Binding ImportCommand}"
+                            Style="{ThemeResource PrimaryButton}" Padding="22,10" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -65,6 +65,7 @@ public partial class App : Application
         services.AddTransient<DataImportViewModel>();
         services.AddTransient<ObjectClassConfigViewModel>();
         services.AddTransient<ObjectClassConfigurationViewModel>();
+        services.AddTransient<ClassStructureImportViewModel>();
         services.AddTransient<ListConfigViewModel>();
         services.AddTransient<PropertyConfigViewModel>();
         services.AddTransient<PermissionConfigViewModel>();
@@ -93,6 +94,7 @@ public partial class App : Application
         services.AddTransient<TranslationHistoryView>();
         services.AddTransient<ObjectClassConfigView>();
         services.AddTransient<ObjectClassConfigurationView>();
+        services.AddTransient<ClassStructureImportView>();
         services.AddTransient<ListConfigView>();
         services.AddTransient<PropertyConfigView>();
         services.AddTransient<PermissionConfigView>();

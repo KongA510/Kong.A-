@@ -90,6 +90,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "窗体配置", Description = "按四列坐标规范生成 Aras 经典窗体", Icon = "\uE8B9" },
         new() { Name = "对象类汇入", Description = "通过 Excel 批量创建 Aras 对象类和关系类", Icon = "\uE8B5" },
         new() { Name = "对象类配置", Description = "批量配置权限页签、可创建者和标准生命周期", Icon = "\uE7B8" },
+        new() { Name = "类结构汇入", Description = "从 Excel 多级路径全量覆盖 ItemType 类结构", Icon = "\uE8F1" },
         new() { Name = "List配置", Description = "批量创建Aras List主档和菜单项", Icon = "\uE8FD" },
         new() { Name = "属性配置", Description = "批量创建Aras对象类属性定义", Icon = "\uE90F" },
         new() { Name = "数据汇入", Description = "Aras 数据汇入工具", Icon = "\uE8B5" },

@@ -67,6 +67,7 @@ public partial class App : Application
         services.AddTransient<TodoViewModel>();
         services.AddTransient<ObjectClassConfigViewModel>();
         services.AddTransient<ObjectClassConfigurationViewModel>();
+        services.AddTransient<ClassStructureImportViewModel>();
         services.AddTransient<ListConfigViewModel>();
         services.AddTransient<PropertyConfigViewModel>();
         services.AddTransient<FormConfigurationViewModel>();
@@ -98,6 +99,7 @@ public partial class App : Application
         nav.Register("个人任务记录", typeof(TodoPage));
         nav.Register("对象类汇入", typeof(ObjectClassConfigPage));
         nav.Register("对象类配置", typeof(ObjectClassConfigurationPage));
+        nav.Register("类结构汇入", typeof(ClassStructureImportPage));
         nav.Register("List配置", typeof(ListConfigPage));
         nav.Register("属性配置", typeof(PropertyConfigPage));
         nav.Register("窗体配置", typeof(FormConfigurationPage));

@@ -74,6 +74,9 @@ public static class ServiceCollectionExtensions
         // 注册对象类权限页签、可创建者和生命周期基础设定服务（单例）
         services.AddSingleton<IObjectClassConfigurationService, ObjectClassConfigurationService>();
 
+        // 注册 ItemType 类结构全量覆盖汇入服务（单例）
+        services.AddSingleton<IClassStructureImportService, ClassStructureImportService>();
+
         // 注册List配置导入服务（单例）
         services.AddSingleton<IListImportService, ListImportService>();
 

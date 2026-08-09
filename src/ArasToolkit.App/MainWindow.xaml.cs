@@ -130,6 +130,7 @@ public partial class MainWindow : Window
                 "窗体配置" => CreatePlaceholder("窗体配置", "Aras窗体配置工具 - 功能开发中，敬请期待..."),
                 "对象类汇入" => new ObjectClassConfigView { DataContext = App.Services.GetRequiredService<ObjectClassConfigViewModel>() },
                 "对象类配置" => new ObjectClassConfigurationView { DataContext = App.Services.GetRequiredService<ObjectClassConfigurationViewModel>() },
+                "类结构汇入" => new ClassStructureImportView { DataContext = App.Services.GetRequiredService<ClassStructureImportViewModel>() },
                 "List配置" => new ListConfigView { DataContext = App.Services.GetRequiredService<ListConfigViewModel>() },
                 "属性配置" => new PropertyConfigView { DataContext = App.Services.GetRequiredService<PropertyConfigViewModel>() },
                 "数据汇入" => new DataImportView { DataContext = App.Services.GetRequiredService<DataImportViewModel>() },
