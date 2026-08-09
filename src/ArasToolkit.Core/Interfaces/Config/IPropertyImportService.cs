@@ -14,7 +14,7 @@ public interface IPropertyImportService
 {
     /// <summary>
     /// 生成 Excel 模板文件。模板包含“属性配置”和“数据字典”两个 Sheet，
-    /// 数据类型、布尔值和文字对齐均使用 Office 原生下拉校验。
+    /// 数据类型、必填和唯一均使用 Office 原生下拉校验。
     /// </summary>
     /// <returns>Excel 文件字节数组</returns>
     byte[] GenerateTemplate();

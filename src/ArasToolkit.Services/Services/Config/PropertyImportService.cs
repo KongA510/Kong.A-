@@ -35,27 +35,20 @@ public sealed class PropertyImportService : IPropertyImportService
 
     private static readonly string[] TemplateHeaders =
     [
-        "名称", "标签(简中)", "标签(繁中)", "标签(英文)", "数据类型", "数据源", "引用外部属性",
-        "对应分类", "文字对齐", "显示宽度", "默认搜索值", "默认值(简中)", "默认值(繁中)",
-        "默认值(英文)", "帮助文本", "提示(简中)", "提示(繁中)", "提示(英文)", "复制到新物件",
-        "Federated", "搜索中隐藏", "关系中隐藏", "唯一", "必填", "对象行为", "键名顺序",
-        "排序顺序(order_by)", "式样", "精度", "小数位数", "显示顺序(sort_order)", "长度",
-        "追踪变更纪录"
+        "名称", "标签(简中)", "数据类型", "数据源", "长度", "精度", "小数位数", "必填", "唯一",
+        "标签(繁中)", "标签(英文)", "引用外部属性", "键名顺序", "显示顺序(sort_order)"
     ];
 
     private static readonly string[] AmlFieldNames =
     [
-        "name", "label[zc]", "label[zt]", "label[en]", "data_type", "data_source",
-        "foreign_property", "class_path", "column_alignment", "column_width", "default_search",
-        "default_value[z c]", "default_value[z t]", "default_value[en]", "help_text",
-        "help_tooltip[z c]", "help_tooltip[z t]", "help_tooltip[en]", "is_copy", "is_federated",
-        "is_hidden", "is_hidden2", "is_keyed", "is_required", "item_behavior", "keyed_name_order",
-        "order_by", "pattern", "prec", "scale", "sort_order", "stored_length", "track_history"
+        "name", "label[zc]", "data_type", "data_source", "stored_length", "prec", "scale",
+        "is_required", "is_keyed", "label[zt]", "label[en]", "foreign_property",
+        "keyed_name_order", "sort_order"
     ];
 
     private static readonly string[] BooleanHeaders =
     [
-        "复制到新物件", "Federated", "搜索中隐藏", "关系中隐藏", "唯一", "必填", "追踪变更纪录"
+        "必填", "唯一"
     ];
 
     private readonly IDbContextFactory<ArasToolkitDbContext> _dbFactory;
@@ -457,27 +450,42 @@ public sealed class PropertyImportService : IPropertyImportService
         sheet.Row(1).Height = 42;
         sheet.Cells[1, 1, 1, TemplateHeaders.Length].AutoFilter = true;
 
+        var nameColumn = FindHeaderColumn("名称");
+        var dataTypeColumn = FindHeaderColumn("数据类型");
+        var lengthColumn = FindHeaderColumn("长度");
+        var precisionColumn = FindHeaderColumn("精度");
+        var scaleColumn = FindHeaderColumn("小数位数");
+        var sortOrderColumn = FindHeaderColumn("显示顺序(sort_order)");
+
         // 由模板实时给出默认值；服务端仍会再次执行同一规则，防止公式被删除或未重算。
         for (var row = FirstDataRow; row <= LastDataRow; row++)
         {
-            sheet.Cells[row, 29].Formula = $"IF($E{row}=\"Decimal\",10,\"\")";
-            sheet.Cells[row, 30].Formula = $"IF($E{row}=\"Decimal\",2,\"\")";
-            sheet.Cells[row, 31].Formula = $"IF($A{row}=\"\",\"\",100+(ROW()-2)*10)";
-            sheet.Cells[row, 32].Formula =
-                $"IF($E{row}=\"\",\"\",IF(OR($E{row}=\"String\",$E{row}=\"Multilingual String\"),256,IF(OR($E{row}=\"List\",$E{row}=\"Filter List\",$E{row}=\"Color List\",$E{row}=\"Multi Value List\"),64,\"\")))";
+            var nameCell = sheet.Cells[row, nameColumn].Address;
+            var dataTypeCell = sheet.Cells[row, dataTypeColumn].Address;
+            sheet.Cells[row, precisionColumn].Formula = $"IF({dataTypeCell}=\"Decimal\",10,\"\")";
+            sheet.Cells[row, scaleColumn].Formula = $"IF({dataTypeCell}=\"Decimal\",2,\"\")";
+            sheet.Cells[row, sortOrderColumn].Formula =
+                $"IF({nameCell}=\"\",\"\",100+(ROW()-{FirstDataRow})*10)";
+            sheet.Cells[row, lengthColumn].Formula =
+                $"IF({dataTypeCell}=\"\",\"\",IF(OR({dataTypeCell}=\"String\",{dataTypeCell}=\"Multilingual String\"),256,IF(OR({dataTypeCell}=\"List\",{dataTypeCell}=\"Filter List\",{dataTypeCell}=\"Color List\",{dataTypeCell}=\"Multi Value List\"),64,\"\")))";
         }
 
-        using (var automatic = sheet.Cells[FirstDataRow, 29, LastDataRow, 32])
+        using (var automaticRules = sheet.Cells[FirstDataRow, lengthColumn, LastDataRow, scaleColumn])
         {
-            automatic.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            automatic.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(238, 242, 255));
-            automatic.Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(67, 56, 202));
+            automaticRules.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            automaticRules.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(238, 242, 255));
+            automaticRules.Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(67, 56, 202));
+        }
+        using (var automaticSortOrder = sheet.Cells[FirstDataRow, sortOrderColumn, LastDataRow, sortOrderColumn])
+        {
+            automaticSortOrder.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            automaticSortOrder.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(238, 242, 255));
+            automaticSortOrder.Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(67, 56, 202));
         }
 
         var widths = new[]
         {
-            20d, 20d, 20d, 20d, 22d, 24d, 24d, 18d, 14d, 14d, 18d, 22d, 22d, 22d, 28d, 22d,
-            22d, 22d, 16d, 14d, 16d, 16d, 12d, 12d, 16d, 14d, 20d, 20d, 12d, 14d, 20d, 12d, 18d
+            20d, 20d, 22d, 24d, 12d, 12d, 14d, 12d, 12d, 20d, 20d, 24d, 14d, 20d
         };
         for (var column = 1; column <= widths.Length; column++)
             sheet.Column(column).Width = widths[column - 1];
@@ -531,18 +539,8 @@ public sealed class PropertyImportService : IPropertyImportService
         dictionary.Cells[5, 8].Value = "否";
         dictionary.Cells[5, 9].Value = "0";
 
-        dictionary.Cells[3, 11].Value = "文字对齐";
-        dictionary.Cells[3, 12].Value = "AML值";
-        StyleDictionaryHeader(dictionary.Cells[3, 11, 3, 12]);
-        dictionary.Cells[4, 11].Value = "左对齐";
-        dictionary.Cells[4, 12].Value = "left";
-        dictionary.Cells[5, 11].Value = "居中";
-        dictionary.Cells[5, 12].Value = "center";
-        dictionary.Cells[6, 11].Value = "右对齐";
-        dictionary.Cells[6, 12].Value = "right";
-
         var notesRow = firstTypeRow + PropertyDataTypeOptions.All.Count + 2;
-        dictionary.Cells[notesRow, 1, notesRow, 12].Merge = true;
+        dictionary.Cells[notesRow, 1, notesRow, 9].Merge = true;
         dictionary.Cells[notesRow, 1].Value =
             "填写规则：数据类型必须从下拉框选择；String/Multilingual String 默认长度 256，List/Filter List/Color List/Multi Value List 默认长度 64，Decimal 默认精度 10、小数位数 2；显示顺序从 100 起每行递增 10。Item 填 ItemType 名称，List 系列填 List 名称，Foreign 的数据源填当前对象类中已有 Item 属性名称，并填写引用外部属性名称。";
         dictionary.Cells[notesRow, 1].Style.WrapText = true;
@@ -561,13 +559,10 @@ public sealed class PropertyImportService : IPropertyImportService
         dictionary.Column(6).Width = 38;
         dictionary.Column(8).Width = 16;
         dictionary.Column(9).Width = 12;
-        dictionary.Column(11).Width = 16;
-        dictionary.Column(12).Width = 12;
 
         package.Workbook.Names.Add("PropertyDataTypeLabels",
             dictionary.Cells[firstTypeRow, 1, firstTypeRow + PropertyDataTypeOptions.All.Count - 1, 1]);
         package.Workbook.Names.Add("PropertyBooleanLabels", dictionary.Cells[4, 8, 5, 8]);
-        package.Workbook.Names.Add("PropertyAlignmentLabels", dictionary.Cells[4, 11, 6, 11]);
     }
 
     private static void AddTemplateValidations(
@@ -604,15 +599,6 @@ public sealed class PropertyImportService : IPropertyImportService
             validation.Error = "请从下拉框选择“是”或“否”。";
         }
 
-        var alignmentColumn = FindHeaderColumn("文字对齐");
-        var alignmentValidation = sheet.DataValidations.AddListValidation(
-            sheet.Cells[FirstDataRow, alignmentColumn, LastDataRow, alignmentColumn].Address);
-        alignmentValidation.Formula.ExcelFormula = "PropertyAlignmentLabels";
-        alignmentValidation.AllowBlank = true;
-        alignmentValidation.ShowErrorMessage = true;
-        alignmentValidation.ErrorStyle = ExcelDataValidationWarningStyle.stop;
-        alignmentValidation.ErrorTitle = "文字对齐无效";
-        alignmentValidation.Error = "请从下拉框选择左对齐、居中或右对齐。";
     }
 
     private static void StyleDictionaryHeader(ExcelRange range)
@@ -692,6 +678,7 @@ public sealed class PropertyImportService : IPropertyImportService
             if (option.Value != "foreign" && !string.IsNullOrWhiteSpace(foreignProperty))
                 errors.Add("仅 Foreign 类型可以填写引用外部属性");
 
+            // 已从精简模板移除的字段仍按表头读取，以兼容上一版 33 列模板。
             var previewRow = new PropertyImportPreviewRow
             {
                 ExcelRowNumber = excelRow,
