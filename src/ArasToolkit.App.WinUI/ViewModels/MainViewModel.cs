@@ -90,12 +90,17 @@ public class MainViewModel : ObservableObject
         sysConfig.Children.Add(new MenuItemInfo { Name = "类结构汇入", Icon = "TreeFolderFolder", CardIcon = "\uE8F1", Description = "从 Excel 多级路径全量覆盖 ItemType 类结构" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "List配置", Icon = "FormatListBulleted", CardIcon = "\uE8FD", Description = "批量创建Aras List主档和菜单项" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "属性配置", Icon = "Tune", CardIcon = "🧩", Description = "选择现有对象类，预检 AML 后逐条写入属性" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "\uE8B5", Description = "Excel数据导入Aras系统" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "生命周期配置", Icon = "Refresh", CardIcon = "\uE895", Description = "批量创建Aras对象类的生命周期状态定义" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "权限配置", Icon = "ShieldAccount", CardIcon = "\uE72E", Description = "Aras权限配置工具" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "数据库导出", Icon = "DatabaseExport", CardIcon = "\uE898", Description = "执行SQL查询并导出为Excel文件" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "用户管理", Icon = "AccountGroup", CardIcon = "\uE716", Description = "管理员创建用户与角色分配" });
         MenuItems.Add(sysConfig);
+
+        // ===== 二级菜单：数据相关 =====
+        var dataRelated = new MenuItemInfo { Name = "数据相关", Icon = "Database", CardIcon = "\uE8B7", Description = "数据库导入、导出与批量修改工具集" };
+        dataRelated.Children.Add(new MenuItemInfo { Name = "数据库导出", Icon = "DatabaseExport", CardIcon = "\uE898", Description = "执行只读 SQL 查询并导出为 Excel 文件" });
+        dataRelated.Children.Add(new MenuItemInfo { Name = "数据库修改模式", Icon = "Edit", CardIcon = "\uE70F", Description = "解析 Excel 占位符模板并安全批量执行 SQL" });
+        dataRelated.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "\uE8B5", Description = "Excel 数据导入 Aras 系统" });
+        MenuItems.Add(dataRelated);
 
         // ===== 二级菜单：其他功能 =====
         var otherTools = new MenuItemInfo { Name = "其他功能", Icon = "DeveloperTools", CardIcon = "\uEC7A", Description = "XML、JSON 格式处理与 .NET 实体转换工具集" };

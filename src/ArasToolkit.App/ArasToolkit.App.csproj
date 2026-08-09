@@ -41,7 +41,13 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <NuGetAudit>true</NuGetAudit>
+    <DefineConstants>$(DefineConstants);WPF</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ArasToolkit.App.WinUI\ViewModels\DatabaseModificationViewModel.cs"
+             Link="ViewModels\DatabaseModificationViewModel.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Remove="app.ico" />

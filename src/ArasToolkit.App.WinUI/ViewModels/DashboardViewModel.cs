@@ -97,6 +97,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "权限配置", Description = "Aras权限配置工具", Icon = "\uE72E" },
         new() { Name = "生命周期配置", Description = "批量创建Aras对象类的生命周期状态定义", Icon = "\uE895" },
         new() { Name = "数据库导出", Description = "执行SQL查询并导出为Excel文件", Icon = "\uE898" },
+        new() { Name = "数据库修改模式", Description = "解析 Excel 占位符模板并安全批量执行 SQL", Icon = "\uE70F" },
         new() { Name = "XML格式化", Description = "自动提取并格式化完整 XML 结构", Icon = "\uE943" },
         new() { Name = "XML比对", Description = "归一化 XML 并标记缺少与内容差异", Icon = "\uE8AB" },
         new() { Name = "JSON格式化", Description = "校验并格式化 JSON 对象或数组", Icon = "\uE943" },

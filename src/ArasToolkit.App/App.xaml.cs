@@ -5,6 +5,7 @@ using ArasToolkit.App.Views.Translation;
 using ArasToolkit.App.Views;
 using ArasToolkit.Services;
 using Microsoft.Extensions.DependencyInjection;
+using ArasToolkit.Core.Interfaces;
 
 namespace ArasToolkit.App;
 
@@ -45,6 +46,8 @@ public partial class App : Application
 
         // 注册服务层
         services.AddArasToolkitServices();
+        services.AddSingleton<IDialogService, ArasToolkit.App.Services.DialogService>();
+        services.AddSingleton<IFileDialogService, ArasToolkit.App.Services.FileDialogService>();
 
         // 注册ViewModels
         services.AddSingleton<MainViewModel>();
@@ -73,6 +76,7 @@ public partial class App : Application
         services.AddTransient<FileExplorerViewModel>();
         services.AddTransient<DatabaseExportViewModel>();
         services.AddTransient<DatabaseExportConfigViewModel>();
+        services.AddTransient<DatabaseModificationViewModel>();
         services.AddTransient<ArasLoginWindow>();
         services.AddTransient<TranslationApiKeyWindow>();
         services.AddTransient<DataImportView>();
@@ -102,6 +106,7 @@ public partial class App : Application
         services.AddTransient<FileExplorerView>();
         services.AddTransient<DatabaseExportView>();
         services.AddTransient<DatabaseExportConfigView>();
+        services.AddTransient<DatabaseModificationView>();
 
         _serviceProvider = services.BuildServiceProvider();
     }

@@ -137,6 +137,7 @@ public partial class MainWindow : Window
                 "权限配置" => new PermissionConfigView { DataContext = App.Services.GetRequiredService<PermissionConfigViewModel>() },
                 "生命周期配置" => new LifecycleConfigView { DataContext = App.Services.GetRequiredService<LifecycleConfigViewModel>() },
                 "数据库导出" => new DatabaseExportView { DataContext = App.Services.GetRequiredService<DatabaseExportViewModel>() },
+                "数据库修改模式" => new DatabaseModificationView { DataContext = App.Services.GetRequiredService<DatabaseModificationViewModel>() },
                 "更新日志" => new ChangelogView { DataContext = App.Services.GetRequiredService<ChangelogViewModel>() },
                 "错误日志" => new ErrorLogView { DataContext = App.Services.GetRequiredService<ErrorLogViewModel>() },
                 "敏感操作日志" => new OperationLogView { DataContext = App.Services.GetRequiredService<OperationLogViewModel>() },

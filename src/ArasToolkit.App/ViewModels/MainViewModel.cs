@@ -112,11 +112,22 @@ public class MainViewModel : ObservableObject
         sysConfig.Children.Add(new MenuItemInfo { Name = "类结构汇入", Icon = "TreeFolderFolder", CardIcon = "🌳", Description = "从 Excel 多级路径全量覆盖 ItemType 类结构" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "List配置", Icon = "FormatListBulleted", CardIcon = "📋", Description = "批量创建Aras List主档和菜单项" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "属性配置", Icon = "Tune", CardIcon = "🧩", Description = "选择现有对象类，预检 AML 后逐条写入属性" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "📀", Description = "Excel数据导入Aras系统" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "生命周期配置", Icon = "Refresh", CardIcon = "🔄", Description = "批量创建Aras对象类的生命周期状态定义" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "权限配置", Icon = "ShieldAccount", CardIcon = "🔒", Description = "Aras权限配置工具" });
-        sysConfig.Children.Add(new MenuItemInfo { Name = "数据库导出", Icon = "DatabaseExport", CardIcon = "📤", Description = "执行SQL查询并导出为Excel文件" });
         MenuItems.Add(sysConfig);
+
+        // ===== 二级菜单：数据相关 =====
+        var dataRelated = new MenuItemInfo
+        {
+            Name = "数据相关",
+            Icon = "Database",
+            CardIcon = "🗄️",
+            Description = "数据库导入、导出与批量修改工具集"
+        };
+        dataRelated.Children.Add(new MenuItemInfo { Name = "数据库导出", Icon = "DatabaseExport", CardIcon = "📤", Description = "执行只读 SQL 查询并导出为 Excel 文件" });
+        dataRelated.Children.Add(new MenuItemInfo { Name = "数据库修改模式", Icon = "Edit", CardIcon = "🛠️", Description = "解析 Excel 占位符模板并安全批量执行 SQL" });
+        dataRelated.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "📀", Description = "Excel 数据导入 Aras 系统" });
+        MenuItems.Add(dataRelated);
 
         // ===== 二级菜单：系统日志（更新日志 / 错误日志 / 敏感操作日志） =====
         var sysLog = new MenuItemInfo

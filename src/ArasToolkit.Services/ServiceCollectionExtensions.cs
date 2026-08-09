@@ -103,6 +103,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISqlTemplateService, SqlTemplateService>();
         services.AddSingleton<IDatabaseExportService, DatabaseExportService>();
         services.AddSingleton<IDatabaseExportConfigService, DatabaseExportConfigService>();
+        services.AddSingleton<IDatabaseModificationService, DatabaseModificationService>();
 
         // 注册字段翻译服务（单例）
         services.AddSingleton<IArasTranslationLogService, ArasTranslationLogService>();
