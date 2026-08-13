@@ -104,6 +104,7 @@ public static class ServiceCollectionExtensions
 
         // 注册数据库导出服务（单例）
         services.AddSingleton<ISqlTemplateService, SqlTemplateService>();
+        services.AddSingleton<ICommonQuerySnippetService, CommonQuerySnippetService>();
         services.AddSingleton<IDatabaseExportService, DatabaseExportService>();
         services.AddSingleton<IDatabaseExportConfigService, DatabaseExportConfigService>();
         services.AddSingleton<IDatabaseModificationService, DatabaseModificationService>();

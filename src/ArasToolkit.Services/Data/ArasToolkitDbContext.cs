@@ -58,6 +58,9 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>SQL模板表</summary>
     public DbSet<SqlTemplate> SqlTemplates => Set<SqlTemplate>();
 
+    /// <summary>常用 SQL/AML/XML 片段表</summary>
+    public DbSet<CommonQuerySnippet> CommonQuerySnippets => Set<CommonQuerySnippet>();
+
     /// <summary>数据库导出日志表</summary>
     public DbSet<DatabaseExportLog> DatabaseExportLogs => Set<DatabaseExportLog>();
 
@@ -372,6 +375,21 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.UserId).HasColumnName("user_id").HasMaxLength(100);
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
             entity.Ignore(e => e.DisplayCreatedAt);
+        });
+
+        // ===== CommonQuerySnippet → common_query_snippet 表 =====
+        modelBuilder.Entity<CommonQuerySnippet>(entity =>
+        {
+            entity.ToTable("common_query_snippet");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id").HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.Title).HasColumnName("title").IsRequired().HasMaxLength(200);
+            entity.Property(e => e.ContentType).HasColumnName("content_type").IsRequired().HasMaxLength(10);
+            entity.Property(e => e.Content).HasColumnName("content").IsRequired();
+            entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+            entity.Ignore(e => e.DisplayCreatorOn);
         });
 
         // ===== DatabaseExportLog → database_export_log 表 =====
@@ -894,6 +912,25 @@ public class ArasToolkitDbContext : DbContext
                 ELSE IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='sql_template' AND COLUMN_NAME='creator_on')
                 BEGIN
                     ALTER TABLE sql_template ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
+                END
+
+                -- ===== common_query_snippet 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='common_query_snippet')
+                BEGIN
+                    CREATE TABLE common_query_snippet (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        title NVARCHAR(200) NOT NULL,
+                        content_type NVARCHAR(10) NOT NULL,
+                        content NVARCHAR(MAX) NOT NULL,
+                        description NVARCHAR(500) NULL,
+                        user_id NVARCHAR(100) NOT NULL,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+                ELSE
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='common_query_snippet' AND COLUMN_NAME='creator_on')
+                        ALTER TABLE common_query_snippet ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                 END
 
                 -- ===== database_export_log 表 =====

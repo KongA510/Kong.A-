@@ -98,6 +98,7 @@ public class MainViewModel : ObservableObject
 
         // ===== 二级菜单：数据相关 =====
         var dataRelated = new MenuItemInfo { Name = "数据相关", Icon = "Database", CardIcon = "\uE8B7", Description = "数据库导入、导出与批量修改工具集" };
+        dataRelated.Children.Add(new MenuItemInfo { Name = "常用SQLorAML", Icon = "Code", CardIcon = "🧾", Description = "保存、预览并快速复用 SQL、AML 与 XML 片段" });
         dataRelated.Children.Add(new MenuItemInfo { Name = "数据库导出", Icon = "DatabaseExport", CardIcon = "\uE898", Description = "执行只读 SQL 查询并导出为 Excel 文件" });
         dataRelated.Children.Add(new MenuItemInfo { Name = "数据库修改模式", Icon = "Edit", CardIcon = "\uE70F", Description = "解析 Excel 占位符模板并安全批量执行 SQL" });
         dataRelated.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "\uE8B5", Description = "Excel 数据导入 Aras 系统" });
