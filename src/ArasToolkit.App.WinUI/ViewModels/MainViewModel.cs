@@ -102,6 +102,7 @@ public class MainViewModel : ObservableObject
         dataRelated.Children.Add(new MenuItemInfo { Name = "数据库导出", Icon = "DatabaseExport", CardIcon = "\uE898", Description = "执行只读 SQL 查询并导出为 Excel 文件" });
         dataRelated.Children.Add(new MenuItemInfo { Name = "数据库修改模式", Icon = "Edit", CardIcon = "\uE70F", Description = "解析 Excel 占位符模板并安全批量执行 SQL" });
         dataRelated.Children.Add(new MenuItemInfo { Name = "数据汇入", Icon = "DatabaseImport", CardIcon = "\uE8B5", Description = "Excel 数据导入 Aras 系统" });
+        dataRelated.Children.Add(new MenuItemInfo { Name = "汇入项目计划模板", Icon = "Calendar", CardIcon = "📅", Description = "导出标准 Excel，预检并汇入 Aras Project Template 与完整 WBS" });
         MenuItems.Add(dataRelated);
 
         // ===== 二级菜单：其他功能 =====

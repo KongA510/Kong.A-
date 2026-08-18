@@ -56,6 +56,9 @@ public static class ServiceCollectionExtensions
         // 注册数据导入服务
         services.AddSingleton<IDataImportService, DataImportService>();
 
+        // 注册项目计划模板导出、预检与 Aras 汇入服务
+        services.AddSingleton<IProjectPlanImportService, ProjectPlanImportService>();
+
         // 注册 AI 模型配置管理服务（单例）
         services.AddSingleton<IAiModelConfigService, AiModelConfigService>();
 

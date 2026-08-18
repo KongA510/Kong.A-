@@ -85,6 +85,7 @@ public partial class App : Application
         services.AddTransient<CommonQuerySnippetViewModel>();
         services.AddTransient<TranslationApiKeyViewModel>();
         services.AddTransient<DataImportViewModel>();
+        services.AddTransient<ProjectPlanImportViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<FileExplorerViewModel>();
         services.AddTransient<ArasLoginViewModel>();
@@ -121,6 +122,7 @@ public partial class App : Application
         nav.Register("设置-数据库导出", typeof(DatabaseExportConfigPage));
         nav.Register("设置-AI模型配置", typeof(TranslationApiKeyPage));
         nav.Register("数据汇入", typeof(DataImportPage));
+        nav.Register("汇入项目计划模板", typeof(ProjectPlanImportPage));
         nav.Register("设置", typeof(SettingsMenuPage));
         nav.Register("设置-资料文件夹地址", typeof(SettingsPage));
         nav.Register("设置-数据库检查", typeof(SettingsPage));

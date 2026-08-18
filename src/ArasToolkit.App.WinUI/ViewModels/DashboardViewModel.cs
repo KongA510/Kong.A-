@@ -94,6 +94,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "List配置", Description = "批量创建Aras List主档和菜单项", Icon = "\uE8FD" },
         new() { Name = "属性配置", Description = "选择现有对象类，预检 AML 后逐条写入属性", Icon = "🧩" },
         new() { Name = "数据汇入", Description = "Aras 数据汇入工具", Icon = "\uE8B5" },
+        new() { Name = "汇入项目计划模板", Description = "导出模板并汇入 Aras Project Template 与完整 WBS", Icon = "📅" },
         new() { Name = "权限配置", Description = "Aras权限配置工具", Icon = "\uE72E" },
         new() { Name = "生命周期配置", Description = "批量创建Aras对象类的生命周期状态定义", Icon = "\uE895" },
         new() { Name = "工作流程设定", Description = "预览调整并一次性汇入 Aras Workflow Map", Icon = "\uE8F0" },
