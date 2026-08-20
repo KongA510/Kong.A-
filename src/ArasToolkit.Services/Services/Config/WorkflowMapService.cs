@@ -149,8 +149,9 @@ public class WorkflowMapService : IWorkflowMapService
             if (node.IsStart || node.IsEnd)
                 node.IsAutomatic = true;
 
+            node.Assignee = node.Assignee.Trim();
             if (!node.IsStart && !node.IsEnd && !node.IsAutomatic && string.IsNullOrWhiteSpace(node.Assignee))
-                throw new InvalidDataException($"人工节点“{node.Name}”必须填写执行角色（Identity 名称或 ID）。");
+                definition.Warnings.Add($"人工节点“{node.Name}”未填写执行角色，将继承流程所有者 Creator。");
 
             EnsureNodeIds(node);
         }
@@ -162,7 +163,7 @@ public class WorkflowMapService : IWorkflowMapService
             throw new InvalidDataException("一份工作流程至少需要一个结束节点。");
 
         var duplicatePathSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var returnPathIndex = 0;
+        var validatedPaths = new List<(WorkflowMapPath Path, WorkflowMapNode Source, WorkflowMapNode Target)>();
         for (var index = 0; index < definition.Paths.Count; index++)
         {
             var path = definition.Paths[index];
@@ -185,21 +186,54 @@ public class WorkflowMapService : IWorkflowMapService
             if (!duplicatePathSet.Add(duplicateKey))
                 throw new InvalidDataException($"路径重复：{source.Name} → {target.Name}（{path.Name}）。");
 
-            // 先验证用户填写的 segments，再为没有折点的退回路径自动生成上方正交折线。
+            EnsurePathId(path);
+            validatedPaths.Add((path, source, target));
+        }
+
+        if (NeedsLeftToRightLayout(definition.Nodes, validatedPaths))
+        {
+            ArrangeLeftToRightCore(definition.Nodes, validatedPaths);
+            ResetPathGeometry(definition.Paths);
+            definition.Warnings.Add("检测到纵向或重叠节点坐标，已按流程拓扑自动转换为从左到右布局。");
+        }
+
+        var returnPathIndex = 0;
+        foreach (var (path, source, target) in validatedPaths)
+        {
+            // 先验证用户填写的 segments，再为没有折点的退回路径或斜向分支生成正交折线。
             var points = ParseSegments(path.Segments);
             path.Segments = SerializeSegments(points);
             if (target.SortOrder <= source.SortOrder && points.Count == 0)
             {
-                var routeY = Math.Min(source.Y, target.Y) - 90 - returnPathIndex * 48;
-                path.Segments = SerializeSegments([
-                    new WorkflowMapPoint(source.X, routeY),
-                    new WorkflowMapPoint(target.X, routeY)
-                ]);
+                if (source.X == target.X)
+                {
+                    var routeX = Math.Max(40, source.X - 120 - returnPathIndex * 64);
+                    path.Segments = SerializeSegments([
+                        new WorkflowMapPoint(routeX, source.Y),
+                        new WorkflowMapPoint(routeX, target.Y)
+                    ]);
+                }
+                else
+                {
+                    var routeY = Math.Max(40, Math.Min(source.Y, target.Y) - 120 - returnPathIndex * 64);
+                    path.Segments = SerializeSegments([
+                        new WorkflowMapPoint(source.X, routeY),
+                        new WorkflowMapPoint(target.X, routeY)
+                    ]);
+                }
                 returnPathIndex++;
                 definition.Warnings.Add($"退回路径“{path.Name}”未填写转折点，已自动生成：{path.Segments}。");
             }
+            else if (points.Count == 0 && source.X != target.X && source.Y != target.Y)
+            {
+                var middleX = (int)Math.Round((source.X + target.X) / 2d);
+                path.Segments = SerializeSegments([
+                    new WorkflowMapPoint(middleX, source.Y),
+                    new WorkflowMapPoint(middleX, target.Y)
+                ]);
+                definition.Warnings.Add($"分支路径“{path.Name}”未填写转折点，已自动生成正交折线：{path.Segments}。");
+            }
 
-            EnsurePathId(path);
             EnsureLabelOffset(path, source, target);
         }
 
@@ -214,6 +248,24 @@ public class WorkflowMapService : IWorkflowMapService
         ValidateAutomaticActivities(definition, codeLookup);
         ValidateConnectivity(definition, startNodes[0], codeLookup);
         EnsureDefinitionIds(definition);
+    }
+
+    /// <inheritdoc />
+    public void ArrangeLeftToRight(WorkflowMapDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        NormalizeAndValidate(definition);
+
+        var codeLookup = definition.Nodes.ToDictionary(node => node.Code, StringComparer.OrdinalIgnoreCase);
+        var paths = definition.Paths
+            .Where(path => codeLookup.ContainsKey(path.SourceCode) && codeLookup.ContainsKey(path.TargetCode))
+            .Select(path => (Path: path, Source: codeLookup[path.SourceCode], Target: codeLookup[path.TargetCode]))
+            .ToList();
+
+        ArrangeLeftToRightCore(definition.Nodes, paths);
+        ResetPathGeometry(definition.Paths);
+        NormalizeAndValidate(definition);
+        definition.Warnings.Add("已按流程拓扑重新排列为从左到右布局，并重建正交折线路径。");
     }
 
     /// <inheritdoc />
@@ -357,12 +409,12 @@ public class WorkflowMapService : IWorkflowMapService
 
         object?[][] rows =
         [
-            [1, "START", "开始", "开始", "", "是", 60, 170, "工作流程开始"],
-            [2, "CREATE", "填写送审单", "普通", "Creator", "否", 220, 170, "请填写并提交送审资料"],
-            [3, "REVIEW", "对应角色审核", "普通", "Creator", "否", 390, 170, "请审核送审资料"],
-            [4, "NOTICE", "通知相关人员", "普通", "Creator", "否", 560, 170, "请确认处理结果"],
-            [5, "END", "结束", "结束", "", "否", 730, 170, "工作流程结束"],
-            [6, "CANCEL", "取消", "结束", "", "否", 300, 300, "工作流程取消"]
+            [1, "START", "开始", "开始", "", "是", 120, 210, "工作流程开始"],
+            [2, "CREATE", "填写送审单", "普通", "", "否", 340, 210, "请填写并提交送审资料"],
+            [3, "REVIEW", "对应角色审核", "普通", "", "否", 560, 210, "请审核送审资料"],
+            [4, "NOTICE", "通知相关人员", "普通", "", "是", 780, 210, "自动通知相关人员"],
+            [5, "END", "结束", "结束", "", "否", 1000, 210, "工作流程结束"],
+            [6, "CANCEL", "取消", "结束", "", "否", 560, 380, "工作流程取消"]
         ];
         WriteRows(sheet, rows);
 
@@ -395,10 +447,10 @@ public class WorkflowMapService : IWorkflowMapService
             [1, "START", "CREATE", "开始", "是", "否", "none", "", null, null],
             [2, "CREATE", "REVIEW", "送相关人员审核", "否", "否", "none", "", null, null],
             [3, "REVIEW", "NOTICE", "通过", "否", "否", "none", "", null, null],
-            [4, "NOTICE", "END", "结束", "否", "否", "none", "", null, null],
+            [4, "NOTICE", "END", "结束", "是", "否", "none", "", null, null],
             // 退回线使用两个绝对坐标折点，形成与主线分离的上方正交路径。
-            [5, "REVIEW", "CREATE", "退回到建立者", "否", "否", "none", "390,75|220,75", -85, -105],
-            [6, "CREATE", "CANCEL", "取消流程", "否", "否", "none", "260,235", 45, 70]
+            [5, "REVIEW", "CREATE", "退回到建立者", "否", "否", "none", "560,90|340,90", -110, -140],
+            [6, "CREATE", "CANCEL", "取消流程", "否", "否", "none", "450,210|450,380", 105, 67]
         ];
         WriteRows(sheet, rows);
 
@@ -428,14 +480,15 @@ public class WorkflowMapService : IWorkflowMapService
         sheet.Cells["A1"].Style.Font.Size = 16;
         sheet.Cells["A3"].Value = "一份文件只生成一份 Workflow Map；流程名称在导入页面手动输入，不写入模板。";
         sheet.Cells["A4"].Value = "节点编码必须唯一；节点类型只能是开始、普通、结束；必须且只能有一个开始节点。";
-        sheet.Cells["A5"].Value = "人工普通节点必须填写执行角色，可填 Identity 名称或 32 位 ID；开始/结束/自动节点可留空。";
+        sheet.Cells["A5"].Value = "人工普通节点的执行角色可留空；留空时继承流程所有者 Creator，显式填写 Identity 名称或 32 位 ID 时则使用指定角色。开始/结束/自动节点应留空。";
         sheet.Cells["A6"].Value = "转折点使用 Aras 原生 segments 格式：单点 x,y；多点 x,y|x,y，例如 390,75|220,75。";
-        sheet.Cells["A7"].Value = "退回路径若未填写转折点，预览时会自动在主线之上生成两个折点，避免与正向路径重合。";
+        sheet.Cells["A7"].Value = "流程默认按从左到右排列；纵向或重叠坐标会在预览时自动按拓扑转换为横向布局，也可点击“自动横向布局”重新排列。";
         sheet.Cells["A8"].Value = "名称偏移X/Y对应 Workflow Map Path.x/y，是相对来源节点的路径名称位置；留空会自动计算。";
         sheet.Cells["A9"].Value = "覆盖模式保留原 Workflow Map ID，在一个完整 AML 中删除旧 Workflow Map Activity 后重建节点和路径。";
         sheet.Cells["A10"].Value = "导入前必须先生成并检查可编辑预览；最终通过 Innovator.applyAML 一次性执行完整 AML。";
+        sheet.Cells["A11"].Value = "退回路径留空时自动生成主线上方的虚线正交折线；斜向分支留空时自动生成直角折线，避免方向不清。";
         sheet.Column(1).Width = 120;
-        sheet.Cells["A1:A10"].Style.WrapText = true;
+        sheet.Cells["A1:A11"].Style.WrapText = true;
         sheet.View.ShowGridLines = false;
     }
 
@@ -688,7 +741,18 @@ public class WorkflowMapService : IWorkflowMapService
         if (result == null)
             throw new InvalidOperationException("查询同名 Workflow Map 时 Aras 未返回结果。");
         if (result.isError())
+        {
+            string errorCode;
+            try { errorCode = (string)result.getErrorCode(); }
+            catch { errorCode = string.Empty; }
+
+            // Aras IOM 将 get 查询的零行结果表示为 fault code 0（No items found）。
+            // 对同名流程查询而言这是正常的“不存在”，新增模式应继续生成 add AML。
+            if (string.Equals(errorCode, "0", StringComparison.Ordinal))
+                return null;
+
             throw new InvalidOperationException((string)result.getErrorString());
+        }
 
         var count = (int)result.getItemCount();
         if (count == 0)
@@ -797,6 +861,96 @@ public class WorkflowMapService : IWorkflowMapService
         var middle = FindPolylineMiddle(points);
         path.LabelOffsetX ??= middle.X - source.X;
         path.LabelOffsetY ??= middle.Y - source.Y - 18;
+    }
+
+    private static bool NeedsLeftToRightLayout(
+        IEnumerable<WorkflowMapNode> nodes,
+        IReadOnlyList<(WorkflowMapPath Path, WorkflowMapNode Source, WorkflowMapNode Target)> paths)
+    {
+        var nodeList = nodes.ToList();
+        if (nodeList.Count < 2)
+            return false;
+
+        var forwardPaths = paths
+            .Where(pair => pair.Target.SortOrder > pair.Source.SortOrder)
+            .ToList();
+        if (forwardPaths.Count == 0)
+            return false;
+
+        var xSpan = nodeList.Max(node => node.X) - nodeList.Min(node => node.X);
+        var ySpan = nodeList.Max(node => node.Y) - nodeList.Min(node => node.Y);
+        var clearlyHorizontal = forwardPaths.Count(pair => pair.Target.X - pair.Source.X >= 100);
+        var requiredHorizontal = (int)Math.Ceiling(forwardPaths.Count * 0.6d);
+
+        return (xSpan < 240 && ySpan >= xSpan)
+               || clearlyHorizontal < requiredHorizontal;
+    }
+
+    private static void ArrangeLeftToRightCore(
+        IEnumerable<WorkflowMapNode> nodes,
+        IReadOnlyList<(WorkflowMapPath Path, WorkflowMapNode Source, WorkflowMapNode Target)> paths)
+    {
+        const int startX = 120;
+        const int horizontalGap = 220;
+        const int mainLaneY = 210;
+        const int laneGap = 170;
+
+        var nodeList = nodes.OrderBy(node => node.SortOrder).ToList();
+        var start = nodeList.Single(node => node.IsStart);
+        var ranks = nodeList.ToDictionary(node => node.Code, _ => 0, StringComparer.OrdinalIgnoreCase);
+        var reachable = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { start.Code };
+
+        // 退回线不参与拓扑层级计算，避免循环把主线不断推向右侧。
+        for (var pass = 0; pass < nodeList.Count; pass++)
+        {
+            var changed = false;
+            foreach (var pair in paths
+                         .Where(pair => pair.Target.SortOrder > pair.Source.SortOrder)
+                         .OrderBy(pair => pair.Source.SortOrder)
+                         .ThenBy(pair => pair.Path.SortOrder))
+            {
+                if (!reachable.Contains(pair.Source.Code))
+                    continue;
+
+                reachable.Add(pair.Target.Code);
+                var candidate = ranks[pair.Source.Code] + 1;
+                if (candidate <= ranks[pair.Target.Code])
+                    continue;
+
+                ranks[pair.Target.Code] = candidate;
+                changed = true;
+            }
+
+            if (!changed)
+                break;
+        }
+
+        // 极端情况下保留未连通节点的原顺序，连通性校验仍会单独给出警告。
+        foreach (var node in nodeList.Where(node => !reachable.Contains(node.Code)))
+            ranks[node.Code] = Math.Max(1, node.SortOrder / 128);
+
+        foreach (var group in nodeList.GroupBy(node => ranks[node.Code]).OrderBy(group => group.Key))
+        {
+            var laneNodes = group
+                .OrderBy(node => node.IsEnd ? 1 : 0)
+                .ThenBy(node => node.SortOrder)
+                .ToList();
+            for (var lane = 0; lane < laneNodes.Count; lane++)
+            {
+                laneNodes[lane].X = startX + group.Key * horizontalGap;
+                laneNodes[lane].Y = mainLaneY + lane * laneGap;
+            }
+        }
+    }
+
+    private static void ResetPathGeometry(IEnumerable<WorkflowMapPath> paths)
+    {
+        foreach (var path in paths)
+        {
+            path.Segments = string.Empty;
+            path.LabelOffsetX = null;
+            path.LabelOffsetY = null;
+        }
     }
 
     private static WorkflowMapPoint FindPolylineMiddle(IReadOnlyList<WorkflowMapPoint> points)

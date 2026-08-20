@@ -19,9 +19,13 @@ public interface IWorkflowMapService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 规范化并校验预览数据。退回路径未填写转折点时，会自动生成上方正交折线。
+    /// 规范化并校验预览数据。检测到纵向或重叠布局时自动转换为从左到右；
+    /// 退回路径和斜向分支未填写转折点时，会自动生成正交折线。
     /// </summary>
     void NormalizeAndValidate(WorkflowMapDefinition definition);
+
+    /// <summary>按流程拓扑强制重新排列为从左到右，并重建自动折线路径。</summary>
+    void ArrangeLeftToRight(WorkflowMapDefinition definition);
 
     /// <summary>解析 Aras 原生 segments 字符串。</summary>
     IReadOnlyList<WorkflowMapPoint> ParseSegments(string segments);

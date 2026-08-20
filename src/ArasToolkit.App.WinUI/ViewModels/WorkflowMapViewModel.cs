@@ -207,6 +207,28 @@ public class WorkflowMapViewModel : ObservableObject
         PreviewChanged?.Invoke();
     }
 
+    /// <summary>把当前预览按流程拓扑重新排列为从左到右，并重建自动折线路径。</summary>
+    public void ArrangePreviewLeftToRight()
+    {
+        if (PreviewDefinition == null) return;
+        try
+        {
+            _workflowMapService.ArrangeLeftToRight(PreviewDefinition);
+            ErrorMessage = string.Empty;
+            StatusMessage = $"已重新排列为从左到右：{SummaryText}。请检查路径后重新生成最终 AML。";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            _ = _errorLogService.LogErrorAsync("工作流程设定-横向布局", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+        }
+
+        InvalidatePreparedAml();
+        OnPropertyChanged(nameof(WarningsText));
+        PreviewChanged?.Invoke();
+    }
+
     private async Task DownloadTemplateAsync()
     {
         try

@@ -23,16 +23,16 @@ namespace ArasToolkit.App.WinUI.Views;
 /// </summary>
 public sealed partial class WorkflowMapPage : Page
 {
-    private const double NodeVisualWidth = 132;
+    private const double NodeVisualWidth = 150;
     private const double NodeVisualHeight = 64;
     private const double NodeRadius = 16;
 
     private readonly WorkflowMapViewModel _viewModel;
     private readonly IWorkflowMapService _workflowMapService;
     private readonly Dictionary<WorkflowMapPath, Polyline> _pathLines = [];
-    private readonly Canvas WorkflowCanvas = new() { Width = 960, Height = 520 };
-    private readonly StackPanel NodeEditorPanel = new() { Spacing = 6 };
-    private readonly StackPanel PathEditorPanel = new() { Spacing = 6 };
+    private readonly Canvas WorkflowCanvas = new() { Width = 1320, Height = 440 };
+    private readonly StackPanel NodeEditorPanel = new() { Spacing = 8 };
+    private readonly StackPanel PathEditorPanel = new() { Spacing = 8 };
 
     private FrameworkElement? _dragElement;
     private WorkflowMapNode? _dragNode;
@@ -150,7 +150,7 @@ public sealed partial class WorkflowMapPage : Page
         owner.Children.Add(new TextBlock { Text = "流程所有者", FontSize = 11, Foreground = Brush(107, 114, 128) });
         owner.Children.Add(new TextBlock
         {
-            Text = "Creator（服务端解析）",
+            Text = "Creator（节点留空时继承）",
             FontSize = 13,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
             Foreground = Brush(17, 24, 39),
@@ -189,16 +189,47 @@ public sealed partial class WorkflowMapPage : Page
         return panel;
     }
 
-    private Grid BuildContentArea()
+    private FrameworkElement BuildContentArea()
     {
-        var content = new Grid { RowSpacing = 8, ColumnSpacing = 8 };
-        content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(24, GridUnitType.Star) });
-        content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12, GridUnitType.Star) });
-        content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(11, GridUnitType.Star) });
-        content.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var content = new Grid { RowSpacing = 12 };
+        content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(520) });
+        content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(390) });
+        content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(430) });
+        content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(260) });
         content.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-        var canvasHost = new Grid { Background = Brush(250, 250, 251) };
+        var canvasSection = new Grid { RowSpacing = 8, Padding = new Thickness(12) };
+        canvasSection.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        canvasSection.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        var canvasHeader = new Grid();
+        canvasHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        canvasHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        canvasHeader.Children.Add(new TextBlock
+        {
+            Text = "流程画布  →  从左到右",
+            FontSize = 14,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            Foreground = Brush(31, 41, 55),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        var arrangeButton = new Button
+        {
+            Content = "自动横向布局",
+            Height = 32,
+            Padding = new Thickness(14, 0, 14, 0),
+            IsEnabled = _viewModel.HasPreview
+        };
+        arrangeButton.Click += (_, _) => _viewModel.ArrangePreviewLeftToRight();
+        _viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(WorkflowMapViewModel.HasPreview))
+                arrangeButton.IsEnabled = _viewModel.HasPreview;
+        };
+        Grid.SetColumn(arrangeButton, 1);
+        canvasHeader.Children.Add(arrangeButton);
+        canvasSection.Children.Add(canvasHeader);
+
+        var canvasHost = new Grid { Background = Brush(248, 250, 252) };
         canvasHost.Children.Add(new ScrollViewer
         {
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
@@ -224,8 +255,9 @@ public sealed partial class WorkflowMapPage : Page
             }
         };
         canvasHost.Children.Add(canvasHelp);
-        var canvasBorder = Framed(canvasHost);
-        Grid.SetColumnSpan(canvasBorder, 2);
+        Grid.SetRow(canvasHost, 1);
+        canvasSection.Children.Add(canvasHost);
+        var canvasBorder = Framed(canvasSection);
         content.Children.Add(canvasBorder);
 
         var nodeHost = EditorHost("节点参数", NodeEditorPanel);
@@ -233,8 +265,7 @@ public sealed partial class WorkflowMapPage : Page
         content.Children.Add(nodeHost);
 
         var pathHost = EditorHost("路径参数 / 转折点", PathEditorPanel);
-        Grid.SetRow(pathHost, 1);
-        Grid.SetColumn(pathHost, 1);
+        Grid.SetRow(pathHost, 2);
         content.Children.Add(pathHost);
 
         var amlGrid = new Grid { RowSpacing = 5 };
@@ -259,11 +290,16 @@ public sealed partial class WorkflowMapPage : Page
         Bind(amlBox, TextBox.TextProperty, "AmlText");
         Grid.SetRow(amlBox, 1);
         amlGrid.Children.Add(amlBox);
-        Grid.SetRow(amlGrid, 2);
-        Grid.SetColumnSpan(amlGrid, 2);
+        Grid.SetRow(amlGrid, 3);
         content.Children.Add(amlGrid);
 
-        return content;
+        return new ScrollViewer
+        {
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollMode = ScrollMode.Enabled,
+            Content = content
+        };
     }
 
     private void BuildEditorPanels()
@@ -289,11 +325,11 @@ public sealed partial class WorkflowMapPage : Page
 
     private static Grid NodeHeader()
     {
-        var grid = EditorGrid([100, 145, 90, 145, 55, 70, 70, 190]);
+        var grid = EditorGrid([120, 180, 110, 200, 70, 90, 90, 260]);
         AddHeader(grid, 0, "编码");
         AddHeader(grid, 1, "节点名称");
         AddHeader(grid, 2, "类型");
-        AddHeader(grid, 3, "执行角色");
+        AddHeader(grid, 3, "执行角色（空=所有者）");
         AddHeader(grid, 4, "自动");
         AddHeader(grid, 5, "X");
         AddHeader(grid, 6, "Y");
@@ -303,11 +339,17 @@ public sealed partial class WorkflowMapPage : Page
 
     private Grid NodeRow(WorkflowMapNode node)
     {
-        var grid = EditorGrid([100, 145, 90, 145, 55, 70, 70, 190]);
+        var grid = EditorGrid([120, 180, 110, 200, 70, 90, 90, 260]);
         AddTextEditor(grid, 0, node.Code, value => node.Code = value);
         AddTextEditor(grid, 1, node.Name, value => node.Name = value);
 
-        var type = new ComboBox { ItemsSource = node.ActivityTypeOptions, SelectedItem = node.ActivityType, FontSize = 12 };
+        var type = new ComboBox
+        {
+            ItemsSource = node.ActivityTypeOptions,
+            SelectedItem = node.ActivityType,
+            FontSize = 12,
+            MinHeight = 36
+        };
         type.SelectionChanged += (_, _) => node.ActivityType = type.SelectedItem?.ToString() ?? WorkflowMapNode.NodeTypeNormal;
         AddEditor(grid, 2, type);
         AddTextEditor(grid, 3, node.Assignee, value => node.Assignee = value);
@@ -324,7 +366,7 @@ public sealed partial class WorkflowMapPage : Page
 
     private static Grid PathHeader()
     {
-        var grid = EditorGrid([95, 95, 150, 50, 50, 105, 230, 75, 75]);
+        var grid = EditorGrid([120, 120, 190, 65, 65, 120, 300, 90, 90]);
         AddHeader(grid, 0, "来源");
         AddHeader(grid, 1, "目标");
         AddHeader(grid, 2, "路径名称");
@@ -339,7 +381,7 @@ public sealed partial class WorkflowMapPage : Page
 
     private Grid PathRow(WorkflowMapPath path)
     {
-        var grid = EditorGrid([95, 95, 150, 50, 50, 105, 230, 75, 75]);
+        var grid = EditorGrid([120, 120, 190, 65, 65, 120, 300, 90, 90]);
         AddTextEditor(grid, 0, path.SourceCode, value => path.SourceCode = value);
         AddTextEditor(grid, 1, path.TargetCode, value => path.TargetCode = value);
         AddTextEditor(grid, 2, path.Name, value => path.Name = value);
@@ -357,7 +399,8 @@ public sealed partial class WorkflowMapPage : Page
         {
             ItemsSource = path.AuthenticationOptions,
             SelectedItem = path.Authentication,
-            FontSize = 12
+            FontSize = 12,
+            MinHeight = 36
         };
         authentication.SelectionChanged += (_, _) => path.Authentication = authentication.SelectedItem?.ToString() ?? "none";
         AddEditor(grid, 5, authentication);
@@ -369,10 +412,16 @@ public sealed partial class WorkflowMapPage : Page
 
     private static Border EditorHost(string title, StackPanel panel)
     {
-        var grid = new Grid { RowSpacing = 4, Padding = new Thickness(8) };
+        var grid = new Grid { RowSpacing = 8, Padding = new Thickness(14) };
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        grid.Children.Add(new TextBlock { Text = title, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+        grid.Children.Add(new TextBlock
+        {
+            Text = title,
+            FontSize = 15,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            Foreground = Brush(31, 41, 55)
+        });
         var scroll = new ScrollViewer
         {
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
@@ -386,7 +435,12 @@ public sealed partial class WorkflowMapPage : Page
 
     private static Grid EditorGrid(IReadOnlyList<double> widths)
     {
-        var grid = new Grid { ColumnSpacing = 6, MinWidth = widths.Sum() + widths.Count * 6 };
+        var grid = new Grid
+        {
+            ColumnSpacing = 8,
+            MinHeight = 38,
+            MinWidth = widths.Sum() + widths.Count * 8
+        };
         foreach (var width in widths)
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width) });
         return grid;
@@ -412,7 +466,7 @@ public sealed partial class WorkflowMapPage : Page
         Action<string> update,
         string placeholder = "")
     {
-        var editor = new TextBox { Text = value, FontSize = 12, PlaceholderText = placeholder, MinHeight = 30 };
+        var editor = new TextBox { Text = value, FontSize = 12, PlaceholderText = placeholder, MinHeight = 36 };
         editor.TextChanged += (_, _) => update(editor.Text);
         AddEditor(grid, column, editor);
     }
@@ -425,7 +479,8 @@ public sealed partial class WorkflowMapPage : Page
             Minimum = -5000,
             Maximum = 10000,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Hidden,
-            FontSize = 12
+            FontSize = 12,
+            MinHeight = 36
         };
         editor.ValueChanged += (_, args) =>
         {
@@ -442,7 +497,8 @@ public sealed partial class WorkflowMapPage : Page
             Minimum = -5000,
             Maximum = 10000,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Hidden,
-            FontSize = 12
+            FontSize = 12,
+            MinHeight = 36
         };
         editor.ValueChanged += (_, args) => update(double.IsNaN(args.NewValue)
             ? null
@@ -537,8 +593,8 @@ public sealed partial class WorkflowMapPage : Page
             catch { /* 无效输入由 ViewModel 校验并显示，不阻断画布其余内容。 */ }
         }
 
-        WorkflowCanvas.Width = Math.Max(960, allPoints.DefaultIfEmpty().Max(point => point.X) + 180);
-        WorkflowCanvas.Height = Math.Max(520, allPoints.DefaultIfEmpty().Max(point => point.Y) + 150);
+        WorkflowCanvas.Width = Math.Max(1320, allPoints.DefaultIfEmpty().Max(point => point.X) + 220);
+        WorkflowCanvas.Height = Math.Max(440, allPoints.DefaultIfEmpty().Max(point => point.Y) + 120);
 
         foreach (var path in definition.Paths)
             DrawPath(definition, path);
@@ -555,26 +611,42 @@ public sealed partial class WorkflowMapPage : Page
         if (source == null || target == null) return;
 
         var points = BuildPathPoints(source, target, path);
+        var isReturnPath = target.SortOrder <= source.SortOrder;
         var line = new Polyline
         {
-            Stroke = new SolidColorBrush(Color.FromArgb(255, 107, 114, 128)),
-            StrokeThickness = path.IsOverride ? 2.5 : 1.7,
+            Stroke = new SolidColorBrush(isReturnPath
+                ? Color.FromArgb(255, 217, 119, 6)
+                : Color.FromArgb(255, 100, 116, 139)),
+            StrokeThickness = isReturnPath || path.IsOverride ? 2.5 : 1.9,
             StrokeLineJoin = PenLineJoin.Round,
             Tag = path,
             Points = ToPointCollection(points)
         };
+        if (isReturnPath)
+            line.StrokeDashArray = new DoubleCollection { 7, 4 };
         line.DoubleTapped += Path_DoubleTapped;
         WorkflowCanvas.Children.Add(line);
         _pathLines[path] = line;
 
         DrawArrow(points);
 
-        var label = new TextBlock
+        var label = new Border
         {
-            Text = path.Name,
-            FontSize = 12,
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 31, 41, 55)),
-            Padding = new Thickness(4, 1, 4, 1)
+            Padding = new Thickness(6, 2, 6, 2),
+            CornerRadius = new CornerRadius(5),
+            Background = new SolidColorBrush(isReturnPath
+                ? Color.FromArgb(255, 255, 247, 237)
+                : Color.FromArgb(244, 255, 255, 255)),
+            BorderBrush = new SolidColorBrush(isReturnPath
+                ? Color.FromArgb(255, 253, 186, 116)
+                : Color.FromArgb(255, 226, 232, 240)),
+            BorderThickness = new Thickness(1),
+            Child = new TextBlock
+            {
+                Text = path.Name,
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 31, 41, 55))
+            }
         };
         Canvas.SetLeft(label, source.X + (path.LabelOffsetX ?? 0));
         Canvas.SetTop(label, source.Y + (path.LabelOffsetY ?? 0));
@@ -623,8 +695,8 @@ public sealed partial class WorkflowMapPage : Page
     {
         var handle = new Ellipse
         {
-            Width = 12,
-            Height = 12,
+            Width = 14,
+            Height = 14,
             Fill = new SolidColorBrush(Color.FromArgb(255, 245, 158, 11)),
             Stroke = new SolidColorBrush(Colors.White),
             StrokeThickness = 2,
@@ -635,8 +707,8 @@ public sealed partial class WorkflowMapPage : Page
         handle.PointerReleased += Drag_PointerReleased;
         handle.PointerCanceled += Drag_PointerReleased;
         handle.RightTapped += Bend_RightTapped;
-        Canvas.SetLeft(handle, point.X - 6);
-        Canvas.SetTop(handle, point.Y - 6);
+        Canvas.SetLeft(handle, point.X - 7);
+        Canvas.SetTop(handle, point.Y - 7);
         WorkflowCanvas.Children.Add(handle);
     }
 

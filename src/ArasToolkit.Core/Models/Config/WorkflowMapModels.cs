@@ -58,8 +58,8 @@ public class WorkflowMapNode : ObservableObject
     }
 
     /// <summary>
-    /// 执行角色。既支持 Identity 名称（例如 Creator），也支持 32 位 Identity ID。
-    /// 开始、结束和自动节点可以留空。
+    /// 执行角色。既支持 Identity 名称，也支持 32 位 Identity ID。
+    /// 人工节点留空时继承 Workflow Map 的流程所有者 Creator；开始、结束和自动节点也应留空。
     /// </summary>
     public string Assignee { get => _assignee; set => SetProperty(ref _assignee, value?.Trim() ?? string.Empty); }
 
