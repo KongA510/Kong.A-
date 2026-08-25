@@ -105,6 +105,12 @@ internal static class Program
             Assert(CountItems(aml, "Workflow Map Path") == 6, "AML 应包含 6 个 Workflow Map Path。");
             Assert(CountItems(aml, "Activity Template Assignment") == 0,
                 "人工节点角色留空时不应生成 Assignment，应由 Aras 继承流程所有者。");
+            var activities = aml.Descendants("Item")
+                .Where(item => (string?)item.Attribute("type") == "Activity Template").ToList();
+            Assert(activities.All(activity => (string?)activity.Element("can_delegate") == "0"),
+                "所有流程节点的 can_delegate 必须为 0。");
+            Assert(activities.All(activity => (string?)activity.Element("can_refuse") == "0"),
+                "所有流程节点的 can_refuse 必须为 0。");
             Assert(aml.Descendants("process_owner").Descendants("name").Any(value => value.Value == "Creator"),
                 "Creator 固定 ID 未配置时应生成按名称查询的 process_owner。");
             Assert(aml.Descendants("segments").Any(value => value.Value == returnPath.Segments),
@@ -173,7 +179,7 @@ internal static class Program
     /// </summary>
     private static async Task WriteChangelogAsync()
     {
-        const string description = "修复工作流程汇入：横向布局、清晰正交折线及扩大节点和路径参数编辑区";
+        const string description = "修复工作流程汇入：所有节点禁止委托与拒绝签核";
         var services = new ServiceCollection();
         services.AddArasToolkitServices();
         await using var provider = services.BuildServiceProvider();
