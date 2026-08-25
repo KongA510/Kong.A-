@@ -155,6 +155,12 @@ public sealed class FormConfigurationService : IFormConfigurationService
                             new XElement("is_hidden2", "0")))));
 
             var result = innovator.applyAML(ToAml(aml));
+
+            // Aras IOM 对合法查询但零条匹配可能同时返回 isError=true 与 isEmpty=true。
+            // ItemType 没有可见 Property 时应按空集合处理，不能误报为加载失败。
+            if (result.isEmpty())
+                return [];
+
             ThrowIfError(result, "获取对象类属性失败");
 
             var itemType = result.getItemCount() > 0 ? result.getItemByIndex(0) : result;
