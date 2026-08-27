@@ -667,3 +667,11 @@ KnowledgeViewModel(697行)深度耦合 WPF FlowDocument/RichTextBox/XamlReader.P
 WinUI 版该入口保留在菜单/仪表盘中，点击显示明确说明占位页（PlaceholderPage 已对"个人资料库"特殊处理：📚图标 + WPF-only 说明）。
 共享数据库中的 FlowDocument 数据未做任何改动，WPF 版功能完全不受影响。
 备选方案（如未来需要再迁移）: (A) RichEditBox/RTF + 渐进式数据迁移；(B) 纯文本/Markdown 降级（有损）。
+
+---
+
+## 十五、工作流程模板汇入启动规范 ⚠️
+
+- 用户输入“@启动工作流程模板汇入”或“启动工作流程模板汇入”时，必须读取并使用 `.agents/skills/workflow-template-import/SKILL.md`。
+- 启动时首先收集“工作流命名规范”和“汇入数据存放地址”；用户已提供的内容不重复询问。
+- 工作流描述固定使用源 Excel 的完整文件名（包扩展名）。

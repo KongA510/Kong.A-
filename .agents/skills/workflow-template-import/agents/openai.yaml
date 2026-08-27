@@ -1,0 +1,4 @@
+interface:
+  display_name: "启动工作流程模板汇入"
+  short_description: "收集命名规范与数据目录，并通过个人工具箱批量汇入 Aras 工作流"
+  default_prompt: "@启动工作流程模板汇入"
