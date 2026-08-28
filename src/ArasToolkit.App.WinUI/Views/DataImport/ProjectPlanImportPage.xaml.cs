@@ -12,4 +12,10 @@ public sealed partial class ProjectPlanImportPage : Page
         InitializeComponent();
         DataContext = App.Services.GetRequiredService<ProjectPlanImportViewModel>();
     }
+
+    private void BodyScrollViewer_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (sender is ScrollViewer bodyScrollViewer)
+            HeaderScrollViewer.ChangeView(bodyScrollViewer.HorizontalOffset, null, null, true);
+    }
 }
