@@ -112,7 +112,7 @@ internal static class Program
             Assert(innovator.ProjectRoleQueryCalls == 1,
                 "同一次预检只能查询一次 Project Role 列表，不能按节点重复查询。");
             Assert(aml.Descendants("ProjectTemplate").Count() == 0, "不得生成不存在的猜测节点名。");
-            AssertPrevItemChain(aml, prepared.RootWbsId, definition.Nodes.Count);
+            AssertPerParentPrevItemChains(aml, prepared.RootWbsId, definition.Nodes.Count);
 
             var multiPredecessorNode = definition.Nodes.Single(node => node.Code == "M2");
             multiPredecessorNode.PredecessorCodes = "T1,T2";
@@ -146,7 +146,7 @@ internal static class Program
             {
                 service.NormalizeAndValidate(definition);
             }
-            catch (InvalidDataException ex) when (ex.Message.Contains("prev_item", StringComparison.Ordinal))
+            catch (InvalidDataException ex) when (ex.Message.Contains("前序显示顺序", StringComparison.Ordinal))
             {
                 brokenTreeRejected = true;
             }
@@ -215,12 +215,14 @@ internal static class Program
                 Assert(latestVerification.MaxPredecessorsPerActivity == 2,
                     "至少一个 Activity2 应持有两条独立 Predecessor 关系。");
                 Assert(latestVerification.PrevItemCount == 6, "真实实例的 prev_item 链应覆盖六个计划节点。");
+                Assert(latestVerification.NumberedActivityCount == latestVerification.ActivityCount,
+                    "真实实例的 N 列必须按显示顺序连续覆盖全部活动。");
                 Console.WriteLine(
                     $"LIVE_VERIFY_OK name={latest.Name} templateId={latest.Result.TemplateId} " +
                     $"rootWbsId={latest.Result.RootWbsId} phases={latestVerification.PhaseCount} " +
                     $"activities={latestVerification.ActivityCount} predecessors={latestVerification.PredecessorCount} " +
                     $"maxPredecessors={latestVerification.MaxPredecessorsPerActivity} " +
-                    $"prevChain={latestVerification.PrevItemCount}");
+                    $"prevChain={latestVerification.PrevItemCount} numbered={latestVerification.NumberedActivityCount}");
                 return;
             }
 
@@ -240,6 +242,8 @@ internal static class Program
             Assert(verification.MaxPredecessorsPerActivity == 2,
                 "至少一个 Activity2 应持有两条独立 Predecessor 关系。");
             Assert(verification.PrevItemCount == 6, "真实实例的 prev_item 链应覆盖六个计划节点。");
+            Assert(verification.NumberedActivityCount == verification.ActivityCount,
+                "真实实例的 N 列必须按显示顺序连续覆盖全部活动。");
             Assert(operationLog.Entries.Count == 1, "真实汇入代码路径应调用一次操作日志服务。");
             Assert(errorLog.Entries.Count == 0, "真实汇入不应产生错误日志。");
 
@@ -247,7 +251,8 @@ internal static class Program
                 $"LIVE_OK name={definition.TemplateName} templateId={imported.TemplateId} rootWbsId={imported.RootWbsId} " +
                 $"phases={verification.PhaseCount} activities={verification.ActivityCount} " +
                 $"predecessors={verification.PredecessorCount} " +
-                $"maxPredecessors={verification.MaxPredecessorsPerActivity} prevChain={verification.PrevItemCount}");
+                $"maxPredecessors={verification.MaxPredecessorsPerActivity} prevChain={verification.PrevItemCount} " +
+                $"numbered={verification.NumberedActivityCount}");
         }
         finally
         {
@@ -325,7 +330,7 @@ internal static class Program
                 !node.PredecessorCodes.Contains('；') &&
                 !node.PredecessorCodes.Contains('、')),
             "文件预检后仍存在非英文逗号的多前置分隔符。");
-        AssertPrevItemChain(aml, prepared.RootWbsId, definition.Nodes.Count);
+        AssertPerParentPrevItemChains(aml, prepared.RootWbsId, definition.Nodes.Count);
 
         Console.WriteLine(
             $"FILE_OK name={definition.TemplateName} phases={definition.PhaseCount} " +
@@ -383,6 +388,8 @@ internal static class Program
                 $"真实实例单活动最大前置数不正确：{verification.MaxPredecessorsPerActivity}/{expectedMaxPredecessors}。");
             Assert(verification.PrevItemCount == definition.Nodes.Count,
                 $"真实实例 prev_item 链覆盖不正确：{verification.PrevItemCount}/{definition.Nodes.Count}。");
+            Assert(verification.NumberedActivityCount == expectedActivityCount,
+                $"真实实例 N 列覆盖不正确：{verification.NumberedActivityCount}/{expectedActivityCount}。");
             Assert(operationLog.Entries.Count == 1, "真实文件汇入应记录一次操作日志。");
             Assert(errorLog.Entries.Count == 0, "真实文件汇入不应产生错误日志。");
 
@@ -391,7 +398,7 @@ internal static class Program
                 $"rootWbsId={imported.RootWbsId} phases={verification.PhaseCount} " +
                 $"activities={verification.ActivityCount} predecessors={verification.PredecessorCount} " +
                 $"maxPredecessors={verification.MaxPredecessorsPerActivity} " +
-                $"prevChain={verification.PrevItemCount}");
+                $"prevChain={verification.PrevItemCount} numbered={verification.NumberedActivityCount}");
         }
         finally
         {
@@ -429,13 +436,19 @@ internal static class Program
         var predecessorCount = predecessorCounts.Sum();
         var maxPredecessorsPerActivity = predecessorCounts.Count == 0 ? 0 : predecessorCounts.Max();
 
-        var prevItems = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var phaseId in phaseIds) prevItems[phaseId] = GetPrevItem(innovator, "WBS Element", phaseId);
-        foreach (var activityId in activityIds) prevItems[activityId] = GetPrevItem(innovator, "Activity2", activityId);
-        var prevItemCount = AssertLivePrevItemChain(imported.RootWbsId, prevItems);
+        var displayActivityIds = new List<string>();
+        var prevItemCount = AssertLivePerParentPrevItemChains(
+            innovator,
+            imported.RootWbsId,
+            displayActivityIds,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        Assert(displayActivityIds.Count == activityIds.Count,
+            $"按显示顺序收集的 Activity2 数量不正确：{displayActivityIds.Count}/{activityIds.Count}。");
+        var numberedActivityCount = AssertLiveActivityNumbers(innovator, imported.RootWbsId, displayActivityIds);
 
         return new VerificationResult(
-            phaseIds.Count, activityIds.Count, predecessorCount, maxPredecessorsPerActivity, prevItemCount);
+            phaseIds.Count, activityIds.Count, predecessorCount, maxPredecessorsPerActivity,
+            prevItemCount, numberedActivityCount);
     }
 
     private static void CollectWbsTree(
@@ -473,28 +486,108 @@ internal static class Program
         return (string)result.getItemByIndex(0).getProperty(propertyName, "");
     }
 
-    private static int AssertLivePrevItemChain(string rootWbsId, IReadOnlyDictionary<string, string> prevItems)
+    private static int AssertLivePerParentPrevItemChains(
+        dynamic innovator,
+        string parentWbsId,
+        ICollection<string> displayActivityIds,
+        ISet<string> visitedWbsIds)
     {
-        var allowedPredecessors = new HashSet<string>(prevItems.Keys, StringComparer.OrdinalIgnoreCase)
+        Assert(visitedWbsIds.Add(parentWbsId), $"Sub WBS 关系存在环或重复父级：{parentWbsId}。");
+        var children = GetOrderedHierarchyChildren(innovator, parentWbsId);
+        var coveredCount = 0;
+        for (var index = 0; index < children.Count; index++)
         {
-            rootWbsId
-        };
-        foreach (var pair in prevItems)
-            Assert(allowedPredecessors.Contains(pair.Value), $"prev_item 指向了树外 ID：{pair.Key} → {pair.Value}。");
+            var child = children[index];
+            var expectedPreviousId = index == 0 ? string.Empty : children[index - 1].RelatedId;
+            var actualPreviousId = GetPrevItem(innovator, child.ItemType, child.RelatedId);
+            Assert(actualPreviousId == expectedPreviousId,
+                $"{child.ItemType} {child.RelatedId} 的 prev_item 错误：应为“{expectedPreviousId}”，实际为“{actualPreviousId}”。");
+            coveredCount++;
 
-        var nextByPrevious = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var pair in prevItems)
-            Assert(nextByPrevious.TryAdd(pair.Value, pair.Key), $"prev_item 链出现分叉：{pair.Value} 被多个节点引用。");
-
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var current = rootWbsId;
-        while (nextByPrevious.TryGetValue(current, out var next))
-        {
-            Assert(visited.Add(next), $"prev_item 链存在环：{next}。");
-            current = next;
+            if (child.ItemType == "Activity2")
+            {
+                displayActivityIds.Add(child.RelatedId);
+            }
+            else
+            {
+                coveredCount += AssertLivePerParentPrevItemChains(
+                    innovator, child.RelatedId, displayActivityIds, visitedWbsIds);
+            }
         }
-        Assert(visited.Count == prevItems.Count, $"prev_item 链断裂：仅覆盖 {visited.Count}/{prevItems.Count} 个节点。");
-        return visited.Count;
+        return coveredCount;
+    }
+
+    private static List<HierarchyChild> GetOrderedHierarchyChildren(dynamic innovator, string sourceId)
+    {
+        var children = new List<HierarchyChild>();
+        AddChildren("Sub WBS", "WBS Element");
+        AddChildren("WBS Activity2", "Activity2");
+        return children
+            .OrderBy(child => child.SortOrder)
+            .ThenBy(child => child.RelatedId, StringComparer.Ordinal)
+            .ToList();
+
+        void AddChildren(string relationshipType, string itemType)
+        {
+            dynamic query = innovator.newItem(relationshipType, "get");
+            query.setAttribute("select", "id,related_id,sort_order");
+            query.setAttribute("orderBy", "sort_order");
+            query.setProperty("source_id", sourceId);
+            dynamic result = query.apply();
+            if ((bool)result.isError())
+            {
+                string code;
+                try { code = (string)result.getErrorCode(); }
+                catch { code = string.Empty; }
+                if (code == "0") return;
+                AssertArasSuccess(result, $"回查 {relationshipType}");
+            }
+
+            for (var index = 0; index < (int)result.getItemCount(); index++)
+            {
+                dynamic relationship = result.getItemByIndex(index);
+                var relatedId = (string)relationship.getProperty("related_id", "");
+                _ = int.TryParse((string)relationship.getProperty("sort_order", "0"), out var sortOrder);
+                children.Add(new HierarchyChild(relatedId, itemType, sortOrder));
+            }
+        }
+    }
+
+    private static int AssertLiveActivityNumbers(
+        dynamic innovator,
+        string rootWbsId,
+        IReadOnlyList<string> displayActivityIds)
+    {
+        dynamic result = innovator.applyMethod("GetActivitiesNumbers", $"<rootWBS>{rootWbsId}</rootWBS>");
+        AssertArasSuccess(result, "调用 GetActivitiesNumbers");
+        string xml;
+        try { xml = (string)result.getResult(); }
+        catch { xml = result.ToString(); }
+        if (string.IsNullOrWhiteSpace(xml)) xml = result.ToString();
+
+        XDocument document;
+        try { document = XDocument.Parse(xml); }
+        catch { document = XDocument.Parse($"<root>{xml}</root>"); }
+        var numberById = document.Descendants()
+            .Where(element => element.Name.LocalName == "a" &&
+                              element.Attribute("id") != null &&
+                              element.Attribute("number") != null)
+            .ToDictionary(
+                element => element.Attribute("id")!.Value,
+                element => int.Parse(element.Attribute("number")!.Value),
+                StringComparer.OrdinalIgnoreCase);
+
+        Assert(numberById.Count == displayActivityIds.Count,
+            $"GetActivitiesNumbers 返回数量不正确：{numberById.Count}/{displayActivityIds.Count}。");
+        for (var index = 0; index < displayActivityIds.Count; index++)
+        {
+            var activityId = displayActivityIds[index];
+            Assert(numberById.TryGetValue(activityId, out var actualNumber),
+                $"GetActivitiesNumbers 未返回 Activity2 {activityId}。");
+            Assert(actualNumber == index + 1,
+                $"Activity2 {activityId} 的 N 列错误：应为 {index + 1}，实际为 {actualNumber}。");
+        }
+        return numberById.Count;
     }
 
     private static (string Name, ProjectPlanImportResult Result) FindLatestValidationTemplate(object innovatorObject)
@@ -589,26 +682,52 @@ internal static class Program
     private static IReadOnlyList<string> SplitPredecessorCodes(string value) =>
         value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    private static void AssertPrevItemChain(XDocument aml, string rootWbsId, int expectedNodeCount)
+    private static void AssertPerParentPrevItemChains(
+        XDocument aml,
+        string rootWbsId,
+        int expectedNodeCount)
     {
-        var linearItems = aml.Root!.Elements("Item")
-            .Where(item => (string?)item.Attribute("type") is "WBS Element" or "Activity2")
-            .ToList();
-        Assert(linearItems.Count == expectedNodeCount + 1, "prev_item 链应包含根 WBS 和所有计划节点。");
-        Assert((string?)linearItems[0].Attribute("id") == rootWbsId, "prev_item 链的头节点必须是顶层 WBS。");
-        Assert(linearItems[0].Element("prev_item") == null, "顶层 WBS 不应设置 prev_item。");
+        var root = aml.Root!.Elements("Item")
+            .Single(item => (string?)item.Attribute("type") == "WBS Element" &&
+                            (string?)item.Attribute("id") == rootWbsId);
+        Assert(root.Element("prev_item") == null, "顶层 WBS 不应设置 prev_item。");
 
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { rootWbsId };
-        for (var index = 1; index < linearItems.Count; index++)
+        var hierarchyItems = aml.Root.Elements("Item")
+            .Where(item => (string?)item.Attribute("type") is "WBS Element" or "Activity2")
+            .Where(item => (string?)item.Attribute("id") != rootWbsId)
+            .ToDictionary(item => (string)item.Attribute("id")!, StringComparer.OrdinalIgnoreCase);
+        var relationships = aml.Root.Elements("Item")
+            .Where(item => (string?)item.Attribute("type") is "Sub WBS" or "WBS Activity2")
+            .Select(item => new
+            {
+                SourceId = item.Element("source_id")?.Value ?? string.Empty,
+                RelatedId = item.Element("related_id")?.Value ?? string.Empty,
+                SortOrder = int.Parse(item.Element("sort_order")?.Value ?? "0")
+            })
+            .ToList();
+        Assert(hierarchyItems.Count == expectedNodeCount,
+            $"AML 计划节点数量不正确：{hierarchyItems.Count}/{expectedNodeCount}。");
+        Assert(relationships.Count == expectedNodeCount,
+            $"AML 层级关系数量不正确：{relationships.Count}/{expectedNodeCount}。");
+
+        var covered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var siblings in relationships
+                     .GroupBy(item => item.SourceId, StringComparer.OrdinalIgnoreCase)
+                     .Select(group => group.OrderBy(item => item.SortOrder).ToList()))
         {
-            var id = (string?)linearItems[index].Attribute("id") ?? string.Empty;
-            var expectedPreviousId = (string?)linearItems[index - 1].Attribute("id") ?? string.Empty;
-            var actualPreviousId = linearItems[index].Element("prev_item")?.Value ?? string.Empty;
-            Assert(actualPreviousId == expectedPreviousId,
-                $"prev_item 断链：节点 {id} 应指向 {expectedPreviousId}，实际为 {actualPreviousId}。");
-            Assert(visited.Add(id), $"prev_item 链中存在重复 ID 或环：{id}。");
+            for (var index = 0; index < siblings.Count; index++)
+            {
+                var sibling = siblings[index];
+                var expectedPreviousId = index == 0 ? string.Empty : siblings[index - 1].RelatedId;
+                var actualPreviousId = hierarchyItems[sibling.RelatedId].Element("prev_item")?.Value ?? string.Empty;
+                Assert(actualPreviousId == expectedPreviousId,
+                    $"同级 prev_item 错误：节点 {sibling.RelatedId} 应指向“{expectedPreviousId}”，实际为“{actualPreviousId}”。");
+                Assert(covered.Add(sibling.RelatedId),
+                    $"节点 {sibling.RelatedId} 被重复挂载到多个父 WBS。");
+            }
         }
-        Assert(visited.Count == expectedNodeCount + 1, "prev_item 链未覆盖全部计划节点。");
+        Assert(covered.Count == expectedNodeCount,
+            $"同级 prev_item 链未覆盖全部计划节点：{covered.Count}/{expectedNodeCount}。");
     }
 
     private static void Assert(bool condition, string message)
@@ -664,7 +783,10 @@ internal static class Program
         int ActivityCount,
         int PredecessorCount,
         int MaxPredecessorsPerActivity,
-        int PrevItemCount);
+        int PrevItemCount,
+        int NumberedActivityCount);
+
+    private sealed record HierarchyChild(string RelatedId, string ItemType, int SortOrder);
 }
 
 public sealed class FakeInnovator

@@ -218,7 +218,7 @@ public class ProjectPlanImportService : IProjectPlanImportService
         if (!orderedNodes.Any(node => node.NodeType != ProjectPlanNodeType.Phase))
             throw new InvalidDataException("项目计划至少需要一个任务或里程碑。");
 
-        ValidateFlattenedTreeOrder(orderedNodes);
+        ValidateTreeDisplayOrder(orderedNodes);
         ValidatePredecessorCycles(orderedNodes, codeLookup);
     }
 
@@ -554,11 +554,11 @@ public class ProjectPlanImportService : IProjectPlanImportService
         IReadOnlyDictionary<string, string> projectRoleValues)
     {
         var orderedNodes = definition.Nodes.OrderBy(node => node.SortOrder).ToList();
-        var rootWbsId = NewArasId(innovator);
-        var templateId = NewArasId(innovator);
-        var nodeIds = orderedNodes.ToDictionary(
+        string rootWbsId = NewArasId(innovator);
+        string templateId = NewArasId(innovator);
+        Dictionary<string, string> nodeIds = orderedNodes.ToDictionary(
             node => node.Code,
-            _ => NewArasId(innovator),
+            _ => (string)NewArasId(innovator),
             StringComparer.OrdinalIgnoreCase);
 
         var items = new List<XElement>();
@@ -581,13 +581,16 @@ public class ProjectPlanImportService : IProjectPlanImportService
             projectTemplate.Add(new XElement("managed_by_id", managedById));
         AddStep(items, steps, projectTemplate, "建立 Project Template");
 
-        var previousItemId = rootWbsId;
+        var previousSiblingByParentId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var node in orderedNodes)
         {
-            var nodeId = nodeIds[node.Code];
-            var parentId = string.IsNullOrWhiteSpace(node.ParentCode)
+            string nodeId = nodeIds[node.Code];
+            string parentId = string.IsNullOrWhiteSpace(node.ParentCode)
                 ? rootWbsId
                 : nodeIds[node.ParentCode];
+            var previousItemId = previousSiblingByParentId.TryGetValue(parentId, out var previousSiblingId)
+                ? previousSiblingId
+                : string.Empty;
 
             if (node.NodeType == ProjectPlanNodeType.Phase)
             {
@@ -631,7 +634,7 @@ public class ProjectPlanImportService : IProjectPlanImportService
                     $"建立{node.DisplayType}层级关系 {node.Code}");
             }
 
-            previousItemId = nodeId;
+            previousSiblingByParentId[parentId] = nodeId;
         }
 
         var predecessorCount = 0;
@@ -918,11 +921,10 @@ public class ProjectPlanImportService : IProjectPlanImportService
         value.ToString("0.####", CultureInfo.InvariantCulture);
 
     /// <summary>
-    /// prev_item 在 Project Management 中是整棵 WBS 树前序展开后的单链表，
-    /// 不是每个父节点下各自独立的同级链。因此一旦开始下一个兄弟子树，
-    /// 就不能再返回前一个子树添加后代。
+    /// 顺序列必须与 WBS 树的前序显示顺序一致，避免 Excel 行顺序与 Aras 树形显示不一致。
+    /// prev_item 会在生成 AML 时按父 WBS 分组建立同级链，不依赖这里的全局单链假设。
     /// </summary>
-    private static void ValidateFlattenedTreeOrder(IReadOnlyList<ProjectPlanNode> orderedNodes)
+    private static void ValidateTreeDisplayOrder(IReadOnlyList<ProjectPlanNode> orderedNodes)
     {
         const string rootKey = "\0";
         var children = orderedNodes
@@ -951,7 +953,7 @@ public class ProjectPlanImportService : IProjectPlanImportService
         {
             if (ReferenceEquals(orderedNodes[index], expected[index])) continue;
             throw new InvalidDataException(
-                $"顺序 {orderedNodes[index].SortOrder} 的节点“{orderedNodes[index].Code}”打断了 WBS 树的 prev_item 展开链。" +
+                $"顺序 {orderedNodes[index].SortOrder} 的节点“{orderedNodes[index].Code}”打断了 WBS 树的前序显示顺序。" +
                 $"此位置应先排“{expected[index].Code}”；请让每个阶段的全部后代连续排列后，再开始下一阶段。");
         }
     }
@@ -1036,8 +1038,8 @@ public class ProjectPlanImportService : IProjectPlanImportService
             ["4. 确认汇入", "预检通过后按 ArasLabs 顺序建立 WBS、Project Template、Activity2 和依赖；任一步失败会逆序回滚本次已建数据。"],
             ["父子规则", "阶段可位于根节点或另一阶段下；任务/里程碑必须挂在阶段下，父节点必须排在子节点之前。"],
             ["工期与工时", "任务未填写计划工期时默认 1 天；明确填写的工期按原值使用；计划工时统一按计划工期 × 8 小时计算。里程碑的计划工期和计划工时固定为 0。"],
-            ["prev_item 链", "顺序列必须是 WBS 树的前序展开：首节点指向顶层 WBS，后续节点指向展开序列中的前一节点；每个阶段的后代必须连续。"],
-            ["Aras 显示顺序", "Sub WBS 与 WBS Activity2 关系会写入“顺序 × 128”的 sort_order，保证 Aras 项目树及 N 列按 Excel 顺序稳定显示。"],
+            ["prev_item 链", "prev_item 按每个父 WBS 分别建立同级链：首个子节点为空，后续子节点指向同一父 WBS 下的上一个节点；不同阶段之间不得串链。"],
+            ["Aras 显示顺序", "Sub WBS 与 WBS Activity2 关系写入“顺序 × 128”的 sort_order 控制树形显示；N 列由 GetActivitiesNumbers 按各父 WBS 的 prev_item 同级链计算。"],
             ["前置节点", "多个任务/里程碑编码优先用英文逗号分隔（例：T1,M1）；同时兼容分号、中文逗号和顿号；系统会逐个建立 Predecessor 并拒绝循环依赖。"],
             ["项目角色", "可留空；填写 Project Role 的显示标签（label）。预检会一次读取并缓存 label → value 映射，再将 value 写入任务或里程碑的 Activity2.lead_role；工具不会自动创建角色。"],
             ["真实 Aras 模型", "Project Template.wbs_id → WBS Element；Sub WBS 连接阶段；WBS Activity2 连接 Activity2；Activity2.lead_role 保存项目角色 value；Predecessor 保存依赖。"],
