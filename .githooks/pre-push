@@ -1,0 +1,47 @@
+#!/bin/sh
+
+set -eu
+
+zero_sha=0000000000000000000000000000000000000000
+empty_tree=$(git hash-object -t tree /dev/null)
+
+scan_range() {
+    base_sha=$1
+    local_sha=$2
+
+    added_lines=$(git diff --no-color --unified=0 "$base_sha" "$local_sha" -- . \
+        ':!tasks/node_modules/**' | grep '^+' | grep -v '^+++' || true)
+
+    if printf '%s\n' "$added_lines" | grep -Eiq \
+        'gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----'; then
+        echo "Push blocked: new content appears to contain a token or private key." >&2
+        return 1
+    fi
+
+    config_lines=$(git diff --no-color --unified=0 "$base_sha" "$local_sha" -- \
+        ':(glob)**/DBSeeting*.json' ':(glob)**/appsettings*.json' \
+        ':(glob)**/.env*' ':(glob)**/*.config' | grep '^+' | grep -v '^+++' || true)
+
+    if printf '%s\n' "$config_lines" | grep -Eiq \
+        '(Password|Pwd)[[:space:]]*=[[:space:]]*[^;<>{}$[:space:]]'; then
+        echo "Push blocked: a configuration file appears to contain a database password." >&2
+        return 1
+    fi
+}
+
+while read -r local_ref local_sha remote_ref remote_sha
+do
+    # PowerShell 管道可能附带 CR；Git 自身传入 LF，此处兼容两者。
+    local_sha=$(printf '%s' "$local_sha" | tr -d '\r')
+    remote_sha=$(printf '%s' "$remote_sha" | tr -d '\r')
+
+    [ "$local_sha" = "$zero_sha" ] && continue
+
+    if [ "$remote_sha" = "$zero_sha" ]; then
+        scan_range "$empty_tree" "$local_sha"
+    else
+        scan_range "$remote_sha" "$local_sha"
+    fi
+done
+
+exit 0

@@ -13,6 +13,7 @@
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
             <converters:StringToVisibilityConverter x:Key="StringToVisibility" />
             <converters:InverseBoolConverter x:Key="InverseBool" />
+            <converters:IntToDoubleConverter x:Key="IntToDouble" />
             <converters:StringToColorConverter x:Key="StringToColor" />
             <converters:StringToColorBrushConverter x:Key="StringToColorBrush" />
             <converters:StatusToColorConverter x:Key="StatusToColor" />
@@ -25,6 +26,7 @@
             <converters:OperationTypeToBrushConverter x:Key="OperationTypeToBrush" />
             <converters:ProgressToColorConverter x:Key="ProgressToColor" />
             <converters:DateTimeOffsetConverter x:Key="DateTimeOffset" />
+            <converters:DiffKindToBrushConverter x:Key="DiffKindToBrush" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

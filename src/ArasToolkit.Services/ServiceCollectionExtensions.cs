@@ -56,6 +56,9 @@ public static class ServiceCollectionExtensions
         // 注册数据导入服务
         services.AddSingleton<IDataImportService, DataImportService>();
 
+        // 注册项目计划模板导出、预检与 Aras 汇入服务
+        services.AddSingleton<IProjectPlanImportService, ProjectPlanImportService>();
+
         // 注册 AI 模型配置管理服务（单例）
         services.AddSingleton<IAiModelConfigService, AiModelConfigService>();
 
@@ -74,6 +77,9 @@ public static class ServiceCollectionExtensions
         // 注册对象类权限页签、可创建者和生命周期基础设定服务（单例）
         services.AddSingleton<IObjectClassConfigurationService, ObjectClassConfigurationService>();
 
+        // 注册 ItemType 类结构全量覆盖汇入服务（单例）
+        services.AddSingleton<IClassStructureImportService, ClassStructureImportService>();
+
         // 注册List配置导入服务（单例）
         services.AddSingleton<IListImportService, ListImportService>();
 
@@ -89,14 +95,22 @@ public static class ServiceCollectionExtensions
         // 注册生命周期配置导入服务（单例）
         services.AddSingleton<ILifecycleImportService, LifecycleImportService>();
 
+        // 注册工作流程设定服务（单例：Excel预览、Workflow Map AML生成与覆盖导入）
+        services.AddSingleton<IWorkflowMapService, WorkflowMapService>();
+
         // 注册文件浏览器服务（单例，纯文件系统操作）
         services.AddSingleton<IFileExplorerService, FileExplorerService>();
+
+        // 注册 XML / JSON 开发数据工具服务（单例，纯内存操作）
+        services.AddSingleton<IDataToolService, DataToolService>();
 
 
         // 注册数据库导出服务（单例）
         services.AddSingleton<ISqlTemplateService, SqlTemplateService>();
+        services.AddSingleton<ICommonQuerySnippetService, CommonQuerySnippetService>();
         services.AddSingleton<IDatabaseExportService, DatabaseExportService>();
         services.AddSingleton<IDatabaseExportConfigService, DatabaseExportConfigService>();
+        services.AddSingleton<IDatabaseModificationService, DatabaseModificationService>();
 
         // 注册字段翻译服务（单例）
         services.AddSingleton<IArasTranslationLogService, ArasTranslationLogService>();

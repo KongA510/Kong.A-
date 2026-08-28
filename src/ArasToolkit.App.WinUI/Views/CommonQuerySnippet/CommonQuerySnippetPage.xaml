@@ -1,0 +1,234 @@
+<Page
+    x:Class="ArasToolkit.App.WinUI.Views.CommonQuerySnippetPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    SizeChanged="Page_SizeChanged">
+
+    <Grid Margin="32,24,32,32" RowSpacing="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Spacing="4">
+                <TextBlock Text="常用SQLorAML" Style="{ThemeResource PageTitleText}" />
+                <TextBlock Text="收藏 SQL、AML 和 XML 片段，加载后预览、格式化并快速复用。"
+                           Style="{ThemeResource PageSubtitleText}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+                <Button Content="刷新" Command="{Binding RefreshCommand}" Height="34" />
+                <Button Content="新建片段" Command="{Binding NewCommand}"
+                        Style="{ThemeResource PrimaryButton}" Height="34" />
+            </StackPanel>
+        </Grid>
+
+        <StackPanel Grid.Row="1" Spacing="8">
+            <InfoBar IsOpen="{Binding HasError}" IsClosable="False" Severity="Error"
+                     Title="操作失败" Message="{Binding ErrorMessage}" />
+            <InfoBar IsOpen="{Binding HasStatus}" IsClosable="False" Severity="Informational"
+                     Title="片段库" Message="{Binding StatusMessage}" />
+        </StackPanel>
+
+        <Grid x:Name="WorkspaceGrid" Grid.Row="2" ColumnSpacing="14" RowSpacing="14" MinHeight="520">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="330" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="0" />
+            </Grid.RowDefinitions>
+
+            <!-- 片段库：类型、标题和时间构成一条紧凑的“代码索引” -->
+            <Border x:Name="LibraryPanel" Style="{ThemeResource SimpleCard}" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Padding="16,14" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="片段库" Style="{ThemeResource SectionTitleText}" />
+                        <TextBlock Grid.Column="1" Text="{Binding LibrarySummary}"
+                                   Style="{ThemeResource CaptionText}" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" Padding="12,0,12,12" RowSpacing="8" ColumnSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="104" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding SearchKeyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="搜索标题、说明或内容"
+                                 KeyDown="SearchBox_KeyDown" />
+                        <Button Grid.Column="1" Content="搜索" Click="SearchButton_Click"
+                                Style="{ThemeResource PrimaryButton}" />
+                        <ComboBox Grid.Row="1" Grid.ColumnSpan="2"
+                                  ItemsSource="{Binding FilterTypes}"
+                                  SelectedItem="{Binding SelectedFilterType, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch" />
+                    </Grid>
+
+                    <ListView Grid.Row="2" ItemsSource="{Binding Snippets}"
+                              SelectedItem="{Binding SelectedSnippet, Mode=TwoWay}"
+                              SelectionMode="Single"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="10,10" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="5" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Background="{ThemeResource AccentBrush}" CornerRadius="3" />
+                                    <StackPanel Grid.Column="1" Spacing="4">
+                                        <Grid ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Background="#EEF2FF" CornerRadius="4" Padding="7,2">
+                                                <TextBlock Text="{Binding ContentType}" FontFamily="Consolas"
+                                                           FontWeight="SemiBold" FontSize="11" Foreground="#4F46E5" />
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="SemiBold"
+                                                       Foreground="{ThemeResource TextPrimaryBrush}"
+                                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <TextBlock Text="{Binding Description}" FontSize="12" MaxLines="2"
+                                                   Foreground="{ThemeResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding DisplayCreatorOn}" FontSize="11"
+                                                   Foreground="{ThemeResource TextSecondaryBrush}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </Border>
+
+            <!-- 右侧工作台：一侧编辑，一侧显示最终可复用内容 -->
+            <Border x:Name="EditorPanel" Grid.Column="1" Style="{ThemeResource SimpleCard}" Padding="18,16">
+                <Grid RowSpacing="14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="{Binding EditorTitle}" Style="{ThemeResource SectionTitleText}" />
+                            <TextBlock Text="加载片段只用于预览与复用，不会自动执行。"
+                                       Style="{ThemeResource CaptionText}" />
+                        </StackPanel>
+                        <ProgressRing Grid.Column="1" IsActive="{Binding IsBusy}" Width="22" Height="22" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="140" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Header="片段标题" Text="{Binding Title, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="例如：查询已发布 Part" MaxLength="200" />
+                        <ComboBox Grid.Column="1" Header="内容类型"
+                                  ItemsSource="{Binding ContentTypes}"
+                                  SelectedItem="{Binding ContentType, Mode=TwoWay}" />
+                    </Grid>
+
+                    <TextBox Grid.Row="2" Header="用途说明（可选）"
+                             Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="记录适用场景、参数或使用注意事项" MaxLength="500" />
+
+                    <Grid x:Name="CodeWorkspaceGrid" Grid.Row="3" ColumnSpacing="12" RowSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="0" />
+                        </Grid.RowDefinitions>
+
+                        <Grid x:Name="SourcePanel" RowSpacing="8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <TextBlock Text="原始内容" FontWeight="SemiBold" />
+                                <Button Content="格式化 XML/AML" Command="{Binding FormatCommand}"
+                                        Height="30" Padding="12,0" HorizontalAlignment="Right" />
+                            </Grid>
+                            <TextBox Grid.Row="1" Text="{Binding Content, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Cascadia Mono, Consolas"
+                                     FontSize="12" Padding="12" PlaceholderText="在此粘贴 SQL、AML 或 XML…"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        </Grid>
+
+                        <Grid x:Name="PreviewPanel" Grid.Column="1" RowSpacing="8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="加载预览" FontWeight="SemiBold" />
+                                    <TextBlock Text="AML/XML 自动缩进" Style="{ThemeResource CaptionText}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <Button Content="复制预览" Click="CopyPreviewButton_Click"
+                                        Style="{ThemeResource PrimaryButton}" Height="30" Padding="12,0"
+                                        HorizontalAlignment="Right" />
+                            </Grid>
+                            <TextBox Grid.Row="1" Text="{Binding PreviewContent, Mode=OneWay}" IsReadOnly="True"
+                                     AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Cascadia Mono, Consolas"
+                                     FontSize="12" Padding="12" PlaceholderText="选择片段后在此预览"
+                                     Background="#F8FAFC"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        </Grid>
+                    </Grid>
+
+                    <Grid Grid.Row="4" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="SQL 保持原文；AML/XML 的格式化仅调整缩进和换行。"
+                                   Style="{ThemeResource CaptionText}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="删除" Command="{Binding DeleteCommand}"
+                                Height="34" Padding="16,0" />
+                        <Button Grid.Column="2" Content="保存片段" Command="{Binding SaveCommand}"
+                                Style="{ThemeResource AccentButton}" Height="34" Padding="18,0" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

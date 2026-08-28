@@ -6,6 +6,7 @@ using ArasToolkit.App.Views.TaskLoadAnalysis;
 using ArasToolkit.App.Views;
 using ArasToolkit.Services;
 using Microsoft.Extensions.DependencyInjection;
+using ArasToolkit.Core.Interfaces;
 
 namespace ArasToolkit.App;
 
@@ -46,6 +47,8 @@ public partial class App : Application
 
         // ×¢²á·þÎñ²ã
         services.AddArasToolkitServices();
+        services.AddSingleton<IDialogService, ArasToolkit.App.Services.DialogService>();
+        services.AddSingleton<IFileDialogService, ArasToolkit.App.Services.FileDialogService>();
 
         // ×¢²áViewModels
         services.AddSingleton<MainViewModel>();
@@ -66,6 +69,7 @@ public partial class App : Application
         services.AddTransient<DataImportViewModel>();
         services.AddTransient<ObjectClassConfigViewModel>();
         services.AddTransient<ObjectClassConfigurationViewModel>();
+        services.AddTransient<ClassStructureImportViewModel>();
         services.AddTransient<ListConfigViewModel>();
         services.AddTransient<PropertyConfigViewModel>();
         services.AddTransient<PermissionConfigViewModel>();
@@ -73,6 +77,7 @@ public partial class App : Application
         services.AddTransient<FileExplorerViewModel>();
         services.AddTransient<DatabaseExportViewModel>();
         services.AddTransient<DatabaseExportConfigViewModel>();
+        services.AddTransient<DatabaseModificationViewModel>();
         services.AddTransient<ArasLoginWindow>();
         services.AddTransient<TranslationApiKeyWindow>();
         services.AddTransient<DataImportView>();
@@ -96,6 +101,7 @@ public partial class App : Application
         services.AddTransient<TranslationHistoryView>();
         services.AddTransient<ObjectClassConfigView>();
         services.AddTransient<ObjectClassConfigurationView>();
+        services.AddTransient<ClassStructureImportView>();
         services.AddTransient<ListConfigView>();
         services.AddTransient<PropertyConfigView>();
         services.AddTransient<PermissionConfigView>();
@@ -103,6 +109,7 @@ public partial class App : Application
         services.AddTransient<FileExplorerView>();
         services.AddTransient<DatabaseExportView>();
         services.AddTransient<DatabaseExportConfigView>();
+        services.AddTransient<DatabaseModificationView>();
 
         _serviceProvider = services.BuildServiceProvider();
     }

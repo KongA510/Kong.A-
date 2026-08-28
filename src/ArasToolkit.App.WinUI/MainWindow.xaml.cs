@@ -44,10 +44,20 @@ public sealed partial class MainWindow : Window
         // 主界面导航
         BuildNavItems();
         _navService.SetFrame(ContentFrame);
+        ContentFrame.Navigated += (_, _) => AttachResponsiveLayout(ContentFrame);
+        LoginFrame.Navigated += (_, _) => AttachResponsiveLayout(LoginFrame);
 
         // 登录层
         _appLoginVM.LoginSucceeded += OnLoginSucceeded;
         LoginFrame.Navigate(typeof(AppLoginPage), _appLoginVM);
+    }
+
+    private static void AttachResponsiveLayout(Frame frame)
+    {
+        if (frame.Content is Page page)
+        {
+            ResponsivePageCoordinator.Attach(page);
+        }
     }
 
     /// <summary>登录成功 → 切换到主界面并导航到仪表盘（切回 UI 线程）。</summary>

@@ -173,7 +173,12 @@ public class DatabaseExportViewModel : ObservableObject
 
     private async Task LoadTemplatesAsync()
     {
-        try { var items = await _templateService.GetAllAsync(CurrentUserContext.CurrentUserId); Templates = new ObservableCollection<SqlTemplate>(items); }
+        try
+        {
+            var items = await _templateService.GetAllAsync(CurrentUserContext.CurrentUserId);
+            Templates = new ObservableCollection<SqlTemplate>(items.Where(item =>
+                item.Description?.StartsWith("[DatabaseModification]", StringComparison.Ordinal) != true));
+        }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[DBExport] 加载模板失败: {ex.Message}");

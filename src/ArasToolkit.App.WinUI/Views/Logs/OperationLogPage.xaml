@@ -53,12 +53,12 @@
                         BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,11">
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="100" />
-                            <ColumnDefinition Width="120" />
-                            <ColumnDefinition Width="100" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="160" />
-                            <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="1*" />
+                        <ColumnDefinition Width="1.2*" />
+                        <ColumnDefinition Width="1*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="1.6*" />
+                        <ColumnDefinition Width="1.2*" />
                             <ColumnDefinition Width="16" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="操作类型" Style="{ThemeResource TableHeaderText}" />
@@ -79,12 +79,12 @@
                             <Border Padding="16,11" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1">
                                 <Grid ColumnSpacing="12">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="100" />
-                                        <ColumnDefinition Width="120" />
-                                        <ColumnDefinition Width="100" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="160" />
-                                        <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1.2*" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="1.6*" />
+                                <ColumnDefinition Width="1.2*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{Binding OperationType}" Style="{ThemeResource TableCellText}"
                                                Foreground="{Binding OperationType, Converter={StaticResource OperationTypeToBrush}}" />

@@ -582,6 +582,15 @@ git commit -m "功能描述: 具体变更内容"
 
 ## 十四、WinUI 3 迁移规范 ⚠️ 重要
 
+### 14.0 维护范围（用户已确认）
+
+```
+- 后续新功能、功能优化和问题修复只维护 src/ArasToolkit.App.WinUI。
+- src/ArasToolkit.App（WPF 旧版）仅保留历史现状，不再同步新功能、菜单、页面或 ViewModel。
+- 第八章的新功能菜单/导航/仪表盘联动检查，后续只对 WinUI 3 主力项目执行。
+- 除非用户之后再次明确指定 WPF，否则不得为 WPF 添加或修改功能。
+```
+
 ### 14.1 迁移概述
 
 ```
@@ -658,3 +667,11 @@ KnowledgeViewModel(697行)深度耦合 WPF FlowDocument/RichTextBox/XamlReader.P
 WinUI 版该入口保留在菜单/仪表盘中，点击显示明确说明占位页（PlaceholderPage 已对"个人资料库"特殊处理：📚图标 + WPF-only 说明）。
 共享数据库中的 FlowDocument 数据未做任何改动，WPF 版功能完全不受影响。
 备选方案（如未来需要再迁移）: (A) RichEditBox/RTF + 渐进式数据迁移；(B) 纯文本/Markdown 降级（有损）。
+
+---
+
+## 十五、工作流程模板汇入启动规范 ⚠️
+
+- 用户输入“@启动工作流程模板汇入”或“启动工作流程模板汇入”时，必须读取并使用 `.agents/skills/workflow-template-import/SKILL.md`。
+- 启动时首先收集“工作流命名规范”和“汇入数据存放地址”；用户已提供的内容不重复询问。
+- 工作流描述固定使用源 Excel 的完整文件名（包扩展名）。

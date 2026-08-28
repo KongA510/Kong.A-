@@ -61,10 +61,10 @@
                         BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,11">
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="170" />
-                            <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="1.7*" />
+                        <ColumnDefinition Width="0.9*" />
                             <ColumnDefinition Width="16" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="调用功能" Style="{ThemeResource TableHeaderText}" />
@@ -83,10 +83,10 @@
                             <Border Padding="16,11" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1">
                                 <Grid ColumnSpacing="12">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="200" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="170" />
-                                        <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="1.7*" />
+                                <ColumnDefinition Width="0.9*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{Binding FunctionName}" Style="{ThemeResource TableCellText}" />
                                     <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" Style="{ThemeResource TableCellText}" />

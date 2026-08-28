@@ -29,6 +29,29 @@ public sealed partial class DataImportPage : Page
 
     private DataImportViewModel? Vm => DataContext as DataImportViewModel;
 
+    private void Page_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var compact = e.NewSize.Width < 760;
+        FileToolbar.Orientation = compact ? Orientation.Vertical : Orientation.Horizontal;
+        RangeToolbar.Orientation = compact ? Orientation.Vertical : Orientation.Horizontal;
+
+        WorkspaceGrid.ColumnDefinitions[0].Width = compact
+            ? new GridLength(1, GridUnitType.Star)
+            : new GridLength(5, GridUnitType.Star);
+        WorkspaceGrid.ColumnDefinitions[1].Width = compact
+            ? new GridLength(0)
+            : new GridLength(4, GridUnitType.Star);
+        WorkspaceGrid.RowDefinitions[0].Height = new GridLength(1, GridUnitType.Star);
+        WorkspaceGrid.RowDefinitions[1].Height = compact
+            ? new GridLength(1, GridUnitType.Star)
+            : new GridLength(0);
+
+        Grid.SetRow(PreviewPanel, 0);
+        Grid.SetColumn(PreviewPanel, 0);
+        Grid.SetRow(AmlPanel, compact ? 1 : 0);
+        Grid.SetColumn(AmlPanel, compact ? 0 : 1);
+    }
+
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(DataImportViewModel.PreviewData) && sender is DataImportViewModel vm)

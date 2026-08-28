@@ -70,11 +70,11 @@
                         BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
                     <Grid ColumnSpacing="8">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="36" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="90" />
-                            <ColumnDefinition Width="150" />
-                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="0.45*" />
+                            <ColumnDefinition Width="2.5*" />
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="1.6*" />
+                            <ColumnDefinition Width="0.7*" />
                             <ColumnDefinition Width="16" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="1" Text="名称" Style="{ThemeResource TableHeaderText}" />
@@ -94,11 +94,11 @@
                                     BorderBrush="{ThemeResource BorderBrush}" BorderThickness="0,0,0,1">
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="36" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="90" />
-                                        <ColumnDefinition Width="150" />
-                                        <ColumnDefinition Width="60" />
+                                        <ColumnDefinition Width="0.45*" />
+                                        <ColumnDefinition Width="2.5*" />
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="1.6*" />
+                                        <ColumnDefinition Width="0.7*" />
                                     </Grid.ColumnDefinitions>
 
                                     <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14"

@@ -22,11 +22,11 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="60" />
-                                <ColumnDefinition Width="60" />
-                                <ColumnDefinition Width="140" />
-                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="0.6*" />
+                                <ColumnDefinition Width="0.6*" />
+                                <ColumnDefinition Width="1.4*" />
+                                <ColumnDefinition Width="0.8*" />
                                 <ColumnDefinition Width="16" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="源文件" Style="{ThemeResource TableHeaderText}" />
@@ -46,11 +46,11 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="100" />
-                                            <ColumnDefinition Width="60" />
-                                            <ColumnDefinition Width="60" />
-                                            <ColumnDefinition Width="140" />
-                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="1*" />
+                                            <ColumnDefinition Width="0.6*" />
+                                            <ColumnDefinition Width="0.6*" />
+                                            <ColumnDefinition Width="1.4*" />
+                                            <ColumnDefinition Width="0.8*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{Binding SourceFileName}" Style="{ThemeResource TableCellText}" />
                                         <TextBlock Grid.Column="1" Text="{Binding OutputFileName}" Style="{ThemeResource TableCellText}" />

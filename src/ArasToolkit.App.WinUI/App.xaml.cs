@@ -67,11 +67,13 @@ public partial class App : Application
         services.AddTransient<TodoViewModel>();
         services.AddTransient<ObjectClassConfigViewModel>();
         services.AddTransient<ObjectClassConfigurationViewModel>();
+        services.AddTransient<ClassStructureImportViewModel>();
         services.AddTransient<ListConfigViewModel>();
         services.AddTransient<PropertyConfigViewModel>();
         services.AddTransient<FormConfigurationViewModel>();
         services.AddTransient<PermissionConfigViewModel>();
         services.AddTransient<LifecycleConfigViewModel>();
+        services.AddTransient<WorkflowMapViewModel>();
         services.AddTransient<FieldTranslationViewModel>();
         services.AddTransient<PropertyTranslationViewModel>();
         services.AddTransient<FormTranslationViewModel>();
@@ -79,12 +81,16 @@ public partial class App : Application
         services.AddTransient<TextTranslationViewModel>();
         services.AddTransient<DatabaseExportViewModel>();
         services.AddTransient<DatabaseExportConfigViewModel>();
+        services.AddTransient<DatabaseModificationViewModel>();
+        services.AddTransient<CommonQuerySnippetViewModel>();
         services.AddTransient<TranslationApiKeyViewModel>();
         services.AddTransient<DataImportViewModel>();
+        services.AddTransient<ProjectPlanImportViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<FileExplorerViewModel>();
         services.AddTransient<ArasLoginViewModel>();
         services.AddTransient<UserManageViewModel>();
+        services.AddTransient<DataToolsViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -97,11 +103,13 @@ public partial class App : Application
         nav.Register("个人任务记录", typeof(TodoPage));
         nav.Register("对象类汇入", typeof(ObjectClassConfigPage));
         nav.Register("对象类配置", typeof(ObjectClassConfigurationPage));
+        nav.Register("类结构汇入", typeof(ClassStructureImportPage));
         nav.Register("List配置", typeof(ListConfigPage));
         nav.Register("属性配置", typeof(PropertyConfigPage));
         nav.Register("窗体配置", typeof(FormConfigurationPage));
         nav.Register("权限配置", typeof(PermissionConfigPage));
         nav.Register("生命周期配置", typeof(LifecycleConfigPage));
+        nav.Register("工作流程设定", typeof(WorkflowMapPage));
         nav.Register("字段翻译", typeof(PropertyTranslationPage));
         nav.Register("表单翻译", typeof(FormTranslationPage));
         nav.Register("窗体翻译", typeof(FieldTranslationPage));
@@ -109,9 +117,12 @@ public partial class App : Application
         nav.Register("文本翻译", typeof(TextTranslationPage));
         nav.Register("翻译历史", typeof(TranslationHistoryPage));
         nav.Register("数据库导出", typeof(DatabaseExportPage));
+        nav.Register("数据库修改模式", typeof(DatabaseModificationPage));
+        nav.Register("常用SQLorAML", typeof(CommonQuerySnippetPage));
         nav.Register("设置-数据库导出", typeof(DatabaseExportConfigPage));
         nav.Register("设置-AI模型配置", typeof(TranslationApiKeyPage));
         nav.Register("数据汇入", typeof(DataImportPage));
+        nav.Register("汇入项目计划模板", typeof(ProjectPlanImportPage));
         nav.Register("设置", typeof(SettingsMenuPage));
         nav.Register("设置-资料文件夹地址", typeof(SettingsPage));
         nav.Register("设置-数据库检查", typeof(SettingsPage));
@@ -120,6 +131,12 @@ public partial class App : Application
         nav.Register("我的资料", typeof(FileExplorerPage));
         nav.Register("Aras连接", typeof(ArasLoginPage));
         nav.Register("用户管理", typeof(UserManagePage));
+        nav.Register("XML格式化", typeof(DataToolsPage));
+        nav.Register("XML比对", typeof(DataToolsPage));
+        nav.Register("JSON格式化", typeof(DataToolsPage));
+        nav.Register("JSON比对", typeof(DataToolsPage));
+        nav.Register("JSON转实体类", typeof(DataToolsPage));
+        nav.Register("实体类转JSON", typeof(DataToolsPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)

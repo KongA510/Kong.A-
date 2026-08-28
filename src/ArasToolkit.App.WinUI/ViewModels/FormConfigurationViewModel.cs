@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Input;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Extensions;
@@ -29,6 +30,7 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
     private bool _reloadPending;
     private bool _disposed;
     private string _itemTypeSearchText = string.Empty;
+    private bool _suppressSelectionRefresh;
 
     public FormConfigurationViewModel(
         IFormConfigurationService formService,
@@ -67,7 +69,7 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
             if (!SetProperty(ref _selectedItemType, value))
                 return;
 
-            Properties.Clear();
+            ClearProperties();
             LayoutFields.Clear();
             OnPropertyChanged(nameof(PropertySummary));
             OnPropertyChanged(nameof(LayoutSummary));
@@ -149,7 +151,7 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
     public bool HasStatus => !string.IsNullOrWhiteSpace(StatusMessage);
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
     public string PropertySummary => $"已加载 {Properties.Count} 个未勾选“搜索中隐藏”的属性";
-    public string LayoutSummary => $"预览 {LayoutFields.Count} 个字段 · 四列布局 · 起点 (50, 50)";
+    public string LayoutSummary => $"预览 {LayoutFields.Count} 个字段 · 常规四列 / Text Area 两列 · 起点 (50, 50)";
 
     public ICommand RefreshItemTypesCommand { get; }
     public ICommand LoadPropertiesCommand { get; }
@@ -239,9 +241,12 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
             StatusMessage = $"正在加载 {SelectedItemType.DisplayName} 的可见搜索属性...";
             var properties = await _formService.GetVisiblePropertiesAsync(SelectedItemType.Id);
 
-            Properties.Clear();
+            ClearProperties();
             foreach (var property in properties)
+            {
                 Properties.Add(property);
+                property.PropertyChanged += OnPropertySelectionChanged;
+            }
 
             OnPropertyChanged(nameof(PropertySummary));
             BuildPreview();
@@ -274,9 +279,26 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
 
     private void SetAllSelections(bool selected)
     {
-        foreach (var property in Properties)
-            property.IsSelected = selected;
+        _suppressSelectionRefresh = true;
+        try
+        {
+            foreach (var property in Properties)
+                property.IsSelected = selected;
+        }
+        finally
+        {
+            _suppressSelectionRefresh = false;
+        }
+
         BuildPreview();
+    }
+
+    /// <summary>ListView 完成拖动后按集合顺序重排行号，保留用户编辑的坐标与样式。</summary>
+    public void NormalizeLayoutAfterReorder()
+    {
+        _formService.NormalizeLayoutOrder(LayoutFields);
+        OnPropertyChanged(nameof(LayoutSummary));
+        StatusMessage = $"字段顺序已更新；将按当前顺序写入 {LayoutFields.Count} 个字段。";
     }
 
     private async Task ApplyAsync()
@@ -291,7 +313,6 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
             return;
         }
 
-        BuildPreview();
         if (LayoutFields.Count == 0)
         {
             ErrorMessage = "至少需要选择一个属性。";
@@ -402,7 +423,7 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
         ItemTypes.Clear();
         FilteredItemTypes.Clear();
         SelectedItemType = null;
-        Properties.Clear();
+        ClearProperties();
         LayoutFields.Clear();
         OnPropertyChanged(nameof(PropertySummary));
         OnPropertyChanged(nameof(LayoutSummary));
@@ -438,7 +459,23 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
 
         _disposed = true;
         _connectionService.ConnectionChanged -= OnConnectionChanged;
+        ClearProperties();
         GC.SuppressFinalize(this);
+    }
+
+    private void OnPropertySelectionChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_suppressSelectionRefresh || e.PropertyName != nameof(ArasFormProperty.IsSelected))
+            return;
+
+        BuildPreview();
+    }
+
+    private void ClearProperties()
+    {
+        foreach (var property in Properties)
+            property.PropertyChanged -= OnPropertySelectionChanged;
+        Properties.Clear();
     }
 
     private void RefreshCommands()

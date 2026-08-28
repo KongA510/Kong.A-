@@ -1,0 +1,8 @@
+<Page
+    x:Class="ArasToolkit.App.WinUI.Views.WorkflowMapPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- 工作流程编辑页包含大量可编辑行和画布图元。
+         为规避 Windows App SDK XamlCompiler 的复杂模板静默崩溃，具体控件由代码后台生成。 -->
+    <Grid x:Name="RootLayout" />
+</Page>
