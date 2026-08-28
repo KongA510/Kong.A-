@@ -29,9 +29,9 @@ public class ProjectPlanNode
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public decimal ExpectedDuration { get; set; }
+    public bool IsExpectedDurationSpecified { get; set; } = true;
     public decimal WorkEstimate { get; set; }
     public string ProjectRole { get; set; } = string.Empty;
-    public decimal AssignmentWorkEstimate { get; set; }
     public string PredecessorCodes { get; set; } = string.Empty;
     public string PrecedenceType { get; set; } = "Finish to Start";
     public decimal LeadLag { get; set; }
@@ -59,7 +59,7 @@ public class ProjectPlanPreparedImport
     public string TemplateId { get; set; } = string.Empty;
     public string RootWbsId { get; set; } = string.Empty;
     public int NodeCount { get; set; }
-    public int AssignmentCount { get; set; }
+    public int LeadRoleCount { get; set; }
     public int PredecessorCount { get; set; }
     public List<ProjectPlanImportStep> Steps { get; } = [];
 }

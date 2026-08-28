@@ -26,6 +26,20 @@ internal static class Program
             return;
         }
 
+        var validateFileIndex = Array.FindIndex(args,
+            argument => string.Equals(argument, "--validate-file", StringComparison.OrdinalIgnoreCase));
+        var liveFileIndex = Array.FindIndex(args,
+            argument => string.Equals(argument, "--live-file", StringComparison.OrdinalIgnoreCase));
+        var fileIndex = liveFileIndex >= 0 ? liveFileIndex : validateFileIndex;
+        if (fileIndex >= 0)
+        {
+            if (fileIndex + 1 >= args.Length) throw new ArgumentException("文件验证参数后必须提供 .xlsx 路径。");
+            var path = Path.GetFullPath(args[fileIndex + 1]);
+            await RunFileValidationAsync(path);
+            if (liveFileIndex >= 0) await RunLiveFileImportAsync(path);
+            return;
+        }
+
         var runLive = args.Contains("--live", StringComparer.OrdinalIgnoreCase);
         var verifyLatest = args.Contains("--verify-latest", StringComparer.OrdinalIgnoreCase);
         await RunLocalRoundTripAsync();
@@ -34,7 +48,12 @@ internal static class Program
 
     private static async Task RunLocalRoundTripAsync()
     {
-        var innovator = new FakeInnovator();
+        const string projectRoleLabel = "项目经理";
+        const string projectRoleValue = "PROJECT_MANAGER";
+        var innovator = new FakeInnovator(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [projectRoleLabel] = projectRoleValue
+        });
         var connection = new FakeConnectionService(innovator);
         var operationLog = new FakeOperationLogService();
         var errorLog = new FakeErrorLogService();
@@ -52,15 +71,46 @@ internal static class Program
             Assert(definition.Warnings.Count == 0, "标准示例模板不应产生警告。");
 
             definition.TemplateName = $"项目计划回归测试_{DateTime.Now:yyyyMMddHHmmss}";
+            var defaultDurationTask = definition.Nodes.Single(node => node.Code == "T1");
+            defaultDurationTask.ProjectRole = projectRoleLabel;
+            defaultDurationTask.ExpectedDuration = 0;
+            defaultDurationTask.IsExpectedDurationSpecified = false;
+            defaultDurationTask.WorkEstimate = 99;
+            var explicitDurationTask = definition.Nodes.Single(node => node.Code == "T2");
+            explicitDurationTask.ExpectedDuration = 2.5m;
+            explicitDurationTask.IsExpectedDurationSpecified = true;
+            explicitDurationTask.WorkEstimate = 99;
+            definition.Nodes.Single(node => node.Code == "M1").ProjectRole = projectRoleLabel;
             var prepared = await service.PrepareImportAsync(definition);
             var aml = XDocument.Parse(prepared.Aml);
+            Assert(defaultDurationTask.ExpectedDuration == 1 && defaultDurationTask.WorkEstimate == 8,
+                "任务未填写计划工期时应默认 1 天、8 小时。");
+            Assert(explicitDurationTask.ExpectedDuration == 2.5m && explicitDurationTask.WorkEstimate == 20,
+                "任务计划工时应统一按计划工期 × 8 计算。");
             Assert(CountItems(aml, "Project Template") == 1, "AML 应包含一个 Project Template。");
             Assert(CountItems(aml, "WBS Element") == 3, "AML 应包含顶层 WBS 与两个阶段。");
             Assert(CountItems(aml, "Sub WBS") == 2, "AML 应包含两个 Sub WBS 关系。");
             Assert(CountItems(aml, "Activity2") == 4, "AML 应包含四个 Activity2。");
             Assert(CountItems(aml, "WBS Activity2") == 4, "AML 应包含四个 WBS Activity2 关系。");
             Assert(CountItems(aml, "Predecessor") == 3, "AML 应包含三个 Predecessor 关系。");
-            Assert(CountItems(aml, "Activity2 Assignment") == 0, "角色留空时不应创建 Assignment。");
+            Assert(CountItems(aml, "Activity2 Assignment") == 0, "项目计划模板不得创建 Activity2 Assignment。");
+            AssertHierarchySortOrders(aml, definition.Nodes.Select(node => node.SortOrder));
+            var defaultDurationActivity = aml.Root!.Elements("Item")
+                .Single(item => (string?)item.Attribute("type") == "Activity2" &&
+                                item.Element("name")?.Value == defaultDurationTask.Name);
+            Assert(defaultDurationActivity.Element("expected_duration")?.Value == "1" &&
+                   defaultDurationActivity.Element("work_est")?.Value == "8",
+                "默认工期和计划工时必须写入 Activity2 AML。");
+            var leadRoles = aml.Root!.Elements("Item")
+                .Where(item => (string?)item.Attribute("type") == "Activity2")
+                .Select(item => item.Element("lead_role")?.Value)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .ToList();
+            Assert(prepared.LeadRoleCount == 2 && leadRoles.Count == 2 &&
+                   leadRoles.All(value => value == projectRoleValue),
+                "任务和里程碑应将 Project Role label 对应的 value 写入 Activity2.lead_role。");
+            Assert(innovator.ProjectRoleQueryCalls == 1,
+                "同一次预检只能查询一次 Project Role 列表，不能按节点重复查询。");
             Assert(aml.Descendants("ProjectTemplate").Count() == 0, "不得生成不存在的猜测节点名。");
             AssertPrevItemChain(aml, prepared.RootWbsId, definition.Nodes.Count);
 
@@ -207,6 +257,149 @@ internal static class Program
         }
     }
 
+    private static async Task RunFileValidationAsync(string path)
+    {
+        Assert(File.Exists(path), $"待验证文件不存在：{path}");
+        var parseService = new ProjectPlanImportService(
+            new FakeConnectionService(new FakeInnovator()),
+            new FakeOperationLogService(),
+            new FakeErrorLogService());
+        var definition = await parseService.ParseTemplateAsync(path);
+        var roleValues = definition.Nodes
+            .Select(node => node.ProjectRole)
+            .Where(role => !string.IsNullOrWhiteSpace(role))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select((label, index) => (label, value: $"ROLE_{index + 1:D3}"))
+            .ToDictionary(pair => pair.label, pair => pair.value, StringComparer.OrdinalIgnoreCase);
+        var innovator = new FakeInnovator(roleValues);
+        var service = new ProjectPlanImportService(
+            new FakeConnectionService(innovator),
+            new FakeOperationLogService(),
+            new FakeErrorLogService());
+        var prepared = await service.PrepareImportAsync(definition);
+        var aml = XDocument.Parse(prepared.Aml);
+        var expectedActivityCount = definition.ActivityCount + definition.MilestoneCount;
+        var expectedPredecessorCount = definition.Nodes.Sum(node => SplitPredecessorCodes(node.PredecessorCodes).Count);
+        var expectedLeadRoleCount = definition.Nodes.Count(node => !string.IsNullOrWhiteSpace(node.ProjectRole));
+        var expectedDefaultedTaskCount = definition.Nodes.Count(node =>
+            node.NodeType == ProjectPlanNodeType.Activity && !node.IsExpectedDurationSpecified);
+        var maxPredecessors = definition.Nodes.Max(node => SplitPredecessorCodes(node.PredecessorCodes).Count);
+
+        Assert(CountItems(aml, "Project Template") == 1, "文件预检应生成一个 Project Template。");
+        Assert(CountItems(aml, "WBS Element") == definition.PhaseCount + 1,
+            "文件预检生成的 WBS Element 数量不正确。");
+        Assert(CountItems(aml, "Sub WBS") == definition.PhaseCount, "文件预检生成的 Sub WBS 数量不正确。");
+        Assert(CountItems(aml, "Activity2") == expectedActivityCount, "文件预检生成的 Activity2 数量不正确。");
+        Assert(CountItems(aml, "WBS Activity2") == expectedActivityCount,
+            "文件预检生成的 WBS Activity2 数量不正确。");
+        Assert(CountItems(aml, "Predecessor") == expectedPredecessorCount,
+            "文件预检生成的 Predecessor 数量不正确。");
+        Assert(CountItems(aml, "Activity2 Assignment") == 0,
+            "文件预检不得生成 Activity2 Assignment。");
+        Assert(definition.Nodes
+                .Where(node => node.NodeType == ProjectPlanNodeType.Activity && !node.IsExpectedDurationSpecified)
+                .All(node => node.ExpectedDuration == 1 && node.WorkEstimate == 8),
+            "文件中的空白任务工期必须默认成 1 天、8 小时。");
+        Assert(definition.Nodes
+                .Where(node => node.NodeType == ProjectPlanNodeType.Activity)
+                .All(node => node.WorkEstimate == node.ExpectedDuration * 8),
+            "所有任务计划工时必须等于计划工期 × 8。");
+        Assert(definition.Nodes
+                .Where(node => node.NodeType == ProjectPlanNodeType.Milestone)
+                .All(node => node.ExpectedDuration == 0 && node.WorkEstimate == 0),
+            "里程碑计划工期和计划工时必须为 0。");
+        AssertHierarchySortOrders(aml, definition.Nodes.Select(node => node.SortOrder));
+        var writtenLeadRoles = aml.Root!.Elements("Item")
+            .Where(item => (string?)item.Attribute("type") == "Activity2")
+            .Select(item => item.Element("lead_role")?.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToList();
+        Assert(prepared.LeadRoleCount == expectedLeadRoleCount &&
+               writtenLeadRoles.Count == expectedLeadRoleCount &&
+               writtenLeadRoles.All(value => roleValues.Values.Contains(value!, StringComparer.Ordinal)),
+            "文件预检生成的 Activity2.lead_role 数量或 value 不正确。");
+        Assert(innovator.ProjectRoleQueryCalls == (expectedLeadRoleCount == 0 ? 0 : 1),
+            "同一次文件预检只能查询一次 Project Role 列表。");
+        Assert(definition.Nodes.All(node =>
+                !node.PredecessorCodes.Contains('，') &&
+                !node.PredecessorCodes.Contains('；') &&
+                !node.PredecessorCodes.Contains('、')),
+            "文件预检后仍存在非英文逗号的多前置分隔符。");
+        AssertPrevItemChain(aml, prepared.RootWbsId, definition.Nodes.Count);
+
+        Console.WriteLine(
+            $"FILE_OK name={definition.TemplateName} phases={definition.PhaseCount} " +
+            $"activities={expectedActivityCount} milestones={definition.MilestoneCount} " +
+            $"predecessors={expectedPredecessorCount} maxPredecessors={maxPredecessors} " +
+            $"prevChain={definition.Nodes.Count} defaultDurations={expectedDefaultedTaskCount} " +
+            $"leadRoles={prepared.LeadRoleCount} roleQueries={innovator.ProjectRoleQueryCalls}");
+    }
+
+    private static async Task RunLiveFileImportAsync(string path)
+    {
+        Console.Write("Aras URL: ");
+        var url = Console.ReadLine()?.Trim() ?? string.Empty;
+        Console.Write("Database: ");
+        var database = Console.ReadLine()?.Trim() ?? string.Empty;
+        Console.Write("Username: ");
+        var username = Console.ReadLine()?.Trim() ?? string.Empty;
+        Console.Write("Password: ");
+        var password = ReadPassword();
+        Console.WriteLine();
+
+        var connection = new ArasConnectionService();
+        var login = new LoginService(connection);
+        var operationLog = new FakeOperationLogService();
+        var errorLog = new FakeErrorLogService();
+        var service = new ProjectPlanImportService(connection, operationLog, errorLog);
+
+        try
+        {
+            await login.LoginAsync(new LoginInfo
+            {
+                Url = url,
+                Database = database,
+                Username = username,
+                Password = password,
+                IsPasswordHashed = false
+            });
+            password = string.Empty;
+
+            var definition = await service.ParseTemplateAsync(path);
+            var prepared = await service.PrepareImportAsync(definition);
+            var expectedActivityCount = definition.ActivityCount + definition.MilestoneCount;
+            var expectedPredecessorCount = definition.Nodes.Sum(node => SplitPredecessorCodes(node.PredecessorCodes).Count);
+            var expectedMaxPredecessors = definition.Nodes.Max(node => SplitPredecessorCodes(node.PredecessorCodes).Count);
+            var imported = await service.ImportAsync(prepared, definition.TemplateName);
+            var verification = VerifyImportedStructure(connection.InnovatorInstance!, imported);
+
+            Assert(verification.PhaseCount == definition.PhaseCount,
+                $"真实实例阶段数不正确：{verification.PhaseCount}/{definition.PhaseCount}。");
+            Assert(verification.ActivityCount == expectedActivityCount,
+                $"真实实例活动数不正确：{verification.ActivityCount}/{expectedActivityCount}。");
+            Assert(verification.PredecessorCount == expectedPredecessorCount,
+                $"真实实例前置关系数不正确：{verification.PredecessorCount}/{expectedPredecessorCount}。");
+            Assert(verification.MaxPredecessorsPerActivity == expectedMaxPredecessors,
+                $"真实实例单活动最大前置数不正确：{verification.MaxPredecessorsPerActivity}/{expectedMaxPredecessors}。");
+            Assert(verification.PrevItemCount == definition.Nodes.Count,
+                $"真实实例 prev_item 链覆盖不正确：{verification.PrevItemCount}/{definition.Nodes.Count}。");
+            Assert(operationLog.Entries.Count == 1, "真实文件汇入应记录一次操作日志。");
+            Assert(errorLog.Entries.Count == 0, "真实文件汇入不应产生错误日志。");
+
+            Console.WriteLine(
+                $"LIVE_FILE_OK name={definition.TemplateName} templateId={imported.TemplateId} " +
+                $"rootWbsId={imported.RootWbsId} phases={verification.PhaseCount} " +
+                $"activities={verification.ActivityCount} predecessors={verification.PredecessorCount} " +
+                $"maxPredecessors={verification.MaxPredecessorsPerActivity} " +
+                $"prevChain={verification.PrevItemCount}");
+        }
+        finally
+        {
+            password = string.Empty;
+            login.Logout();
+        }
+    }
+
     private static VerificationResult VerifyImportedStructure(object innovatorObject, ProjectPlanImportResult imported)
     {
         dynamic innovator = innovatorObject;
@@ -219,14 +412,20 @@ internal static class Program
         var actualWbsId = (string)templateResult.getItemByIndex(0).getProperty("wbs_id", "");
         Assert(actualWbsId == imported.RootWbsId, "Project Template.wbs_id 与预生成根 WBS ID 不一致。");
 
-        var phaseIds = GetRelatedIds(innovator, "Sub WBS", imported.RootWbsId);
+        var phaseIds = new List<string>();
         var activityIds = new List<string>();
-        foreach (var phaseId in phaseIds)
-            activityIds.AddRange(GetRelatedIds(innovator, "WBS Activity2", phaseId));
+        CollectWbsTree(innovator, imported.RootWbsId, phaseIds, activityIds,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        var activityIdSet = activityIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var predecessorCounts = new List<int>();
         foreach (var activityId in activityIds)
-            predecessorCounts.Add(GetRelatedIds(innovator, "Predecessor", activityId).Count);
+        {
+            List<string> predecessorIds = GetRelatedIds((object)innovator, "Predecessor", activityId);
+            Assert(predecessorIds.All(activityIdSet.Contains),
+                $"Activity2 {activityId} 的 Predecessor 指向了项目计划树外节点。");
+            predecessorCounts.Add(predecessorIds.Count);
+        }
         var predecessorCount = predecessorCounts.Sum();
         var maxPredecessorsPerActivity = predecessorCounts.Count == 0 ? 0 : predecessorCounts.Max();
 
@@ -239,15 +438,39 @@ internal static class Program
             phaseIds.Count, activityIds.Count, predecessorCount, maxPredecessorsPerActivity, prevItemCount);
     }
 
+    private static void CollectWbsTree(
+        dynamic innovator,
+        string wbsId,
+        ICollection<string> phaseIds,
+        ICollection<string> activityIds,
+        ISet<string> visitedWbsIds)
+    {
+        Assert(visitedWbsIds.Add(wbsId), $"Sub WBS 关系存在环或重复父级：{wbsId}。");
+        foreach (var activityId in GetRelatedIds(innovator, "WBS Activity2", wbsId))
+            activityIds.Add(activityId);
+        foreach (var phaseId in GetRelatedIds(innovator, "Sub WBS", wbsId))
+        {
+            phaseIds.Add(phaseId);
+            CollectWbsTree(innovator, phaseId, phaseIds, activityIds, visitedWbsIds);
+        }
+    }
+
     private static string GetPrevItem(dynamic innovator, string itemType, string id)
+        => GetItemProperty(innovator, itemType, id, "prev_item");
+
+    private static string GetItemProperty(
+        dynamic innovator,
+        string itemType,
+        string id,
+        string propertyName)
     {
         dynamic query = innovator.newItem(itemType, "get");
         query.setID(id);
-        query.setAttribute("select", "id,prev_item");
+        query.setAttribute("select", $"id,{propertyName}");
         dynamic result = query.apply();
-        AssertArasSuccess(result, $"回查 {itemType}.prev_item");
+        AssertArasSuccess(result, $"回查 {itemType}.{propertyName}");
         Assert((int)result.getItemCount() == 1, $"无法唯一回查 {itemType} {id}。");
-        return (string)result.getItemByIndex(0).getProperty("prev_item", "");
+        return (string)result.getItemByIndex(0).getProperty(propertyName, "");
     }
 
     private static int AssertLivePrevItemChain(string rootWbsId, IReadOnlyDictionary<string, string> prevItems)
@@ -348,6 +571,24 @@ internal static class Program
     private static int CountItems(XContainer aml, string type) =>
         aml.Descendants("Item").Count(item => (string?)item.Attribute("type") == type);
 
+    private static void AssertHierarchySortOrders(XDocument aml, IEnumerable<int> nodeSequences)
+    {
+        var actualSortOrders = aml.Root!.Elements("Item")
+            .Where(item => (string?)item.Attribute("type") is "Sub WBS" or "WBS Activity2")
+            .Select(item => int.Parse(item.Element("sort_order")?.Value ?? "0"))
+            .OrderBy(value => value)
+            .ToList();
+        var expectedSortOrders = nodeSequences
+            .Select(sequence => checked(sequence * 128))
+            .OrderBy(value => value)
+            .ToList();
+        Assert(actualSortOrders.SequenceEqual(expectedSortOrders),
+            "Sub WBS 与 WBS Activity2 的 sort_order 必须按 Excel 顺序 × 128 写入。");
+    }
+
+    private static IReadOnlyList<string> SplitPredecessorCodes(string value) =>
+        value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
     private static void AssertPrevItemChain(XDocument aml, string rootWbsId, int expectedNodeCount)
     {
         var linearItems = aml.Root!.Elements("Item")
@@ -429,7 +670,14 @@ internal static class Program
 public sealed class FakeInnovator
 {
     private int _id;
+    private readonly IReadOnlyDictionary<string, string> _projectRoleValues;
     public int ImportCalls { get; private set; }
+    public int ProjectRoleQueryCalls { get; private set; }
+
+    public FakeInnovator(IReadOnlyDictionary<string, string>? projectRoleValues = null)
+    {
+        _projectRoleValues = projectRoleValues ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    }
 
     public string getNewID() => (++_id).ToString("X32");
 
@@ -437,7 +685,26 @@ public sealed class FakeInnovator
 
     public FakeArasResult applyAML(string aml)
     {
-        XDocument.Parse(aml);
+        var document = XDocument.Parse(aml);
+        var item = document.Root?.Element("Item");
+        if (item != null &&
+            string.Equals((string?)item.Attribute("type"), "List", StringComparison.Ordinal) &&
+            string.Equals((string?)item.Attribute("action"), "get", StringComparison.Ordinal) &&
+            string.Equals(item.Element("keyed_name")?.Value, "Project Role", StringComparison.Ordinal))
+        {
+            ProjectRoleQueryCalls++;
+            var roles = _projectRoleValues
+                .Select(pair => new FakeArasItem(string.Empty, new Dictionary<string, string>
+                {
+                    ["label"] = pair.Key,
+                    ["value"] = pair.Value
+                }))
+                .ToList();
+            return new FakeArasResult(
+                [new FakeArasItem("F0000000000000000000000000000002")],
+                new FakeArasResult(roles));
+        }
+
         ImportCalls++;
         return new FakeArasResult(0);
     }
@@ -455,14 +722,41 @@ public sealed class FakeQuery
 
 public sealed class FakeArasResult
 {
-    private readonly int _count;
-    public FakeArasResult(int count) => _count = count;
+    private readonly IReadOnlyList<FakeArasItem> _items;
+    private readonly FakeArasResult? _relationships;
+
+    public FakeArasResult(int count)
+        : this(Enumerable.Range(0, count)
+            .Select(_ => new FakeArasItem("F0000000000000000000000000000001"))
+            .ToList()) { }
+
+    public FakeArasResult(IReadOnlyList<FakeArasItem> items, FakeArasResult? relationships = null)
+    {
+        _items = items;
+        _relationships = relationships;
+    }
+
     public bool isError() => false;
     public string getErrorString() => string.Empty;
-    public int getItemCount() => _count;
-    public FakeArasResult getItemByIndex(int index) => this;
-    public string getID() => "F0000000000000000000000000000001";
-    public string getProperty(string name, string defaultValue) => defaultValue;
+    public int getItemCount() => _items.Count;
+    public FakeArasItem getItemByIndex(int index) => _items[index];
+    public FakeArasResult getRelationships() => _relationships ?? new FakeArasResult(0);
+}
+
+public sealed class FakeArasItem
+{
+    private readonly string _id;
+    private readonly IReadOnlyDictionary<string, string> _properties;
+
+    public FakeArasItem(string id, IReadOnlyDictionary<string, string>? properties = null)
+    {
+        _id = id;
+        _properties = properties ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    public string getID() => _id;
+    public string getProperty(string name, string defaultValue) =>
+        _properties.TryGetValue(name, out var value) ? value : defaultValue;
 }
 
 public sealed class FakeConnectionService : IArasConnectionService

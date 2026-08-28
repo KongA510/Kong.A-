@@ -15,8 +15,8 @@ namespace ArasToolkit.Services.Services;
 ///
 /// 这里使用的 ItemType 与关系来自 Aras 官方社区及 ArasLabs ms-project-importer：
 /// Project Template.wbs_id 指向顶层 WBS Element；阶段通过 Sub WBS 组织；
-/// 任务/里程碑为 Activity2，并通过 WBS Activity2 挂到阶段；依赖与角色分别使用
-/// Predecessor 和 Activity2 Assignment。汇入前会在目标实例逐项确认这些类型真实存在。
+/// 任务/里程碑为 Activity2，并通过 WBS Activity2 挂到阶段；依赖使用 Predecessor，
+/// 项目角色由 Project Role 的 label 解析为 value 后写入 Activity2.lead_role。
 /// </summary>
 public class ProjectPlanImportService : IProjectPlanImportService
 {
@@ -24,12 +24,13 @@ public class ProjectPlanImportService : IProjectPlanImportService
     private const string SheetPlan = "项目计划";
     private const string SheetInstructions = "填写说明";
     private const string SupportedTemplateVersion = "1.0";
+    private const int ArasSortOrderInterval = 128;
 
     private static readonly string[] RequiredHeaders =
     [
         "顺序", "节点编码", "父节点编码", "节点类型", "节点名称", "说明",
-        "计划工期(天)", "预计工时(小时)", "项目角色", "分配工时(小时)",
-        "前置节点编码", "依赖类型", "提前/滞后(天)"
+        "计划工期(天)", "预计工时(小时)", "项目角色", "前置节点编码",
+        "依赖类型", "提前/滞后(天)"
     ];
 
     private readonly IArasConnectionService _connectionService;
@@ -141,7 +142,7 @@ public class ProjectPlanImportService : IProjectPlanImportService
                 throw new InvalidDataException($"节点编码重复：{node.Code}。");
             if (string.IsNullOrWhiteSpace(node.Name))
                 throw new InvalidDataException($"节点“{node.Code}”缺少节点名称。");
-            if (node.ExpectedDuration < 0 || node.WorkEstimate < 0 || node.AssignmentWorkEstimate < 0)
+            if (node.ExpectedDuration < 0 || node.WorkEstimate < 0)
                 throw new InvalidDataException($"节点“{node.Code}”的工期和工时不能为负数。");
 
             if (node.NodeType == ProjectPlanNodeType.Phase)
@@ -158,19 +159,18 @@ public class ProjectPlanImportService : IProjectPlanImportService
             }
             else if (node.NodeType == ProjectPlanNodeType.Milestone)
             {
-                if (node.ExpectedDuration != 0 || node.WorkEstimate != 0 || node.AssignmentWorkEstimate != 0)
+                if (node.ExpectedDuration != 0 || node.WorkEstimate != 0)
                 {
                     node.ExpectedDuration = 0;
                     node.WorkEstimate = 0;
-                    node.AssignmentWorkEstimate = 0;
                     definition.Warnings.Add($"里程碑“{node.Name}”的工期与工时已按 Aras 规则归零。");
                 }
             }
-
-            if (string.IsNullOrWhiteSpace(node.ProjectRole))
+            else
             {
-                if (node.AssignmentWorkEstimate != 0)
-                    throw new InvalidDataException($"节点“{node.Code}”填写分配工时前必须先填写项目角色。");
+                if (!node.IsExpectedDurationSpecified)
+                    node.ExpectedDuration = 1;
+                node.WorkEstimate = node.ExpectedDuration * 8;
             }
         }
 
@@ -235,11 +235,11 @@ public class ProjectPlanImportService : IProjectPlanImportService
             return await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                EnsureRequiredItemTypes(innovator, definition);
+                EnsureRequiredItemTypes(innovator);
                 EnsureTemplateNameAvailable(innovator, definition.TemplateName);
-                EnsureProjectRolesExist(innovator, definition);
+                var projectRoleValues = LoadProjectRoleValueCache(innovator, definition);
                 var managedById = ResolveManagedById(innovator, definition);
-                return BuildPreparedImport(innovator, definition, managedById);
+                return BuildPreparedImport(innovator, definition, managedById, projectRoleValues);
             }, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -288,7 +288,7 @@ public class ProjectPlanImportService : IProjectPlanImportService
             await TryLogOperationAsync(
                 preparedImport.TemplateId,
                 $"汇入项目计划模板：{templateName}；阶段/任务/里程碑共 {preparedImport.NodeCount} 个，" +
-                $"角色分配 {preparedImport.AssignmentCount} 条，前置关系 {preparedImport.PredecessorCount} 条")
+                $"主导角色 {preparedImport.LeadRoleCount} 个，前置关系 {preparedImport.PredecessorCount} 条")
                 .ConfigureAwait(false);
 
             return new ProjectPlanImportResult
@@ -356,6 +356,9 @@ public class ProjectPlanImportService : IProjectPlanImportService
             if (RequiredHeaders.All(header => string.IsNullOrWhiteSpace(CellText(sheet, row, headers[header]))))
                 continue;
 
+            var expectedDurationText = CellText(sheet, row, headers["计划工期(天)"]);
+            var workEstimateText = CellText(sheet, row, headers["预计工时(小时)"]);
+
             definition.Nodes.Add(new ProjectPlanNode
             {
                 SourceRow = row,
@@ -365,10 +368,10 @@ public class ProjectPlanImportService : IProjectPlanImportService
                 NodeType = CellText(sheet, row, headers["节点类型"]),
                 Name = CellText(sheet, row, headers["节点名称"]),
                 Description = CellText(sheet, row, headers["说明"]),
-                ExpectedDuration = ParseOptionalDecimal(CellText(sheet, row, headers["计划工期(天)"]), row, "计划工期(天)"),
-                WorkEstimate = ParseOptionalDecimal(CellText(sheet, row, headers["预计工时(小时)"]), row, "预计工时(小时)"),
+                ExpectedDuration = ParseOptionalDecimal(expectedDurationText, row, "计划工期(天)"),
+                IsExpectedDurationSpecified = !string.IsNullOrWhiteSpace(expectedDurationText),
+                WorkEstimate = ParseOptionalDecimal(workEstimateText, row, "预计工时(小时)"),
                 ProjectRole = CellText(sheet, row, headers["项目角色"]),
-                AssignmentWorkEstimate = ParseOptionalDecimal(CellText(sheet, row, headers["分配工时(小时)"]), row, "分配工时(小时)"),
                 PredecessorCodes = CellText(sheet, row, headers["前置节点编码"]),
                 PrecedenceType = CellText(sheet, row, headers["依赖类型"]),
                 LeadLag = ParseOptionalDecimal(CellText(sheet, row, headers["提前/滞后(天)"]), row, "提前/滞后(天)")
@@ -376,14 +379,12 @@ public class ProjectPlanImportService : IProjectPlanImportService
         }
     }
 
-    private static void EnsureRequiredItemTypes(dynamic innovator, ProjectPlanTemplateDefinition definition)
+    private static void EnsureRequiredItemTypes(dynamic innovator)
     {
-        var itemTypes = new List<string>
+        string[] itemTypes =
         {
             "Project Template", "WBS Element", "Activity2", "Sub WBS", "WBS Activity2", "Predecessor"
         };
-        if (definition.Nodes.Any(node => !string.IsNullOrWhiteSpace(node.ProjectRole)))
-            itemTypes.Add("Activity2 Assignment");
 
         foreach (var itemTypeName in itemTypes)
         {
@@ -414,13 +415,16 @@ public class ProjectPlanImportService : IProjectPlanImportService
         }
     }
 
-    private static void EnsureProjectRolesExist(dynamic innovator, ProjectPlanTemplateDefinition definition)
+    private static IReadOnlyDictionary<string, string> LoadProjectRoleValueCache(
+        dynamic innovator,
+        ProjectPlanTemplateDefinition definition)
     {
         var requiredRoles = definition.Nodes
             .Select(node => node.ProjectRole)
             .Where(role => !string.IsNullOrWhiteSpace(role))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (requiredRoles.Count == 0) return;
+        if (requiredRoles.Count == 0)
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         var query = new XElement("AML",
             new XElement("Item",
@@ -432,29 +436,46 @@ public class ProjectPlanImportService : IProjectPlanImportService
                     new XElement("Item",
                         new XAttribute("type", "Value"),
                         new XAttribute("action", "get"),
-                        new XAttribute("select", "value"),
-                        new XAttribute("orderBy", "value")))))
+                        new XAttribute("select", "label,value"),
+                        new XAttribute("orderBy", "label")))))
             .ToString(SaveOptions.DisableFormatting);
 
         dynamic result = innovator.applyAML(query);
         if (GetQueryItemCount(result, "读取 Project Role 列表") != 1)
             throw new InvalidOperationException("当前 Aras 实例未找到唯一的“Project Role”列表，无法验证任务角色。");
 
-        var existingRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var roleValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         dynamic relationships = result.getRelationships();
         var relationshipCount = (int)relationships.getItemCount();
         for (var index = 0; index < relationshipCount; index++)
         {
-            var value = (string)relationships.getItemByIndex(index).getProperty("value", "");
-            if (!string.IsNullOrWhiteSpace(value)) existingRoles.Add(value);
+            dynamic role = relationships.getItemByIndex(index);
+            var label = ((string)role.getProperty("label", "")).Trim();
+            var value = ((string)role.getProperty("value", "")).Trim();
+            if (string.IsNullOrWhiteSpace(label)) continue;
+
+            if (roleValues.TryGetValue(label, out var existingValue) &&
+                !string.Equals(existingValue, value, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Project Role 列表中存在重复标签“{label}”，且对应不同 value，无法安全写入 Activity2.lead_role。");
+            }
+
+            roleValues[label] = value;
         }
 
-        var missingRoles = requiredRoles.Where(role => !existingRoles.Contains(role)).OrderBy(role => role).ToList();
+        var missingRoles = requiredRoles
+            .Where(role => !roleValues.TryGetValue(role, out var value) || string.IsNullOrWhiteSpace(value))
+            .OrderBy(role => role)
+            .ToList();
         if (missingRoles.Count > 0)
         {
             throw new InvalidOperationException(
-                $"下列项目角色不在当前 Aras 的 Project Role 列表中：{string.Join("、", missingRoles)}。请先在 Aras 中建立角色或修正 Excel。");
+                $"下列项目角色标签不在当前 Aras 的 Project Role 列表中，或没有可用 value：{string.Join("、", missingRoles)}。" +
+                "请先在 Aras 中建立角色或修正 Excel。");
         }
+
+        return roleValues;
     }
 
     private static string ResolveManagedById(dynamic innovator, ProjectPlanTemplateDefinition definition)
@@ -529,7 +550,8 @@ public class ProjectPlanImportService : IProjectPlanImportService
     private static ProjectPlanPreparedImport BuildPreparedImport(
         dynamic innovator,
         ProjectPlanTemplateDefinition definition,
-        string managedById)
+        string managedById,
+        IReadOnlyDictionary<string, string> projectRoleValues)
     {
         var orderedNodes = definition.Nodes.OrderBy(node => node.SortOrder).ToList();
         var rootWbsId = NewArasId(innovator);
@@ -576,7 +598,7 @@ public class ProjectPlanImportService : IProjectPlanImportService
                     new XElement("name", node.Name),
                     new XElement("prev_item", previousItemId)), $"建立阶段 {node.Code} - {node.Name}");
                 AddStep(items, steps,
-                    BuildRelationship("Sub WBS", NewArasId(innovator), parentId, nodeId),
+                    BuildRelationship("Sub WBS", NewArasId(innovator), parentId, nodeId, node.SortOrder),
                     $"建立阶段层级关系 {node.Code}");
             }
             else
@@ -592,27 +614,24 @@ public class ProjectPlanImportService : IProjectPlanImportService
                     new XElement("expected_duration", FormatDecimal(node.ExpectedDuration)));
                 if (!string.IsNullOrWhiteSpace(node.Description))
                     activity.Add(new XElement("description", node.Description));
+                if (!string.IsNullOrWhiteSpace(node.ProjectRole))
+                {
+                    if (!projectRoleValues.TryGetValue(node.ProjectRole, out var projectRoleValue) ||
+                        string.IsNullOrWhiteSpace(projectRoleValue))
+                    {
+                        throw new InvalidOperationException(
+                            $"项目角色标签“{node.ProjectRole}”没有可写入 Activity2.lead_role 的 value。");
+                    }
+
+                    activity.Add(new XElement("lead_role", projectRoleValue));
+                }
                 AddStep(items, steps, activity, $"建立{node.DisplayType} {node.Code} - {node.Name}");
                 AddStep(items, steps,
-                    BuildRelationship("WBS Activity2", NewArasId(innovator), parentId, nodeId),
+                    BuildRelationship("WBS Activity2", NewArasId(innovator), parentId, nodeId, node.SortOrder),
                     $"建立{node.DisplayType}层级关系 {node.Code}");
             }
 
             previousItemId = nodeId;
-        }
-
-        var assignmentCount = 0;
-        foreach (var node in orderedNodes.Where(node => !string.IsNullOrWhiteSpace(node.ProjectRole)))
-        {
-            AddStep(items, steps, new XElement("Item",
-                new XAttribute("type", "Activity2 Assignment"),
-                new XAttribute("action", "add"),
-                new XAttribute("id", NewArasId(innovator)),
-                new XElement("source_id", nodeIds[node.Code]),
-                new XElement("role", node.ProjectRole),
-                new XElement("work_est", FormatDecimal(node.AssignmentWorkEstimate))),
-                $"建立角色分配 {node.Code} - {node.ProjectRole}");
-            assignmentCount++;
         }
 
         var predecessorCount = 0;
@@ -640,19 +659,26 @@ public class ProjectPlanImportService : IProjectPlanImportService
             TemplateId = templateId,
             RootWbsId = rootWbsId,
             NodeCount = orderedNodes.Count,
-            AssignmentCount = assignmentCount,
+            LeadRoleCount = orderedNodes.Count(node => !string.IsNullOrWhiteSpace(node.ProjectRole)),
             PredecessorCount = predecessorCount
         };
         prepared.Steps.AddRange(steps);
         return prepared;
     }
 
-    private static XElement BuildRelationship(string type, string id, string sourceId, string relatedId) =>
+    private static XElement BuildRelationship(
+        string type,
+        string id,
+        string sourceId,
+        string relatedId,
+        int sequence) =>
         new("Item",
             new XAttribute("type", type),
             new XAttribute("action", "add"),
             new XAttribute("id", id),
             new XElement("source_id", sourceId),
+            new XElement("sort_order", checked(sequence * ArasSortOrderInterval)
+                .ToString(CultureInfo.InvariantCulture)),
             new XElement("related_id", relatedId));
 
     private static void AddStep(
@@ -960,12 +986,12 @@ public class ProjectPlanImportService : IProjectPlanImportService
 
         object?[][] rows =
         [
-            [1, "P1", null, "阶段", "需求与规划", null, null, null, null, null, null, "FS", 0],
-            [2, "T1", "P1", "任务", "收集项目需求", "整理范围、目标与约束", 3, 24, null, null, null, "FS", 0],
-            [3, "M1", "P1", "里程碑", "需求确认", "需求基线确认完成", 0, 0, null, null, "T1", "FS", 0],
-            [4, "P2", null, "阶段", "设计与开发", null, null, null, null, null, null, "FS", 0],
-            [5, "T2", "P2", "任务", "方案设计", "完成方案与评审材料", 5, 40, null, null, "M1", "FS", 0],
-            [6, "M2", "P2", "里程碑", "设计评审", "设计评审通过", 0, 0, null, null, "T2", "FS", 0]
+            [1, "P1", null, "阶段", "需求与规划", null, null, null, null, null, "FS", 0],
+            [2, "T1", "P1", "任务", "收集项目需求", "整理范围、目标与约束", 3, 24, null, null, "FS", 0],
+            [3, "M1", "P1", "里程碑", "需求确认", "需求基线确认完成", 0, 0, null, "T1", "FS", 0],
+            [4, "P2", null, "阶段", "设计与开发", null, null, null, null, null, "FS", 0],
+            [5, "T2", "P2", "任务", "方案设计", "完成方案与评审材料", 5, 40, null, "M1", "FS", 0],
+            [6, "M2", "P2", "里程碑", "设计评审", "设计评审通过", 0, 0, null, "T2", "FS", 0]
         ];
         for (var row = 0; row < rows.Length; row++)
         for (var column = 0; column < rows[row].Length; column++)
@@ -975,7 +1001,7 @@ public class ProjectPlanImportService : IProjectPlanImportService
         typeValidation.Formula.Values.Add("阶段");
         typeValidation.Formula.Values.Add("任务");
         typeValidation.Formula.Values.Add("里程碑");
-        var dependencyValidation = sheet.DataValidations.AddListValidation("L2:L500");
+        var dependencyValidation = sheet.DataValidations.AddListValidation("K2:K500");
         dependencyValidation.Formula.Values.Add("FS");
         dependencyValidation.Formula.Values.Add("FF");
         dependencyValidation.Formula.Values.Add("SS");
@@ -991,10 +1017,10 @@ public class ProjectPlanImportService : IProjectPlanImportService
         sheet.Column(4).Width = 12;
         sheet.Column(5).Width = 26;
         sheet.Column(6).Width = 38;
-        for (var column = 7; column <= 10; column++) sheet.Column(column).Width = 18;
-        sheet.Column(11).Width = 22;
-        sheet.Column(12).Width = 13;
-        sheet.Column(13).Width = 18;
+        for (var column = 7; column <= 9; column++) sheet.Column(column).Width = 18;
+        sheet.Column(10).Width = 22;
+        sheet.Column(11).Width = 13;
+        sheet.Column(12).Width = 18;
     }
 
     private static void BuildInstructionSheet(ExcelWorksheet sheet)
@@ -1009,10 +1035,12 @@ public class ProjectPlanImportService : IProjectPlanImportService
             ["3. 上传预检", "工具会先校验层级、循环依赖，再连接 Aras 核对真实 ItemType、同名模板和 Project Role。"],
             ["4. 确认汇入", "预检通过后按 ArasLabs 顺序建立 WBS、Project Template、Activity2 和依赖；任一步失败会逆序回滚本次已建数据。"],
             ["父子规则", "阶段可位于根节点或另一阶段下；任务/里程碑必须挂在阶段下，父节点必须排在子节点之前。"],
+            ["工期与工时", "任务未填写计划工期时默认 1 天；明确填写的工期按原值使用；计划工时统一按计划工期 × 8 小时计算。里程碑的计划工期和计划工时固定为 0。"],
             ["prev_item 链", "顺序列必须是 WBS 树的前序展开：首节点指向顶层 WBS，后续节点指向展开序列中的前一节点；每个阶段的后代必须连续。"],
+            ["Aras 显示顺序", "Sub WBS 与 WBS Activity2 关系会写入“顺序 × 128”的 sort_order，保证 Aras 项目树及 N 列按 Excel 顺序稳定显示。"],
             ["前置节点", "多个任务/里程碑编码优先用英文逗号分隔（例：T1,M1）；同时兼容分号、中文逗号和顿号；系统会逐个建立 Predecessor 并拒绝循环依赖。"],
-            ["项目角色", "可留空；填写时必须与当前 Aras 的 Project Role 列表值完全一致，工具不会自动创建角色；分配工时仅在填写角色时使用，无需填写负载率。"],
-            ["真实 Aras 模型", "Project Template.wbs_id → WBS Element；Sub WBS 连接阶段；WBS Activity2 连接 Activity2；Activity2 Assignment 仅写角色和分配工时；Predecessor 保存依赖。"],
+            ["项目角色", "可留空；填写 Project Role 的显示标签（label）。预检会一次读取并缓存 label → value 映射，再将 value 写入任务或里程碑的 Activity2.lead_role；工具不会自动创建角色。"],
+            ["真实 Aras 模型", "Project Template.wbs_id → WBS Element；Sub WBS 连接阶段；WBS Activity2 连接 Activity2；Activity2.lead_role 保存项目角色 value；Predecessor 保存依赖。"],
             ["官方 R37 文档", "https://docs.aras.com/aras-innovator-release-37/creating-projects-37"],
             ["ArasLabs 参考", "https://github.com/ArasLabs/ms-project-importer"]
         ];
