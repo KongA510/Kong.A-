@@ -31,7 +31,6 @@ public class ProjectPlanNode
     public decimal ExpectedDuration { get; set; }
     public decimal WorkEstimate { get; set; }
     public string ProjectRole { get; set; } = string.Empty;
-    public decimal PercentLoad { get; set; }
     public decimal AssignmentWorkEstimate { get; set; }
     public string PredecessorCodes { get; set; } = string.Empty;
     public string PrecedenceType { get; set; } = "Finish to Start";

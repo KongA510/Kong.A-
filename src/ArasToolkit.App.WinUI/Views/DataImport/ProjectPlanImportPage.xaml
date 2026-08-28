@@ -171,16 +171,21 @@
         </Border>
 
         <StackPanel Grid.Row="4" Spacing="6">
-            <Border Background="#FFFFF7ED" BorderBrush="#FFF59E0B" BorderThickness="1" CornerRadius="6" Padding="10,7"
-                    Visibility="{Binding HasWarnings, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="{Binding WarningsText}" Foreground="#B45309" FontSize="12" TextWrapping="Wrap" />
-            </Border>
-            <Border Background="#3FEF4444" CornerRadius="6" Padding="10,7"
-                    Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibility}}">
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="#EF4444" FontSize="12" TextWrapping="Wrap" />
-            </Border>
-            <TextBlock Text="{Binding StatusMessage}" FontSize="12" TextWrapping="Wrap"
-                       Foreground="{ThemeResource TextSecondaryBrush}" />
+            <ScrollViewer x:Name="ValidationMessageScrollViewer" MaxHeight="220"
+                          HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="6">
+                    <Border Background="#FFFFF7ED" BorderBrush="#FFF59E0B" BorderThickness="1" CornerRadius="6" Padding="10,7"
+                            Visibility="{Binding HasWarnings, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="{Binding WarningsText}" Foreground="#B45309" FontSize="12" TextWrapping="Wrap" />
+                    </Border>
+                    <Border Background="#3FEF4444" CornerRadius="6" Padding="10,7"
+                            Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibility}}">
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="#EF4444" FontSize="12" TextWrapping="Wrap" />
+                    </Border>
+                    <TextBlock Text="{Binding StatusMessage}" FontSize="12" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TextSecondaryBrush}" />
+                </StackPanel>
+            </ScrollViewer>
             <ProgressBar IsIndeterminate="True" Height="4"
                          Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
         </StackPanel>

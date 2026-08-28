@@ -28,7 +28,7 @@ public class ProjectPlanImportService : IProjectPlanImportService
     private static readonly string[] RequiredHeaders =
     [
         "顺序", "节点编码", "父节点编码", "节点类型", "节点名称", "说明",
-        "计划工期(天)", "预计工时(小时)", "项目角色", "负载率(%)", "分配工时(小时)",
+        "计划工期(天)", "预计工时(小时)", "项目角色", "分配工时(小时)",
         "前置节点编码", "依赖类型", "提前/滞后(天)"
     ];
 
@@ -143,8 +143,6 @@ public class ProjectPlanImportService : IProjectPlanImportService
                 throw new InvalidDataException($"节点“{node.Code}”缺少节点名称。");
             if (node.ExpectedDuration < 0 || node.WorkEstimate < 0 || node.AssignmentWorkEstimate < 0)
                 throw new InvalidDataException($"节点“{node.Code}”的工期和工时不能为负数。");
-            if (node.PercentLoad < 0 || node.PercentLoad > 100)
-                throw new InvalidDataException($"节点“{node.Code}”的负载率必须在 0 到 100 之间。");
 
             if (node.NodeType == ProjectPlanNodeType.Phase)
             {
@@ -171,13 +169,8 @@ public class ProjectPlanImportService : IProjectPlanImportService
 
             if (string.IsNullOrWhiteSpace(node.ProjectRole))
             {
-                if (node.PercentLoad != 0 || node.AssignmentWorkEstimate != 0)
-                    throw new InvalidDataException($"节点“{node.Code}”填写负载率或分配工时前必须先填写项目角色。");
-            }
-            else if (node.PercentLoad == 0)
-            {
-                node.PercentLoad = 100;
-                definition.Warnings.Add($"节点“{node.Name}”未填写负载率，已按 100% 处理。");
+                if (node.AssignmentWorkEstimate != 0)
+                    throw new InvalidDataException($"节点“{node.Code}”填写分配工时前必须先填写项目角色。");
             }
         }
 
@@ -375,7 +368,6 @@ public class ProjectPlanImportService : IProjectPlanImportService
                 ExpectedDuration = ParseOptionalDecimal(CellText(sheet, row, headers["计划工期(天)"]), row, "计划工期(天)"),
                 WorkEstimate = ParseOptionalDecimal(CellText(sheet, row, headers["预计工时(小时)"]), row, "预计工时(小时)"),
                 ProjectRole = CellText(sheet, row, headers["项目角色"]),
-                PercentLoad = ParseOptionalDecimal(CellText(sheet, row, headers["负载率(%)"]), row, "负载率(%)"),
                 AssignmentWorkEstimate = ParseOptionalDecimal(CellText(sheet, row, headers["分配工时(小时)"]), row, "分配工时(小时)"),
                 PredecessorCodes = CellText(sheet, row, headers["前置节点编码"]),
                 PrecedenceType = CellText(sheet, row, headers["依赖类型"]),
@@ -618,7 +610,6 @@ public class ProjectPlanImportService : IProjectPlanImportService
                 new XAttribute("id", NewArasId(innovator)),
                 new XElement("source_id", nodeIds[node.Code]),
                 new XElement("role", node.ProjectRole),
-                new XElement("percent_load", FormatDecimal(node.PercentLoad)),
                 new XElement("work_est", FormatDecimal(node.AssignmentWorkEstimate))),
                 $"建立角色分配 {node.Code} - {node.ProjectRole}");
             assignmentCount++;
@@ -969,12 +960,12 @@ public class ProjectPlanImportService : IProjectPlanImportService
 
         object?[][] rows =
         [
-            [1, "P1", null, "阶段", "需求与规划", null, null, null, null, null, null, null, "FS", 0],
-            [2, "T1", "P1", "任务", "收集项目需求", "整理范围、目标与约束", 3, 24, null, null, null, null, "FS", 0],
-            [3, "M1", "P1", "里程碑", "需求确认", "需求基线确认完成", 0, 0, null, null, null, "T1", "FS", 0],
-            [4, "P2", null, "阶段", "设计与开发", null, null, null, null, null, null, null, "FS", 0],
-            [5, "T2", "P2", "任务", "方案设计", "完成方案与评审材料", 5, 40, null, null, null, "M1", "FS", 0],
-            [6, "M2", "P2", "里程碑", "设计评审", "设计评审通过", 0, 0, null, null, null, "T2", "FS", 0]
+            [1, "P1", null, "阶段", "需求与规划", null, null, null, null, null, null, "FS", 0],
+            [2, "T1", "P1", "任务", "收集项目需求", "整理范围、目标与约束", 3, 24, null, null, null, "FS", 0],
+            [3, "M1", "P1", "里程碑", "需求确认", "需求基线确认完成", 0, 0, null, null, "T1", "FS", 0],
+            [4, "P2", null, "阶段", "设计与开发", null, null, null, null, null, null, "FS", 0],
+            [5, "T2", "P2", "任务", "方案设计", "完成方案与评审材料", 5, 40, null, null, "M1", "FS", 0],
+            [6, "M2", "P2", "里程碑", "设计评审", "设计评审通过", 0, 0, null, null, "T2", "FS", 0]
         ];
         for (var row = 0; row < rows.Length; row++)
         for (var column = 0; column < rows[row].Length; column++)
@@ -984,7 +975,7 @@ public class ProjectPlanImportService : IProjectPlanImportService
         typeValidation.Formula.Values.Add("阶段");
         typeValidation.Formula.Values.Add("任务");
         typeValidation.Formula.Values.Add("里程碑");
-        var dependencyValidation = sheet.DataValidations.AddListValidation("M2:M500");
+        var dependencyValidation = sheet.DataValidations.AddListValidation("L2:L500");
         dependencyValidation.Formula.Values.Add("FS");
         dependencyValidation.Formula.Values.Add("FF");
         dependencyValidation.Formula.Values.Add("SS");
@@ -1000,10 +991,10 @@ public class ProjectPlanImportService : IProjectPlanImportService
         sheet.Column(4).Width = 12;
         sheet.Column(5).Width = 26;
         sheet.Column(6).Width = 38;
-        for (var column = 7; column <= 11; column++) sheet.Column(column).Width = 18;
-        sheet.Column(12).Width = 22;
-        sheet.Column(13).Width = 13;
-        sheet.Column(14).Width = 18;
+        for (var column = 7; column <= 10; column++) sheet.Column(column).Width = 18;
+        sheet.Column(11).Width = 22;
+        sheet.Column(12).Width = 13;
+        sheet.Column(13).Width = 18;
     }
 
     private static void BuildInstructionSheet(ExcelWorksheet sheet)
@@ -1020,8 +1011,8 @@ public class ProjectPlanImportService : IProjectPlanImportService
             ["父子规则", "阶段可位于根节点或另一阶段下；任务/里程碑必须挂在阶段下，父节点必须排在子节点之前。"],
             ["prev_item 链", "顺序列必须是 WBS 树的前序展开：首节点指向顶层 WBS，后续节点指向展开序列中的前一节点；每个阶段的后代必须连续。"],
             ["前置节点", "多个任务/里程碑编码优先用英文逗号分隔（例：T1,M1）；同时兼容分号、中文逗号和顿号；系统会逐个建立 Predecessor 并拒绝循环依赖。"],
-            ["项目角色", "可留空；填写时必须与当前 Aras 的 Project Role 列表值完全一致，工具不会自动创建角色。"],
-            ["真实 Aras 模型", "Project Template.wbs_id → WBS Element；Sub WBS 连接阶段；WBS Activity2 连接 Activity2；Predecessor 保存依赖。"],
+            ["项目角色", "可留空；填写时必须与当前 Aras 的 Project Role 列表值完全一致，工具不会自动创建角色；分配工时仅在填写角色时使用，无需填写负载率。"],
+            ["真实 Aras 模型", "Project Template.wbs_id → WBS Element；Sub WBS 连接阶段；WBS Activity2 连接 Activity2；Activity2 Assignment 仅写角色和分配工时；Predecessor 保存依赖。"],
             ["官方 R37 文档", "https://docs.aras.com/aras-innovator-release-37/creating-projects-37"],
             ["ArasLabs 参考", "https://github.com/ArasLabs/ms-project-importer"]
         ];
