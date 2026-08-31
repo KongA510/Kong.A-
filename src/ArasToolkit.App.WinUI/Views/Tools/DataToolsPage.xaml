@@ -6,7 +6,7 @@
 
     <Grid Background="Transparent">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="30,24,30,36" Spacing="16">
+            <StackPanel Margin="24,20,24,32" Spacing="14">
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -38,10 +38,10 @@
                                  PlaceholderText="RootEntity" />
                     </Grid>
 
-                    <Grid x:Name="TransformGrid" ColumnSpacing="14" RowSpacing="14">
+                    <Grid x:Name="TransformGrid" ColumnSpacing="16" RowSpacing="16">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="0.9*" />
+                            <ColumnDefinition Width="1.1*" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -64,7 +64,7 @@
                                          Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          PlaceholderText="{Binding InputPlaceholder}"
                                          AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas"
-                                         FontSize="13" MinHeight="380"
+                                         FontSize="13" MinHeight="520"
                                          IsSpellCheckEnabled="False" HorizontalAlignment="Stretch"
                                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto" />
@@ -80,16 +80,33 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding OutputLabel}" Style="{ThemeResource SectionTitleText}" />
-                                    <Button Grid.Column="1" Content="复制结果" Style="{ThemeResource CompactButton}"
-                                            Click="CopyOutput_Click" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                        <Button Content="打开 XML" Style="{ThemeResource CompactButton}"
+                                                Command="{Binding OpenXmlCommand}"
+                                                Visibility="{Binding IsXmlFormatter, Converter={StaticResource BoolToVisibility}}" />
+                                        <Button Content="保存 XML" Style="{ThemeResource CompactButton}"
+                                                Command="{Binding SaveXmlCommand}"
+                                                Visibility="{Binding IsXmlFormatter, Converter={StaticResource BoolToVisibility}}" />
+                                        <Button Content="复制结果" Style="{ThemeResource CompactButton}"
+                                                IsEnabled="{Binding HasOutput}"
+                                                Click="CopyOutput_Click" />
+                                    </StackPanel>
                                 </Grid>
-                                <TextBox x:Name="TransformOutputEditor"
-                                         Text="{Binding OutputText, Mode=OneWay}"
-                                         AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas"
-                                         FontSize="13" MinHeight="380" IsReadOnly="True"
-                                         IsSpellCheckEnabled="False" HorizontalAlignment="Stretch"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                         ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                                <StackPanel Orientation="Horizontal" Spacing="14"
+                                            Visibility="{Binding IsXmlFormatter, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="标签" FontSize="11" FontWeight="SemiBold" Foreground="#4F46E5" />
+                                    <TextBlock Text="属性" FontSize="11" FontWeight="SemiBold" Foreground="#0369A1" />
+                                    <TextBlock Text="值" FontSize="11" FontWeight="SemiBold" Foreground="#B45309" />
+                                    <TextBlock Text="文本" FontSize="11" FontWeight="SemiBold" Foreground="#0F766E" />
+                                    <TextBlock Text="注释" FontSize="11" FontWeight="SemiBold" Foreground="#15803D" />
+                                </StackPanel>
+                                <RichEditBox x:Name="TransformOutputEditor"
+                                             TextWrapping="NoWrap" FontFamily="Consolas"
+                                             FontSize="13" MinHeight="520" IsReadOnly="True"
+                                             IsSpellCheckEnabled="False" HorizontalAlignment="Stretch"
+                                             Padding="12,10" Background="#FAFBFF" BorderBrush="#D9DDF0"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
                             </StackPanel>
                         </Border>
                     </Grid>

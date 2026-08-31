@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Text;
 using System.Windows.Input;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Extensions;
@@ -12,6 +14,7 @@ public sealed class DataToolsViewModel : ObservableObject
 {
     private readonly IDataToolService _dataToolService;
     private readonly IErrorLogService _errorLogService;
+    private readonly IFileDialogService _fileDialogService;
     private string _toolName = "XML格式化";
     private string _title = "XML格式化";
     private string _subtitle = string.Empty;
@@ -32,13 +35,19 @@ public sealed class DataToolsViewModel : ObservableObject
     private bool _hasComparisonResult;
     private bool _isBusy;
 
-    public DataToolsViewModel(IDataToolService dataToolService, IErrorLogService errorLogService)
+    public DataToolsViewModel(
+        IDataToolService dataToolService,
+        IErrorLogService errorLogService,
+        IFileDialogService fileDialogService)
     {
         _dataToolService = dataToolService;
         _errorLogService = errorLogService;
+        _fileDialogService = fileDialogService;
         ExecuteCommand = new RelayCommand(async _ => await ExecuteAsync(), _ => !IsBusy);
         ClearCommand = new RelayCommand(Clear, () => !IsBusy);
         SwapCommand = new RelayCommand(SwapInputs, () => !IsBusy && IsCompareMode);
+        OpenXmlCommand = new RelayCommand(async _ => await OpenXmlAsync(), _ => !IsBusy && IsXmlFormatter);
+        SaveXmlCommand = new RelayCommand(async _ => await SaveXmlAsync(), _ => !IsBusy && IsXmlFormatter && HasOutput);
         Configure(_toolName);
     }
 
@@ -55,7 +64,16 @@ public sealed class DataToolsViewModel : ObservableObject
 
     public string InputText { get => _inputText; set => SetProperty(ref _inputText, value); }
     public string SecondInputText { get => _secondInputText; set => SetProperty(ref _secondInputText, value); }
-    public string OutputText { get => _outputText; set => SetProperty(ref _outputText, value); }
+    public string OutputText
+    {
+        get => _outputText;
+        set
+        {
+            if (!SetProperty(ref _outputText, value)) return;
+            OnPropertyChanged(nameof(HasOutput));
+            RaiseCommandStates();
+        }
+    }
     public string RootClassName { get => _rootClassName; set => SetProperty(ref _rootClassName, value); }
     public string StatusMessage
     {
@@ -79,9 +97,11 @@ public sealed class DataToolsViewModel : ObservableObject
         }
     }
     public bool IsTransformMode => !IsCompareMode;
+    public bool IsXmlFormatter => _toolName == "XML格式化";
     public bool IsJsonToEntity { get => _isJsonToEntity; private set => SetProperty(ref _isJsonToEntity, value); }
     public bool HasComparisonResult { get => _hasComparisonResult; private set => SetProperty(ref _hasComparisonResult, value); }
     public bool HasStatus => !string.IsNullOrWhiteSpace(StatusMessage);
+    public bool HasOutput => !string.IsNullOrWhiteSpace(OutputText);
     public bool IsBusy
     {
         get => _isBusy;
@@ -95,6 +115,8 @@ public sealed class DataToolsViewModel : ObservableObject
     public ICommand ExecuteCommand { get; }
     public ICommand ClearCommand { get; }
     public ICommand SwapCommand { get; }
+    public ICommand OpenXmlCommand { get; }
+    public ICommand SaveXmlCommand { get; }
 
     public void Configure(string? toolName)
     {
@@ -107,6 +129,8 @@ public sealed class DataToolsViewModel : ObservableObject
 
         IsCompareMode = _toolName is "XML比对" or "JSON比对";
         IsJsonToEntity = _toolName == "JSON转实体类";
+        OnPropertyChanged(nameof(IsXmlFormatter));
+        RaiseCommandStates();
         Title = _toolName;
         switch (_toolName)
         {
@@ -156,6 +180,63 @@ public sealed class DataToolsViewModel : ObservableObject
 
     public void NotifyOutputCopied()
         => StatusMessage = "结果已复制到剪贴板。";
+
+    private async Task OpenXmlAsync()
+    {
+        string? openedFileName = null;
+        try
+        {
+            var path = await _fileDialogService.PickOpenFileAsync(
+                "打开已保存的 XML", ".xml", ".aml", ".txt");
+            if (string.IsNullOrWhiteSpace(path)) return;
+
+            IsBusy = true;
+            StatusMessage = "正在读取 XML 文件…";
+            InputText = await File.ReadAllTextAsync(path, Encoding.UTF8);
+            openedFileName = Path.GetFileName(path);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"打开 XML 失败：{ex.Message}";
+            await _errorLogService.LogErrorAsync("XML格式化-打开文件", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        if (openedFileName == null) return;
+        await ExecuteAsync();
+        if (HasOutput)
+            StatusMessage = $"已打开并格式化：{openedFileName}。";
+    }
+
+    private async Task SaveXmlAsync()
+    {
+        if (!HasOutput) return;
+
+        try
+        {
+            var path = await _fileDialogService.PickSaveFileAsync(
+                $"XML格式化-{DateTime.Now:yyyyMMdd-HHmmss}.xml", ".xml");
+            if (string.IsNullOrWhiteSpace(path)) return;
+
+            IsBusy = true;
+            await File.WriteAllTextAsync(path, OutputText, new UTF8Encoding(false));
+            StatusMessage = $"XML 已保存：{path}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"保存 XML 失败：{ex.Message}";
+            await _errorLogService.LogErrorAsync("XML格式化-保存文件", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
 
     private async Task ExecuteAsync()
     {
@@ -242,5 +323,7 @@ public sealed class DataToolsViewModel : ObservableObject
         (ExecuteCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (ClearCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (SwapCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (OpenXmlCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (SaveXmlCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 }
