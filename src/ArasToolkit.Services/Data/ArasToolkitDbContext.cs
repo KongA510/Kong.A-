@@ -61,6 +61,12 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>常用 SQL/AML/XML 片段表</summary>
     public DbSet<CommonQuerySnippet> CommonQuerySnippets => Set<CommonQuerySnippet>();
 
+    /// <summary>相关代码主题表</summary>
+    public DbSet<RelatedCodeRecord> RelatedCodeRecords => Set<RelatedCodeRecord>();
+
+    /// <summary>相关代码段表</summary>
+    public DbSet<RelatedCodeSegment> RelatedCodeSegments => Set<RelatedCodeSegment>();
+
     /// <summary>数据库导出日志表</summary>
     public DbSet<DatabaseExportLog> DatabaseExportLogs => Set<DatabaseExportLog>();
 
@@ -389,6 +395,44 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
             entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+            entity.Ignore(e => e.DisplayCreatorOn);
+        });
+
+        // ===== RelatedCodeRecord → related_code_record 表 =====
+        modelBuilder.Entity<RelatedCodeRecord>(entity =>
+        {
+            entity.ToTable("related_code_record");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id").HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.Title).HasColumnName("title").IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(2000);
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+            entity.HasIndex(e => new { e.UserId, e.CreatorOn })
+                .HasDatabaseName("IX_related_code_record_user_creator");
+            entity.Ignore(e => e.DisplayCreatorOn);
+        });
+
+        // ===== RelatedCodeSegment → related_code_segment 表 =====
+        modelBuilder.Entity<RelatedCodeSegment>(entity =>
+        {
+            entity.ToTable("related_code_segment");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id").HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.RecordId).HasColumnName("record_id").IsRequired().HasMaxLength(12);
+            entity.Property(e => e.SegmentName).HasColumnName("segment_name").IsRequired().HasMaxLength(200);
+            entity.Property(e => e.CodeType).HasColumnName("code_type").IsRequired().HasMaxLength(20);
+            entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(1000);
+            entity.Property(e => e.CodeContent).HasColumnName("code_content").IsRequired();
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+            entity.HasOne(e => e.Record)
+                .WithMany(e => e.Segments)
+                .HasForeignKey(e => e.RecordId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_related_code_segment_record");
+            entity.HasIndex(e => new { e.RecordId, e.SortOrder })
+                .HasDatabaseName("IX_related_code_segment_record_sort");
             entity.Ignore(e => e.DisplayCreatorOn);
         });
 
@@ -932,6 +976,89 @@ public class ArasToolkitDbContext : DbContext
                     IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='common_query_snippet' AND COLUMN_NAME='creator_on')
                         ALTER TABLE common_query_snippet ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
                 END
+
+                -- ===== related_code_record 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='related_code_record')
+                BEGIN
+                    CREATE TABLE related_code_record (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        title NVARCHAR(200) NOT NULL,
+                        description NVARCHAR(2000) NULL,
+                        user_id NVARCHAR(100) NOT NULL,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+                ELSE
+                BEGIN
+                    IF COL_LENGTH(N'dbo.related_code_record', N'title') IS NULL
+                        ALTER TABLE related_code_record ADD title NVARCHAR(200) NOT NULL DEFAULT N'' WITH VALUES;
+                    IF COL_LENGTH(N'dbo.related_code_record', N'description') IS NULL
+                        ALTER TABLE related_code_record ADD description NVARCHAR(2000) NULL;
+                    IF COL_LENGTH(N'dbo.related_code_record', N'user_id') IS NULL
+                        ALTER TABLE related_code_record ADD user_id NVARCHAR(100) NOT NULL DEFAULT N'unknown' WITH VALUES;
+                    IF COL_LENGTH(N'dbo.related_code_record', N'creator_on') IS NULL
+                        ALTER TABLE related_code_record ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE() WITH VALUES;
+                END
+
+                IF NOT EXISTS
+                (
+                    SELECT 1 FROM sys.indexes
+                    WHERE object_id = OBJECT_ID(N'dbo.related_code_record')
+                      AND name = N'IX_related_code_record_user_creator'
+                )
+                    CREATE INDEX IX_related_code_record_user_creator
+                        ON related_code_record(user_id, creator_on DESC);
+
+                -- ===== related_code_segment 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='related_code_segment')
+                BEGIN
+                    CREATE TABLE related_code_segment (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        record_id NVARCHAR(12) NOT NULL,
+                        segment_name NVARCHAR(200) NOT NULL,
+                        code_type NVARCHAR(20) NOT NULL,
+                        description NVARCHAR(1000) NULL,
+                        code_content NVARCHAR(MAX) NOT NULL,
+                        sort_order INT NOT NULL DEFAULT 0,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+                ELSE
+                BEGIN
+                    IF COL_LENGTH(N'dbo.related_code_segment', N'record_id') IS NULL
+                        ALTER TABLE related_code_segment ADD record_id NVARCHAR(12) NOT NULL DEFAULT N'' WITH VALUES;
+                    IF COL_LENGTH(N'dbo.related_code_segment', N'segment_name') IS NULL
+                        ALTER TABLE related_code_segment ADD segment_name NVARCHAR(200) NOT NULL DEFAULT N'' WITH VALUES;
+                    IF COL_LENGTH(N'dbo.related_code_segment', N'code_type') IS NULL
+                        ALTER TABLE related_code_segment ADD code_type NVARCHAR(20) NOT NULL DEFAULT N'其他' WITH VALUES;
+                    IF COL_LENGTH(N'dbo.related_code_segment', N'description') IS NULL
+                        ALTER TABLE related_code_segment ADD description NVARCHAR(1000) NULL;
+                    IF COL_LENGTH(N'dbo.related_code_segment', N'code_content') IS NULL
+                        ALTER TABLE related_code_segment ADD code_content NVARCHAR(MAX) NOT NULL DEFAULT N'' WITH VALUES;
+                    IF COL_LENGTH(N'dbo.related_code_segment', N'sort_order') IS NULL
+                        ALTER TABLE related_code_segment ADD sort_order INT NOT NULL DEFAULT 0 WITH VALUES;
+                    IF COL_LENGTH(N'dbo.related_code_segment', N'creator_on') IS NULL
+                        ALTER TABLE related_code_segment ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE() WITH VALUES;
+                END
+
+                IF NOT EXISTS
+                (
+                    SELECT 1 FROM sys.foreign_keys
+                    WHERE parent_object_id = OBJECT_ID(N'dbo.related_code_segment')
+                      AND name = N'FK_related_code_segment_record'
+                )
+                    ALTER TABLE related_code_segment
+                        ADD CONSTRAINT FK_related_code_segment_record
+                        FOREIGN KEY (record_id) REFERENCES related_code_record(id) ON DELETE CASCADE;
+
+                IF NOT EXISTS
+                (
+                    SELECT 1 FROM sys.indexes
+                    WHERE object_id = OBJECT_ID(N'dbo.related_code_segment')
+                      AND name = N'IX_related_code_segment_record_sort'
+                )
+                    CREATE INDEX IX_related_code_segment_record_sort
+                        ON related_code_segment(record_id, sort_order);
 
                 -- ===== database_export_log 表 =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='database_export_log')

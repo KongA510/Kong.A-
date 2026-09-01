@@ -91,6 +91,7 @@ public partial class App : Application
         services.AddTransient<ArasLoginViewModel>();
         services.AddTransient<UserManageViewModel>();
         services.AddTransient<DataToolsViewModel>();
+        services.AddTransient<RelatedCodeRecordViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -137,6 +138,7 @@ public partial class App : Application
         nav.Register("JSON比对", typeof(DataToolsPage));
         nav.Register("JSON转实体类", typeof(DataToolsPage));
         nav.Register("实体类转JSON", typeof(DataToolsPage));
+        nav.Register("相关代码记录", typeof(RelatedCodeRecordPage));
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)

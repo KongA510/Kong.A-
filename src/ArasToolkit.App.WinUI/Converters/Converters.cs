@@ -325,3 +325,26 @@ public class DiffKindToBrushConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotImplementedException();
 }
+
+/// <summary>代码类型 → 卡片强调色；参数 Background 返回浅色背景。</summary>
+public class CodeTypeToBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var color = RelatedCodeTypes.Normalize(value?.ToString()) switch
+        {
+            RelatedCodeTypes.JavaScript => Color.FromArgb(255, 202, 138, 4),
+            RelatedCodeTypes.Sql => Color.FromArgb(255, 37, 99, 235),
+            RelatedCodeTypes.CSharp => Color.FromArgb(255, 124, 58, 237),
+            RelatedCodeTypes.Aml => Color.FromArgb(255, 15, 118, 110),
+            RelatedCodeTypes.Xml => Color.FromArgb(255, 194, 65, 12),
+            _ => Color.FromArgb(255, 100, 116, 139)
+        };
+        if (parameter?.ToString() == "Background")
+            color = Color.FromArgb(30, color.R, color.G, color.B);
+        return new SolidColorBrush(color);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
+}

@@ -106,7 +106,8 @@ public class MainViewModel : ObservableObject
         MenuItems.Add(dataRelated);
 
         // ===== 二级菜单：其他功能 =====
-        var otherTools = new MenuItemInfo { Name = "其他功能", Icon = "DeveloperTools", CardIcon = "\uEC7A", Description = "XML、JSON 格式处理与 .NET 实体转换工具集" };
+        var otherTools = new MenuItemInfo { Name = "其他功能", Icon = "DeveloperTools", CardIcon = "\uEC7A", Description = "代码记录、XML、JSON 格式处理与 .NET 实体转换工具集" };
+        otherTools.Children.Add(new MenuItemInfo { Name = "相关代码记录", Icon = "Code", CardIcon = "🧑‍💻", Description = "按主题管理 C#、JS、SQL、AML 与 XML 多语言代码链路" });
         otherTools.Children.Add(new MenuItemInfo { Name = "XML格式化", Icon = "Code", CardIcon = "\uE943", Description = "自动提取并格式化完整 XML 结构" });
         otherTools.Children.Add(new MenuItemInfo { Name = "XML比对", Icon = "Compare", CardIcon = "\uE8AB", Description = "归一化 XML 并以颜色标记缺少与内容差异" });
         otherTools.Children.Add(new MenuItemInfo { Name = "JSON格式化", Icon = "Code", CardIcon = "\uE943", Description = "校验并格式化 JSON 对象或数组" });
