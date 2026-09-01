@@ -1003,16 +1003,17 @@ public class ArasToolkitDbContext : DbContext
                     IF COL_LENGTH(N'dbo.related_code_record', N'sort_order') IS NULL
                     BEGIN
                         ALTER TABLE related_code_record ADD sort_order INT NOT NULL DEFAULT 0 WITH VALUES;
-                        ;WITH ordered_records AS
-                        (
-                            SELECT id,
-                                   ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY creator_on DESC, id) - 1 AS row_order
-                            FROM related_code_record
-                        )
-                        UPDATE target
-                        SET sort_order = ordered_records.row_order
-                        FROM related_code_record AS target
-                        INNER JOIN ordered_records ON ordered_records.id = target.id;
+                        EXEC sys.sp_executesql N'
+                            ;WITH ordered_records AS
+                            (
+                                SELECT id,
+                                       ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY creator_on DESC, id) - 1 AS row_order
+                                FROM related_code_record
+                            )
+                            UPDATE target
+                            SET sort_order = ordered_records.row_order
+                            FROM related_code_record AS target
+                            INNER JOIN ordered_records ON ordered_records.id = target.id;';
                     END
                 END
 
@@ -1022,8 +1023,9 @@ public class ArasToolkitDbContext : DbContext
                     WHERE object_id = OBJECT_ID(N'dbo.related_code_record')
                       AND name = N'IX_related_code_record_user_sort'
                 )
-                    CREATE INDEX IX_related_code_record_user_sort
-                        ON related_code_record(user_id, sort_order);
+                    EXEC sys.sp_executesql N'
+                        CREATE INDEX IX_related_code_record_user_sort
+                            ON related_code_record(user_id, sort_order);';
 
                 -- ===== related_code_segment 表 =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='related_code_segment')
