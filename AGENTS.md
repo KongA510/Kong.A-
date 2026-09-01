@@ -348,6 +348,7 @@ item.CreatorOn = DateTime.Now;
 ```
 每当修改某个功能的以下任一层面时，必须同步检查并更新该模块的所有相关部分：
 - 实体（Entity）字段变更 → 检查 DbContext映射、Service逻辑、ViewModel、View(XAML列/表单)、导出模板、导入逻辑
+- 实体新增或重命名数据库字段 → 必须同时在 `ArasToolkitDbContext.EnsureSchemaAsync()` 和 `DatabaseSchemaService` 的数据库检查字段映射中添加幂等同步 SQL，并通过“设置 → 数据库检查”验证字段可补全
 - 列顺序/列名变更 → 检查 XAML DataGrid、编辑表单、导出模板表头、导入列映射
 - 服务接口变更 → 检查 Service实现、ViewModel调用、DI注册
 
@@ -359,6 +360,7 @@ item.CreatorOn = DateTime.Now;
 □ TodoViewModel.cs         → 属性/命令/编辑拷贝
 □ TodoView.xaml            → DataGrid列 + 编辑表单字段
 □ TodoView.xaml.cs         → Code-behind事件处理
+□ DatabaseSchemaService.cs → 新增/重命名字段的数据库检查映射 SQL
 ```
 
 ### 9.10 错误日志规范 ⚠️ 所有异常必须记录

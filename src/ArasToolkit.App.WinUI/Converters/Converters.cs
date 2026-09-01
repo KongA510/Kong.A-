@@ -325,3 +325,50 @@ public class DiffKindToBrushConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotImplementedException();
 }
+
+/// <summary>数据库结构检查状态 → 状态画笔。</summary>
+public class SchemaStatusToBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var status = value is DatabaseSchemaTableStatus typed
+            ? typed
+            : Enum.TryParse<DatabaseSchemaTableStatus>(value?.ToString(), out var parsed)
+                ? parsed
+                : DatabaseSchemaTableStatus.Failed;
+        var color = status switch
+        {
+            DatabaseSchemaTableStatus.Ready => Color.FromArgb(255, 15, 123, 15),
+            DatabaseSchemaTableStatus.Created => Color.FromArgb(255, 37, 99, 235),
+            DatabaseSchemaTableStatus.Updated => Color.FromArgb(255, 180, 83, 9),
+            _ => Color.FromArgb(255, 196, 43, 28)
+        };
+        return new SolidColorBrush(color);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
+}
+
+/// <summary>代码类型 → 卡片强调色；参数 Background 返回浅色背景。</summary>
+public class CodeTypeToBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var color = RelatedCodeTypes.Normalize(value?.ToString()) switch
+        {
+            RelatedCodeTypes.JavaScript => Color.FromArgb(255, 202, 138, 4),
+            RelatedCodeTypes.Sql => Color.FromArgb(255, 37, 99, 235),
+            RelatedCodeTypes.CSharp => Color.FromArgb(255, 124, 58, 237),
+            RelatedCodeTypes.Aml => Color.FromArgb(255, 15, 118, 110),
+            RelatedCodeTypes.Xml => Color.FromArgb(255, 194, 65, 12),
+            _ => Color.FromArgb(255, 100, 116, 139)
+        };
+        if (parameter?.ToString() == "Background")
+            color = Color.FromArgb(30, color.R, color.G, color.B);
+        return new SolidColorBrush(color);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
+}

@@ -1,11 +1,12 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Input;
 using ArasToolkit.Core.Extensions;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Entities;
+using ArasToolkit.Core.Models;
 using ArasToolkit.Services.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace ArasToolkit.App.WinUI.ViewModels;
 
@@ -15,7 +16,7 @@ namespace ArasToolkit.App.WinUI.ViewModels;
 public class SettingsViewModel : ObservableObject
 {
     private readonly IErrorLogService _errorLogService;
-    private readonly IDbContextFactory<ArasToolkitDbContext> _contextFactory;
+    private readonly IDatabaseSchemaService _databaseSchemaService;
     private readonly IConfigService _configService;
     private readonly IFileDialogService _fileDialogService;
 
@@ -28,12 +29,12 @@ public class SettingsViewModel : ObservableObject
 
     public SettingsViewModel(
         IErrorLogService errorLogService,
-        IDbContextFactory<ArasToolkitDbContext> contextFactory,
+        IDatabaseSchemaService databaseSchemaService,
         IConfigService configService,
         IFileDialogService fileDialogService)
     {
         _errorLogService = errorLogService;
-        _contextFactory = contextFactory;
+        _databaseSchemaService = databaseSchemaService;
         _configService = configService;
         _fileDialogService = fileDialogService;
 
@@ -95,6 +96,21 @@ public class SettingsViewModel : ObservableObject
         }
     }
 
+    public ObservableCollection<DatabaseSchemaTableResult> SchemaResults { get; } = [];
+
+    public bool HasSchemaResults => SchemaResults.Count > 0;
+
+    public string SchemaSummary
+    {
+        get
+        {
+            var changed = SchemaResults.Count(item => item.Status is
+                DatabaseSchemaTableStatus.Created or DatabaseSchemaTableStatus.Updated);
+            var failed = SchemaResults.Count(item => item.Status == DatabaseSchemaTableStatus.Failed);
+            return $"共 {SchemaResults.Count} 张表 · 变更 {changed} · 失败 {failed}";
+        }
+    }
+
     /// <summary>退出请求事件（MainWindow 订阅后执行登出逻辑）</summary>
     public event Action? LogoutRequested;
 
@@ -133,9 +149,15 @@ public class SettingsViewModel : ObservableObject
         StatusMessage = "正在检查数据库...";
         try
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
-            await context.EnsureSchemaAsync();
-            StatusMessage = "数据库检查完成，表结构已同步";
+            var result = await _databaseSchemaService.CheckAndSynchronizeAsync();
+            SchemaResults.Clear();
+            foreach (var item in result.Tables)
+                SchemaResults.Add(item);
+            OnPropertyChanged(nameof(HasSchemaResults));
+            OnPropertyChanged(nameof(SchemaSummary));
+            StatusMessage = result.IsSuccess
+                ? $"数据库检查完成：{SchemaSummary}"
+                : $"数据库检查未全部通过：{result.ErrorMessage ?? SchemaSummary}";
         }
         catch (Exception ex)
         {

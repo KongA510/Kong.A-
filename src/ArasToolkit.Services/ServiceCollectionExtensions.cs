@@ -104,6 +104,14 @@ public static class ServiceCollectionExtensions
         // 注册 XML / JSON 开发数据工具服务（单例，纯内存操作）
         services.AddSingleton<IDataToolService, DataToolService>();
 
+        // 注册相关代码主题、语法高亮与数据库结构检查服务
+        services.AddSingleton<IRelatedCodeRecordService, RelatedCodeRecordService>();
+        services.AddSingleton<ICodeSyntaxHighlightService, CodeSyntaxHighlightService>();
+        services.AddSingleton<IDatabaseSchemaService, DatabaseSchemaService>();
+
+        // 注册 XML 数据库存储服务（格式化与比对页面共用）
+        services.AddSingleton<ISavedXmlService, SavedXmlService>();
+
 
         // 注册数据库导出服务（单例）
         services.AddSingleton<ISqlTemplateService, SqlTemplateService>();
