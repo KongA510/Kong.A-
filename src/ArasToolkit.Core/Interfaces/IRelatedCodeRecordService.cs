@@ -11,5 +11,6 @@ public interface IRelatedCodeRecordService
     Task<RelatedCodeSegment> SaveSegmentAsync(string recordId, RelatedCodeSegment segment);
     Task DeleteRecordAsync(string id);
     Task DeleteSegmentAsync(string recordId, string segmentId);
+    Task ReorderRecordsAsync(IReadOnlyList<string> orderedRecordIds);
     Task ReorderSegmentsAsync(string recordId, IReadOnlyList<string> orderedSegmentIds);
 }

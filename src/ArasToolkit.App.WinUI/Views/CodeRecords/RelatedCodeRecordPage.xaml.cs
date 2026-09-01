@@ -153,6 +153,18 @@ public sealed partial class RelatedCodeRecordPage : Page
         await Vm.SearchAsync();
     }
 
+    private async void ThemeList_DragItemsCompleted(object sender, DragItemsCompletedEventArgs e)
+    {
+        if (e.DropResult == DataPackageOperation.Move)
+            await Vm.PersistRecordOrderAsync();
+    }
+
+    private async void SegmentMenuList_DragItemsCompleted(object sender, DragItemsCompletedEventArgs e)
+    {
+        if (e.DropResult == DataPackageOperation.Move)
+            await Vm.PersistSegmentOrderAsync();
+    }
+
     private void SegmentMenuList_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
     {
         if (OpenSelectedSegment())

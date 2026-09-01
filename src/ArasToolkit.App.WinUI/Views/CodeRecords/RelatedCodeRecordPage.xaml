@@ -86,7 +86,10 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="01" Style="{StaticResource PanelStepStyle}" />
-                        <TextBlock Grid.Column="1" Text="主题" Style="{ThemeResource SectionTitleText}" />
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="主题" Style="{ThemeResource SectionTitleText}" />
+                            <TextBlock Text="拖拽调整顺序" Style="{ThemeResource CaptionText}" />
+                        </StackPanel>
                         <TextBlock Grid.Column="2" Text="{Binding LibrarySummary}"
                                    Style="{ThemeResource CaptionText}" VerticalAlignment="Center" />
                     </Grid>
@@ -100,9 +103,11 @@
                         <Button Grid.Column="1" Content="查询" Click="SearchButton_Click"
                                 Style="{ThemeResource PrimaryButton}" />
                     </Grid>
-                    <ListView Grid.Row="2" ItemsSource="{Binding Records}"
+                    <ListView x:Name="ThemeList" Grid.Row="2" ItemsSource="{Binding Records}"
                               SelectedItem="{Binding SelectedRecord, Mode=TwoWay}"
                               SelectionMode="Single" ItemContainerStyle="{StaticResource NavigatorItemStyle}"
+                              CanDragItems="True" CanReorderItems="True" AllowDrop="True"
+                              DragItemsCompleted="ThemeList_DragItemsCompleted"
                               ScrollViewer.VerticalScrollBarVisibility="Auto">
                         <ListView.ItemTemplate>
                             <DataTemplate>
@@ -110,6 +115,7 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="4" />
                                         <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <Border Background="{ThemeResource AccentBrush}" CornerRadius="2" />
                                     <StackPanel Grid.Column="1" Spacing="5">
@@ -118,6 +124,11 @@
                                                    TextTrimming="CharacterEllipsis" />
                                         <TextBlock Text="{Binding DisplayCreatorOn}" Style="{ThemeResource CaptionText}" />
                                     </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="⠿" FontSize="18"
+                                               Foreground="{ThemeResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center" Padding="4"
+                                               AutomationProperties.Name="拖拽主题排序"
+                                               ToolTipService.ToolTip="按住并拖拽调整主题顺序" />
                                 </Grid>
                             </DataTemplate>
                         </ListView.ItemTemplate>
@@ -153,7 +164,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="单击查看用途，双击打开具体代码"
+                        <TextBlock Text="拖拽调整顺序，双击打开具体代码"
                                    Style="{ThemeResource CaptionText}" />
                         <TextBlock Grid.Column="1" Text="{Binding SegmentSummary}"
                                    Style="{ThemeResource CaptionText}" />
@@ -162,6 +173,8 @@
                         <ListView x:Name="SegmentMenuList" ItemsSource="{Binding Segments}"
                                   SelectedItem="{Binding SelectedSegment, Mode=TwoWay}"
                                   SelectionMode="Single" ItemContainerStyle="{StaticResource NavigatorItemStyle}"
+                                  CanDragItems="True" CanReorderItems="True" AllowDrop="True"
+                                  DragItemsCompleted="SegmentMenuList_DragItemsCompleted"
                                   DoubleTapped="SegmentMenuList_DoubleTapped"
                                   KeyDown="SegmentMenuList_KeyDown"
                                   Visibility="{Binding HasSegments, Converter={StaticResource BoolToVisibility}}"
@@ -172,6 +185,7 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="4" />
                                             <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <Border Background="{Binding CodeType, Converter={StaticResource CodeTypeToBrush}}"
                                                 CornerRadius="2" />
@@ -197,6 +211,11 @@
                                                        Foreground="{ThemeResource TextSecondaryBrush}"
                                                        TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="⠿" FontSize="18"
+                                                   Foreground="{ThemeResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center" Padding="4"
+                                                   AutomationProperties.Name="拖拽代码段排序"
+                                                   ToolTipService.ToolTip="按住并拖拽调整标题与用途顺序" />
                                     </Grid>
                                 </DataTemplate>
                             </ListView.ItemTemplate>

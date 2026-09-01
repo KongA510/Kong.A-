@@ -334,6 +334,56 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
         }
     }
 
+    public async Task PersistRecordOrderAsync()
+    {
+        if (IsBusy || Records.Count < 2)
+            return;
+
+        IsBusy = true;
+        ErrorMessage = string.Empty;
+        try
+        {
+            await _service.ReorderRecordsAsync(Records.Select(item => item.Id).ToList());
+            StatusMessage = "主题顺序已保存。";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"保存主题顺序失败：{ex.Message}，请刷新后重试。";
+            await LogUiErrorAsync("相关代码记录-页面拖拽主题排序", ex);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public async Task PersistSegmentOrderAsync()
+    {
+        if (IsBusy || !IsRecordSelected || Segments.Count < 2)
+            return;
+
+        IsBusy = true;
+        ErrorMessage = string.Empty;
+        try
+        {
+            await _service.ReorderSegmentsAsync(
+                _editingRecordId,
+                Segments.Select(item => item.Id).ToList());
+            for (var index = 0; index < Segments.Count; index++)
+                Segments[index].SortOrder = index;
+            StatusMessage = "标题与用途顺序已保存。";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"保存代码段顺序失败：{ex.Message}，请刷新后重试。";
+            await LogUiErrorAsync("相关代码记录-页面拖拽代码段排序", ex);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     public void ReportCopied(RelatedCodeSegment segment)
     {
         ErrorMessage = string.Empty;

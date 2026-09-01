@@ -26,6 +26,9 @@ public class RelatedCodeRecord
     [Required]
     public string UserId { get; set; } = string.Empty;
 
+    [Column("sort_order")]
+    public int SortOrder { get; set; }
+
     [Column("creator_on")]
     public DateTime CreatorOn { get; set; } = DateTime.Now;
 

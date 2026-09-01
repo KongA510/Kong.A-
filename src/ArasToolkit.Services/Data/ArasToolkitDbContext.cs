@@ -407,9 +407,10 @@ public class ArasToolkitDbContext : DbContext
             entity.Property(e => e.Title).HasColumnName("title").IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(2000);
             entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
             entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
-            entity.HasIndex(e => new { e.UserId, e.CreatorOn })
-                .HasDatabaseName("IX_related_code_record_user_creator");
+            entity.HasIndex(e => new { e.UserId, e.SortOrder })
+                .HasDatabaseName("IX_related_code_record_user_sort");
             entity.Ignore(e => e.DisplayCreatorOn);
         });
 
@@ -985,6 +986,7 @@ public class ArasToolkitDbContext : DbContext
                         title NVARCHAR(200) NOT NULL,
                         description NVARCHAR(2000) NULL,
                         user_id NVARCHAR(100) NOT NULL,
+                        sort_order INT NOT NULL DEFAULT 0,
                         creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
                     );
                 END
@@ -998,16 +1000,30 @@ public class ArasToolkitDbContext : DbContext
                         ALTER TABLE related_code_record ADD user_id NVARCHAR(100) NOT NULL DEFAULT N'unknown' WITH VALUES;
                     IF COL_LENGTH(N'dbo.related_code_record', N'creator_on') IS NULL
                         ALTER TABLE related_code_record ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE() WITH VALUES;
+                    IF COL_LENGTH(N'dbo.related_code_record', N'sort_order') IS NULL
+                    BEGIN
+                        ALTER TABLE related_code_record ADD sort_order INT NOT NULL DEFAULT 0 WITH VALUES;
+                        ;WITH ordered_records AS
+                        (
+                            SELECT id,
+                                   ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY creator_on DESC, id) - 1 AS row_order
+                            FROM related_code_record
+                        )
+                        UPDATE target
+                        SET sort_order = ordered_records.row_order
+                        FROM related_code_record AS target
+                        INNER JOIN ordered_records ON ordered_records.id = target.id;
+                    END
                 END
 
                 IF NOT EXISTS
                 (
                     SELECT 1 FROM sys.indexes
                     WHERE object_id = OBJECT_ID(N'dbo.related_code_record')
-                      AND name = N'IX_related_code_record_user_creator'
+                      AND name = N'IX_related_code_record_user_sort'
                 )
-                    CREATE INDEX IX_related_code_record_user_creator
-                        ON related_code_record(user_id, creator_on DESC);
+                    CREATE INDEX IX_related_code_record_user_sort
+                        ON related_code_record(user_id, sort_order);
 
                 -- ===== related_code_segment 表 =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='related_code_segment')

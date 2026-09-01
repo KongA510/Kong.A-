@@ -47,7 +47,8 @@ public sealed class RelatedCodeRecordService : IRelatedCodeRecordService
             }
 
             return await query
-                .OrderByDescending(item => item.CreatorOn)
+                .OrderBy(item => item.SortOrder)
+                .ThenByDescending(item => item.CreatorOn)
                 .ToListAsync()
                 .ConfigureAwait(false);
         }
@@ -95,10 +96,17 @@ public sealed class RelatedCodeRecordService : IRelatedCodeRecordService
 
             if (existing == null)
             {
+                var nextOrder = await db.RelatedCodeRecords
+                    .Where(item => item.UserId == userId)
+                    .Select(item => (int?)item.SortOrder)
+                    .MaxAsync()
+                    .ConfigureAwait(false) ?? -1;
+
                 record.Id = Guid.NewGuid().ToString("N")[..12];
                 record.Title = record.Title.Trim();
                 record.Description = NormalizeOptional(record.Description);
                 record.UserId = userId;
+                record.SortOrder = nextOrder + 1;
                 record.CreatorOn = DateTime.Now;
                 record.Segments = [];
                 db.RelatedCodeRecords.Add(record);
@@ -115,6 +123,7 @@ public sealed class RelatedCodeRecordService : IRelatedCodeRecordService
                 $"更新相关代码主题: {existing.Title}").ConfigureAwait(false);
             record.Id = existing.Id;
             record.UserId = existing.UserId;
+            record.SortOrder = existing.SortOrder;
             record.CreatorOn = existing.CreatorOn;
             return record;
         }
@@ -194,6 +203,7 @@ public sealed class RelatedCodeRecordService : IRelatedCodeRecordService
                 .ConfigureAwait(false);
             db.RelatedCodeRecords.Remove(record);
             await db.SaveChangesAsync().ConfigureAwait(false);
+            await NormalizeRecordOrderAsync(db, record.UserId).ConfigureAwait(false);
             await LogOperationSafelyAsync("Delete", nameof(RelatedCodeRecord), record.Id,
                 $"删除相关代码主题“{record.Title}”及 {segmentCount} 个代码段")
                 .ConfigureAwait(false);
@@ -219,7 +229,7 @@ public sealed class RelatedCodeRecordService : IRelatedCodeRecordService
 
             db.RelatedCodeSegments.Remove(segment);
             await db.SaveChangesAsync().ConfigureAwait(false);
-            await NormalizeOrderAsync(db, record.Id).ConfigureAwait(false);
+            await NormalizeSegmentOrderAsync(db, record.Id).ConfigureAwait(false);
             await LogOperationSafelyAsync("Delete", nameof(RelatedCodeSegment), segment.Id,
                 $"删除“{record.Title}”的 {segment.CodeType} 代码段: {segment.SegmentName}")
                 .ConfigureAwait(false);
@@ -227,6 +237,45 @@ public sealed class RelatedCodeRecordService : IRelatedCodeRecordService
         catch (Exception ex)
         {
             await LogErrorAsync("相关代码记录-删除代码段", ex).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    public async Task ReorderRecordsAsync(IReadOnlyList<string> orderedRecordIds)
+    {
+        try
+        {
+            if (orderedRecordIds.Count < 2 ||
+                orderedRecordIds.Distinct(StringComparer.Ordinal).Count() != orderedRecordIds.Count)
+            {
+                throw new InvalidOperationException("主题排序数据无效，请刷新后重试。");
+            }
+
+            await using var db = await _dbFactory.CreateDbContextAsync().ConfigureAwait(false);
+            var userId = CurrentUserContext.CurrentUserId;
+            var records = await db.RelatedCodeRecords
+                .Where(item => item.UserId == userId && orderedRecordIds.Contains(item.Id))
+                .OrderBy(item => item.SortOrder)
+                .ThenByDescending(item => item.CreatorOn)
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            if (records.Count != orderedRecordIds.Count)
+                throw new InvalidOperationException("主题排序数据已变化，请刷新后重试。");
+
+            var occupiedOrders = records.Select(item => item.SortOrder).OrderBy(value => value).ToArray();
+            var recordMap = records.ToDictionary(item => item.Id, StringComparer.Ordinal);
+            for (var index = 0; index < orderedRecordIds.Count; index++)
+                recordMap[orderedRecordIds[index]].SortOrder = occupiedOrders[index];
+
+            await db.SaveChangesAsync().ConfigureAwait(false);
+            await LogOperationSafelyAsync("Update", nameof(RelatedCodeRecord), userId,
+                $"调整相关代码主题顺序，共 {orderedRecordIds.Count} 个主题")
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            await LogErrorAsync("相关代码记录-调整主题顺序", ex).ConfigureAwait(false);
             throw;
         }
     }
@@ -277,7 +326,20 @@ public sealed class RelatedCodeRecordService : IRelatedCodeRecordService
             ?? throw new InvalidOperationException("未找到相关代码主题，或当前用户无权访问。");
     }
 
-    private static async Task NormalizeOrderAsync(ArasToolkitDbContext db, string recordId)
+    private static async Task NormalizeRecordOrderAsync(ArasToolkitDbContext db, string userId)
+    {
+        var records = await db.RelatedCodeRecords
+            .Where(item => item.UserId == userId)
+            .OrderBy(item => item.SortOrder)
+            .ThenByDescending(item => item.CreatorOn)
+            .ToListAsync()
+            .ConfigureAwait(false);
+        for (var index = 0; index < records.Count; index++)
+            records[index].SortOrder = index;
+        await db.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    private static async Task NormalizeSegmentOrderAsync(ArasToolkitDbContext db, string recordId)
     {
         var segments = await db.RelatedCodeSegments
             .Where(item => item.RecordId == recordId)
