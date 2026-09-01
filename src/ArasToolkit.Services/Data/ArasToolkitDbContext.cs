@@ -67,6 +67,9 @@ public class ArasToolkitDbContext : DbContext
     /// <summary>相关代码段表</summary>
     public DbSet<RelatedCodeSegment> RelatedCodeSegments => Set<RelatedCodeSegment>();
 
+    /// <summary>XML 格式化与比对工具保存的数据表</summary>
+    public DbSet<SavedXml> SavedXmlItems => Set<SavedXml>();
+
     /// <summary>数据库导出日志表</summary>
     public DbSet<DatabaseExportLog> DatabaseExportLogs => Set<DatabaseExportLog>();
 
@@ -434,6 +437,22 @@ public class ArasToolkitDbContext : DbContext
                 .HasConstraintName("FK_related_code_segment_record");
             entity.HasIndex(e => new { e.RecordId, e.SortOrder })
                 .HasDatabaseName("IX_related_code_segment_record_sort");
+            entity.Ignore(e => e.DisplayCreatorOn);
+        });
+
+        // ===== SavedXml → saved_xml 表 =====
+        modelBuilder.Entity<SavedXml>(entity =>
+        {
+            entity.ToTable("saved_xml");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id").HasMaxLength(12).ValueGeneratedNever();
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(200);
+            entity.Property(e => e.XmlContent).HasColumnName("xml_content").IsRequired();
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.CreatorOn).HasColumnName("creator_on");
+            entity.HasIndex(e => new { e.UserId, e.Name })
+                .HasDatabaseName("UX_saved_xml_user_name")
+                .IsUnique();
             entity.Ignore(e => e.DisplayCreatorOn);
         });
 
@@ -1077,6 +1096,31 @@ public class ArasToolkitDbContext : DbContext
                 )
                     CREATE INDEX IX_related_code_segment_record_sort
                         ON related_code_segment(record_id, sort_order);
+
+                -- ===== saved_xml 表 =====
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='saved_xml')
+                BEGIN
+                    CREATE TABLE saved_xml (
+                        id NVARCHAR(12) NOT NULL PRIMARY KEY,
+                        name NVARCHAR(200) NOT NULL,
+                        xml_content NVARCHAR(MAX) NOT NULL,
+                        user_id NVARCHAR(100) NOT NULL,
+                        creator_on DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END
+                ELSE
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='saved_xml' AND COLUMN_NAME='creator_on')
+                        ALTER TABLE saved_xml ADD creator_on DATETIME2 NOT NULL DEFAULT GETDATE();
+                END
+
+                IF NOT EXISTS
+                (
+                    SELECT 1 FROM sys.indexes
+                    WHERE object_id = OBJECT_ID(N'dbo.saved_xml')
+                      AND name = N'UX_saved_xml_user_name'
+                )
+                    CREATE UNIQUE INDEX UX_saved_xml_user_name ON saved_xml(user_id, name);
 
                 -- ===== database_export_log 表 =====
                 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='database_export_log')

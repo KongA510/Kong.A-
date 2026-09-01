@@ -109,6 +109,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICodeSyntaxHighlightService, CodeSyntaxHighlightService>();
         services.AddSingleton<IDatabaseSchemaService, DatabaseSchemaService>();
 
+        // 注册 XML 数据库存储服务（格式化与比对页面共用）
+        services.AddSingleton<ISavedXmlService, SavedXmlService>();
+
 
         // 注册数据库导出服务（单例）
         services.AddSingleton<ISqlTemplateService, SqlTemplateService>();

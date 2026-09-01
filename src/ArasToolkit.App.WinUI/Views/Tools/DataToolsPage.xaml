@@ -29,6 +29,43 @@
                     </Border>
                 </Grid>
 
+                <!-- XML 格式化与比对共用同一份数据库记录。 -->
+                <Border Style="{ThemeResource SimpleCard}" Padding="14,12"
+                        Visibility="{Binding IsXmlTool, Converter={StaticResource BoolToVisibility}}">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="数据库 XML" Style="{ThemeResource SectionTitleText}" />
+                            <ComboBox ItemsSource="{Binding SavedXmlItems}"
+                                      SelectedItem="{Binding SelectedSavedXml, Mode=TwoWay}"
+                                      PlaceholderText="暂无已保存 XML"
+                                      HorizontalAlignment="Stretch" MaxWidth="560">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding DisplayCreatorOn}"
+                                                       Foreground="{ThemeResource TextSecondaryBrush}" FontSize="11" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"
+                                    VerticalAlignment="Bottom">
+                            <Button Content="刷新" Command="{Binding RefreshSavedXmlCommand}" />
+                            <Button Content="{Binding SavedXmlPrimaryLoadText}"
+                                    Command="{Binding LoadSavedXmlToACommand}" />
+                            <Button Content="加载到 B" Command="{Binding LoadSavedXmlToBCommand}"
+                                    Visibility="{Binding IsXmlCompare, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Content="删除" Command="{Binding DeleteSavedXmlCommand}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
                 <!-- 格式化与实体转换：统一的左输入 / 右输出工作台。 -->
                 <StackPanel x:Name="TransformPanel" Spacing="12"
                             Visibility="{Binding IsTransformMode, Converter={StaticResource BoolToVisibility}}">
@@ -84,7 +121,7 @@
                                         <Button Content="打开 XML" Style="{ThemeResource CompactButton}"
                                                 Command="{Binding OpenXmlCommand}"
                                                 Visibility="{Binding IsXmlFormatter, Converter={StaticResource BoolToVisibility}}" />
-                                        <Button Content="保存 XML" Style="{ThemeResource CompactButton}"
+                                        <Button Content="保存到数据库" Style="{ThemeResource CompactButton}"
                                                 Command="{Binding SaveXmlCommand}"
                                                 Visibility="{Binding IsXmlFormatter, Converter={StaticResource BoolToVisibility}}" />
                                         <Button Content="复制结果" Style="{ThemeResource CompactButton}"
@@ -100,13 +137,27 @@
                                     <TextBlock Text="文本" FontSize="11" FontWeight="SemiBold" Foreground="#0F766E" />
                                     <TextBlock Text="注释" FontSize="11" FontWeight="SemiBold" Foreground="#15803D" />
                                 </StackPanel>
-                                <RichEditBox x:Name="TransformOutputEditor"
-                                             TextWrapping="NoWrap" FontFamily="Consolas"
-                                             FontSize="13" MinHeight="520" IsReadOnly="True"
-                                             IsSpellCheckEnabled="False" HorizontalAlignment="Stretch"
-                                             Padding="12,10" Background="#FAFBFF" BorderBrush="#D9DDF0"
-                                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                                <!-- XML 使用 RichTextBlock 的 Run 呈现高亮，避免 RichEditBox.Document 的原生 COM 闪退与空白输出。 -->
+                                <Border x:Name="XmlOutputContainer"
+                                        Visibility="{Binding IsXmlFormatter, Converter={StaticResource BoolToVisibility}}"
+                                        Height="520" Padding="12,10" CornerRadius="4"
+                                        Background="#FAFBFF" BorderBrush="#D9DDF0" BorderThickness="1">
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <RichTextBlock x:Name="TransformOutputViewer"
+                                                       TextWrapping="NoWrap" FontFamily="Consolas"
+                                                       FontSize="13" IsTextSelectionEnabled="True" />
+                                    </ScrollViewer>
+                                </Border>
+                                <!-- 非 XML 格式化模式使用普通只读文本框，避免无关页面触碰 RichEdit COM 文档对象。 -->
+                                <TextBox x:Name="PlainTransformOutputEditor"
+                                         Visibility="{Binding IsXmlFormatter, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"
+                                         Text="{Binding OutputText, Mode=OneWay}"
+                                         AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas"
+                                         FontSize="13" MinHeight="520" IsReadOnly="True"
+                                         IsSpellCheckEnabled="False" HorizontalAlignment="Stretch"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto" />
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -141,8 +192,13 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding LeftLabel}" Style="{ThemeResource SectionTitleText}" />
-                                    <TextBlock Grid.Column="1" Text="A" FontSize="11" FontWeight="SemiBold"
-                                               Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="A" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                        <Button Content="保存 A" Style="{ThemeResource CompactButton}"
+                                                Command="{Binding SaveXmlACommand}"
+                                                Visibility="{Binding IsXmlCompare, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
                                 </Grid>
                                 <TextBox x:Name="CompareLeftEditor"
                                          Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -162,8 +218,13 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding RightLabel}" Style="{ThemeResource SectionTitleText}" />
-                                    <TextBlock Grid.Column="1" Text="B" FontSize="11" FontWeight="SemiBold"
-                                               Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="B" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                        <Button Content="保存 B" Style="{ThemeResource CompactButton}"
+                                                Command="{Binding SaveXmlBCommand}"
+                                                Visibility="{Binding IsXmlCompare, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
                                 </Grid>
                                 <TextBox x:Name="CompareRightEditor"
                                          Text="{Binding SecondInputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
