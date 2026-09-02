@@ -44,8 +44,6 @@ public class ObjectClassImportService : IObjectClassImportService
     private readonly IErrorLogService _errorLogService;
 
     private const string ImportBaseDir = "Config/ObjectClassImports";
-    private const string TemplateDir = "Config/ObjectClassTemplates";
-
     // Aras 系统常量（硬编码环境标识符）
     private const string DefaultRevisionsGuid = "7FE395DD8B9F4E1090756A34B733D75E";
     private const string CanAddRelatedIdGuid = "A73B655731924CD0B027E4F4D5FCC0A9";
@@ -75,15 +73,15 @@ public class ObjectClassImportService : IObjectClassImportService
 
     /// <summary>
     /// 生成 Excel 模板文件（2个Sheet，含表头加粗+自适应列宽）
-    /// Sheet1「对象类新增」: 10列 — 对象类基本属性
-    /// Sheet2「关系类新增」: 10列 — 关系类基本属性（已移除"必须"/"自动搜索"默认值列）
+    /// Sheet1「对象类新增」: 8列 — 对象类基本属性及简/繁/英多语言标签
+    /// Sheet2「关系类新增」: 9列 — 关系类基本属性及简/繁/英多语言标签
     /// </summary>
     /// <returns>Excel 文件字节数组</returns>
     public byte[] GenerateTemplate()
     {
         using var package = new ExcelPackage();
 
-        // ===== Sheet 1: 对象类新增（10列）=====
+        // ===== Sheet 1: 对象类新增（8列）=====
         var ws1 = package.Workbook.Worksheets.Add("对象类新增");
         var headers1 = new[]
         {
@@ -91,30 +89,27 @@ public class ObjectClassImportService : IObjectClassImportService
             "物件显示名称",                  // Col 2 → AML <i18n:label xml:lang='zc'> (简体中文)
             "物件显示名称繁体",              // Col 3 → AML <i18n:label xml:lang='zt'> (繁体中文)
             "物件显示名称英文",              // Col 4 → AML <label> (英文)
-            "TOC显示文字",                   // Col 5 → AML <label_plural> (复数标签)
-            "TOC显示文字繁体",              // Col 6 → 预留（当前AML未使用）
-            "TOC显示文字英文",              // Col 7 → 预留（当前AML未使用）
-            "可换版(1=可以 0=不可以)",        // Col 8 → AML <is_versionable>
-            "自动搜索(默认1)",              // Col 9 → 读取备用，AML硬编码为1
-            "页面默认大小(默认50)"           // Col 10 → 读取备用，AML硬编码为50
+            "TOC显示文字",                   // Col 5 → AML <label_plural> + 简体中文i18n标签
+            "TOC显示文字繁体",               // Col 6 → AML <i18n:label_plural xml:lang='zt'>
+            "TOC显示文字英文",               // Col 7 → AML <i18n:label_plural xml:lang='en'>
+            "可换版(1=可以 0=不可以)"         // Col 8 → AML <is_versionable>
         };
         WriteHeaders(ws1, headers1);
         ws1.Cells[1, 1, 1, headers1.Length].AutoFitColumns(8, 30);
 
-        // ===== Sheet 2: 关系类新增（10列，已移除"必须""自动搜索"列）=====
+        // ===== Sheet 2: 关系类新增（9列）=====
         var ws2 = package.Workbook.Worksheets.Add("关系类新增");
         var headers2 = new[]
         {
             "父对象名称",                                        // Col 1 → AML source_id (父对象ItemType名称)
             "关系类名称",                                        // Col 2 → AML <name>
             "页签序号",                                          // Col 3 → AML <sort_order>
-            "页签标签",                                          // Col 4 → AML <label>
-            "页签标签繁体",                                      // Col 5 → 预留（当前AML未使用）
-            "页签标签英文",                                      // Col 6 → 预留（当前AML未使用）
+            "页签标签",                                          // Col 4 → AML <label> + 简体中文i18n标签
+            "页签标签繁体",                                      // Col 5 → AML <i18n:label xml:lang='zt'>
+            "页签标签英文",                                      // Col 6 → AML <i18n:label xml:lang='en'>
             "新建关系选项(1=仅选取 2=仅创建 3=均可)",              // Col 7 → AML <for_related_option>
-            "打开相关窗体",                                      // Col 8 → 预留（当前AML未使用）
-            "源对象类",                                          // Col 9 → 预留（当前AML未使用）
-            "相关对象类"                                         // Col 10 → 预留（当前AML未使用）
+            "打开相关窗体",                                      // Col 8 → AML <new_show_related>
+            "相关对象类"                                         // Col 9 → AML <related_id>
         };
         WriteHeaders(ws2, headers2);
         ws2.Cells[1, 1, 1, headers2.Length].AutoFitColumns(8, 30);
@@ -212,10 +207,10 @@ public class ObjectClassImportService : IObjectClassImportService
 
             using var package = new ExcelPackage(new FileInfo(filePath));
 
-            // Sheet1: 对象类（10列）
-            var sheet1Rows = ReadSheetRows(package, "对象类新增", 10);
-            // Sheet2: 关系类（10列，已移除"必须""自动搜索"）
-            var sheet2Rows = ReadSheetRows(package, "关系类新增", 10);
+            // Sheet1: 对象类（8列）
+            var sheet1Rows = ReadSheetRows(package, "对象类新增", 8);
+            // Sheet2: 关系类（9列）
+            var sheet2Rows = ReadSheetRows(package, "关系类新增", 9);
 
             var totalRows = sheet1Rows.Count + sheet2Rows.Count;
             result.Sheet1Total = sheet1Rows.Count;
@@ -233,7 +228,7 @@ public class ObjectClassImportService : IObjectClassImportService
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var row = sheet1Rows[i];
-                var itemName = row.GetValueOrDefault(0, "");           // 对象类名称（Col 1）
+                var itemName = row.GetValueOrDefault(1, "");           // 对象类名称（Col 1）
                 var overallIdx = i + 1;                                // 全局序号（1-based）
 
                 // 报告结构化进度
@@ -292,7 +287,7 @@ public class ObjectClassImportService : IObjectClassImportService
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var row = sheet2Rows[i];
-                var relName = row.GetValueOrDefault(1, "");            // 关系类名称（Col 2，注意索引从0开始）
+                var relName = row.GetValueOrDefault(2, "");            // 关系类名称（Col 2）
                 var overallIdx = sheet1Rows.Count + i + 1;             // 全局序号（Sheet1完成后继续计数）
 
                 // 报告结构化进度
@@ -456,24 +451,28 @@ public class ObjectClassImportService : IObjectClassImportService
     /// 包含的嵌套关系:
     /// - Can Add: 指定哪些 Identity 可以添加此对象类
     /// </summary>
-    /// <param name="row">Excel 行数据（列索引从0开始）</param>
+    /// <param name="row">Excel 行数据（字典键为1-based列号）</param>
     /// <param name="importMode">"新增" 或 "覆盖"</param>
     /// <returns>AML 字符串</returns>
     private static string BuildObjectClassAml(Dictionary<int, string> row, string importMode)
     {
-        // 列映射（用户可见列号 → GetValueOrDefault 索引）:
-        // Col 1 (idx 0):  对象类名称 → <name>
-        // Col 2 (idx 1):  物件显示名称(简) → <i18n:label xml:lang='zc'>
-        // Col 3 (idx 2):  物件显示名称(繁) → <i18n:label xml:lang='zt'>
-        // Col 4 (idx 3):  物件显示名称(英) → <label>
-        // Col 5 (idx 4):  TOC显示文字 → <label_plural>
-        // Col 8 (idx 7):  可换版 → <is_versionable>
+        // 列映射（用户可见列号与字典键一致）:
+        // Col 1: 对象类名称 → <name>
+        // Col 2: 物件显示名称(简) → <i18n:label xml:lang='zc'>
+        // Col 3: 物件显示名称(繁) → <i18n:label xml:lang='zt'>
+        // Col 4: 物件显示名称(英) → <label>
+        // Col 5: TOC显示文字(简) → <label_plural> + <i18n:label_plural xml:lang='zc'>
+        // Col 6: TOC显示文字(繁) → <i18n:label_plural xml:lang='zt'>
+        // Col 7: TOC显示文字(英) → <i18n:label_plural xml:lang='en'>
+        // Col 8: 可换版 → <is_versionable>
 
         var name = row.GetValueOrDefault(1, "");                       // 对象类名称
         var labelZc = row.GetValueOrDefault(2, "");                   // 简体中文标签
         var labelZt = row.GetValueOrDefault(3, "");                   // 繁体中文标签
         var labelEn = row.GetValueOrDefault(4, "");                   // 英文标签
-        var labelPlural = row.GetValueOrDefault(5, "");               // TOC 复数标签
+        var labelPlural = row.GetValueOrDefault(5, "");               // TOC 简体中文复数标签
+        var labelPluralZt = row.GetValueOrDefault(6, "");             // TOC 繁体中文复数标签
+        var labelPluralEn = row.GetValueOrDefault(7, "");             // TOC 英文复数标签
         var isVersionable = row.GetValueOrDefault(8, "0");            // 可换版标志
 
         // 新增模式: 创建全新 ItemType
@@ -488,6 +487,9 @@ public class ObjectClassImportService : IObjectClassImportService
                    $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
                    $"      <label>{labelEn}</label>" +
                    $"      <label_plural>{labelPlural}</label_plural>" +
+                   $"      <i18n:label_plural xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelPluralEn}</i18n:label_plural>" +
+                   $"      <i18n:label_plural xml:lang='zc' xmlns:i18n='http://www.aras.com/I18N/'>{labelPlural}</i18n:label_plural>" +
+                   $"      <i18n:label_plural xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelPluralZt}</i18n:label_plural>" +
                    // 显示与结构
                    $"      <structure_view>{DefaultStructureView}</structure_view>" +
                    // 版本与搜索
@@ -519,6 +521,9 @@ public class ObjectClassImportService : IObjectClassImportService
                $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
                $"      <label>{labelEn}</label>" +
                $"      <label_plural>{labelPlural}</label_plural>" +
+               $"      <i18n:label_plural xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelPluralEn}</i18n:label_plural>" +
+               $"      <i18n:label_plural xml:lang='zc' xmlns:i18n='http://www.aras.com/I18N/'>{labelPlural}</i18n:label_plural>" +
+               $"      <i18n:label_plural xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelPluralZt}</i18n:label_plural>" +
                // 显示与结构
                $"      <structure_view>{DefaultStructureView}</structure_view>" +
                // 版本与搜索
@@ -545,29 +550,35 @@ public class ObjectClassImportService : IObjectClassImportService
     ///
     /// 结构说明:
     /// - source_id: 父对象 ItemType（通过 get 动作动态查询其 ID）
-    /// - related_id: 关联对象 ItemType（覆盖模式下与 source_id 相同）
+    /// - related_id: 模板中选择的相关对象 ItemType
     ///
     /// 注意: 关系类名称在 Aras 中必须全局唯一
     /// </summary>
-    /// <param name="row">Excel 行数据（列索引从0开始）</param>
+    /// <param name="row">Excel 行数据（字典键为1-based列号）</param>
     /// <param name="importMode">"新增" 或 "覆盖"</param>
     /// <returns>AML 字符串</returns>
     private static string BuildRelationshipTypeAml(Dictionary<int, string> row, string importMode)
     {
-        // 列映射（用户可见列号 → GetValueOrDefault 索引，10列体系）:
-        // Col 1 (idx 0):  父对象名称 → source_id 中的 ItemType name
-        // Col 2 (idx 1):  关系类名称 → <name>
-        // Col 3 (idx 2):  页签序号 → <sort_order>
-        // Col 4 (idx 3):  页签标签 → <label>
-        // Col 7 (idx 6):  新建关系选项 → <for_related_option>
+        // 列映射（用户可见列号与字典键一致，9列体系）:
+        // Col 1: 父对象名称 → source_id 中的 ItemType name
+        // Col 2: 关系类名称 → <name>
+        // Col 3: 页签序号 → <sort_order>
+        // Col 4: 页签标签(简) → <label> + <i18n:label xml:lang='zc'>
+        // Col 5: 页签标签(繁) → <i18n:label xml:lang='zt'>
+        // Col 6: 页签标签(英) → <i18n:label xml:lang='en'>
+        // Col 7: 新建关系选项 → <for_related_option>
+        // Col 8: 打开相关窗体 → <new_show_related>
+        // Col 9: 相关对象类 → <related_id>
 
         var sourceName = row.GetValueOrDefault(1, "");               // 父对象 ItemType 名称
         var relName = row.GetValueOrDefault(2, "");                  // 关系类名称
         var sortOrder = row.GetValueOrDefault(3, "");                // 页签序号
-        var label = row.GetValueOrDefault(4, "");                    // 页签标签
+        var label = row.GetValueOrDefault(4, "");                    // 页签简体中文标签
+        var labelZt = row.GetValueOrDefault(5, "");                  // 页签繁体中文标签
+        var labelEn = row.GetValueOrDefault(6, "");                  // 页签英文标签
         var forRelatedOption = row.GetValueOrDefault(7, "");         // 新建关系选项
-        var formisOpen = row.GetValueOrDefault(8, "");               // 打开相关窗体 
-        var related_name = row.GetValueOrDefault(9, "");             // 相关对象类
+        var formIsOpen = row.GetValueOrDefault(8, "");               // 打开相关窗体
+        var relatedName = row.GetValueOrDefault(9, "");              // 相关对象类
         // 新增模式: 创建全新 RelationshipType
         if (importMode == "新增")
         {
@@ -582,6 +593,9 @@ public class ObjectClassImportService : IObjectClassImportService
                    // 基本属性
                    $"      <name>{relName}</name>" +
                    $"      <label>{label}</label>" +
+                   $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
+                   $"      <i18n:label xml:lang='zc' xmlns:i18n='http://www.aras.com/I18N/'>{label}</i18n:label>" +
+                   $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
                    // 行为控制
                    $"      <for_related_option>{forRelatedOption}</for_related_option>" +
                    $"      <related_notnull>{DefaultRelatedNotNull}</related_notnull>" +
@@ -589,13 +603,13 @@ public class ObjectClassImportService : IObjectClassImportService
                    $"      <auto_search>{DefaultAutoSearch}</auto_search>" +
                    $"      <default_page_size>{DefaultPageSize}</default_page_size>" +
                    // 打开相关窗体
-                   $"       <new_show_related>{formisOpen}</new_show_related>" +
+                   $"      <new_show_related>{formIsOpen}</new_show_related>" +
                    // 排序
                    $"      <sort_order>{sortOrder}</sort_order>" +
                    // 关联对象（覆盖模式下复用关联对象名称）
                    $"      <related_id>" +
                    $"          <Item type='ItemType' action='get' select='id'>" +
-                   $"              <name>{related_name}</name>" +
+                   $"              <name>{relatedName}</name>" +
                    $"          </Item>" +
                    $"      </related_id>" +
                    $"   </Item>" +
@@ -614,6 +628,9 @@ public class ObjectClassImportService : IObjectClassImportService
                // 基本属性
                $"      <name>{relName}</name>" +
                $"      <label>{label}</label>" +
+               $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
+               $"      <i18n:label xml:lang='zc' xmlns:i18n='http://www.aras.com/I18N/'>{label}</i18n:label>" +
+               $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
                // 行为控制
                $"      <for_related_option>{forRelatedOption}</for_related_option>" +
                $"      <related_notnull>{DefaultRelatedNotNull}</related_notnull>" +
@@ -621,13 +638,13 @@ public class ObjectClassImportService : IObjectClassImportService
                $"      <auto_search>{DefaultAutoSearch}</auto_search>" +
                $"      <default_page_size>{DefaultPageSize}</default_page_size>" +
                // 打开相关窗体
-               $"       <new_show_related>{formisOpen}</new_show_related>" +
+               $"      <new_show_related>{formIsOpen}</new_show_related>" +
                // 排序
                $"      <sort_order>{sortOrder}</sort_order>" +
                // 关联对象（覆盖模式下复用关联对象名称）
                $"      <related_id>" +
                $"          <Item type='ItemType' action='get' select='id'>" +
-               $"              <name>{related_name}</name>" +
+               $"              <name>{relatedName}</name>" +
                $"          </Item>" +
                $"      </related_id>" +
                $"   </Item>" +
