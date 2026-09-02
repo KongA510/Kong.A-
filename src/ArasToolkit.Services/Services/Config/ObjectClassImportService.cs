@@ -55,6 +55,7 @@ public class ObjectClassImportService : IObjectClassImportService
     private const string DefaultImplementationType = "table";
     private const string DefaultEnforceDiscovery = "1";
     private const string DefaultStructureView = "tabs on";
+    private const string I18nNamespaceUri = "http://www.aras.com/I18N";
 
     public ObjectClassImportService(
         IDbContextFactory<ArasToolkitDbContext> dbFactory,
@@ -88,10 +89,10 @@ public class ObjectClassImportService : IObjectClassImportService
             "对象类名称",                    // Col 1 → AML <name>
             "物件显示名称",                  // Col 2 → AML <i18n:label xml:lang='zc'> (简体中文)
             "物件显示名称繁体",              // Col 3 → AML <i18n:label xml:lang='zt'> (繁体中文)
-            "物件显示名称英文",              // Col 4 → AML <label> (英文)
-            "TOC显示文字",                   // Col 5 → AML <label_plural> + 简体中文i18n标签
+            "物件显示名称英文",              // Col 4 → AML <label xml:lang='en'>
+            "TOC显示文字",                   // Col 5 → AML <i18n:label_plural xml:lang='zc'>
             "TOC显示文字繁体",               // Col 6 → AML <i18n:label_plural xml:lang='zt'>
-            "TOC显示文字英文",               // Col 7 → AML <i18n:label_plural xml:lang='en'>
+            "TOC显示文字英文",               // Col 7 → AML <label_plural xml:lang='en'>
             "可换版(1=可以 0=不可以)"         // Col 8 → AML <is_versionable>
         };
         WriteHeaders(ws1, headers1);
@@ -104,9 +105,9 @@ public class ObjectClassImportService : IObjectClassImportService
             "父对象名称",                                        // Col 1 → AML source_id (父对象ItemType名称)
             "关系类名称",                                        // Col 2 → AML <name>
             "页签序号",                                          // Col 3 → AML <sort_order>
-            "页签标签",                                          // Col 4 → AML <label> + 简体中文i18n标签
+            "页签标签",                                          // Col 4 → AML <i18n:label xml:lang='zc'>
             "页签标签繁体",                                      // Col 5 → AML <i18n:label xml:lang='zt'>
-            "页签标签英文",                                      // Col 6 → AML <i18n:label xml:lang='en'>
+            "页签标签英文",                                      // Col 6 → AML <label xml:lang='en'>
             "新建关系选项(1=仅选取 2=仅创建 3=均可)",              // Col 7 → AML <for_related_option>
             "打开相关窗体",                                      // Col 8 → AML <new_show_related>
             "相关对象类"                                         // Col 9 → AML <related_id>
@@ -460,10 +461,10 @@ public class ObjectClassImportService : IObjectClassImportService
         // Col 1: 对象类名称 → <name>
         // Col 2: 物件显示名称(简) → <i18n:label xml:lang='zc'>
         // Col 3: 物件显示名称(繁) → <i18n:label xml:lang='zt'>
-        // Col 4: 物件显示名称(英) → <label>
-        // Col 5: TOC显示文字(简) → <label_plural> + <i18n:label_plural xml:lang='zc'>
+        // Col 4: 物件显示名称(英) → <label xml:lang='en'>
+        // Col 5: TOC显示文字(简) → <i18n:label_plural xml:lang='zc'>
         // Col 6: TOC显示文字(繁) → <i18n:label_plural xml:lang='zt'>
-        // Col 7: TOC显示文字(英) → <i18n:label_plural xml:lang='en'>
+        // Col 7: TOC显示文字(英) → <label_plural xml:lang='en'>
         // Col 8: 可换版 → <is_versionable>
 
         var name = row.GetValueOrDefault(1, "");                       // 对象类名称
@@ -479,17 +480,16 @@ public class ObjectClassImportService : IObjectClassImportService
         if (importMode == "新增")
         {
             return $"<AML>" +
-                   $"  <Item type='ItemType' action='add'>" +
+                   $"  <Item type='ItemType' action='add' xmlns:i18n='{I18nNamespaceUri}'>" +
                    // 基本标识
                    $"      <name>{name}</name>" +
-                   // 多语言标签
-                   $"      <i18n:label xml:lang='zc' xmlns:i18n='http://www.aras.com/I18N/'>{labelZc}</i18n:label>" +
-                   $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
-                   $"      <label>{labelEn}</label>" +
-                   $"      <label_plural>{labelPlural}</label_plural>" +
-                   $"      <i18n:label_plural xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelPluralEn}</i18n:label_plural>" +
-                   $"      <i18n:label_plural xml:lang='zc' xmlns:i18n='http://www.aras.com/I18N/'>{labelPlural}</i18n:label_plural>" +
-                   $"      <i18n:label_plural xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelPluralZt}</i18n:label_plural>" +
+                   // 官方多语言AML：默认英文使用无前缀属性，其它语言使用i18n前缀
+                   $"      <label xml:lang='en'>{labelEn}</label>" +
+                   $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
+                   $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
+                   $"      <label_plural xml:lang='en'>{labelPluralEn}</label_plural>" +
+                   $"      <i18n:label_plural xml:lang='zc'>{labelPlural}</i18n:label_plural>" +
+                   $"      <i18n:label_plural xml:lang='zt'>{labelPluralZt}</i18n:label_plural>" +
                    // 显示与结构
                    $"      <structure_view>{DefaultStructureView}</structure_view>" +
                    // 版本与搜索
@@ -513,17 +513,16 @@ public class ObjectClassImportService : IObjectClassImportService
 
         // 覆盖模式: 按名称匹配，存在则合并更新
         return $"<AML>" +
-               $"  <Item type='ItemType' action='merge' where=\"ItemType.name='{name}'\">" +
+               $"  <Item type='ItemType' action='merge' where=\"ItemType.name='{name}'\" xmlns:i18n='{I18nNamespaceUri}'>" +
                // 基本标识（merge 模式下 name 重复提供以确保匹配）
                $"      <name>{name}</name>" +
-               // 多语言标签
-               $"      <i18n:label xml:lang='zc' xmlns:i18n='http://www.aras.com/I18N/'>{labelZc}</i18n:label>" +
-               $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
-               $"      <label>{labelEn}</label>" +
-               $"      <label_plural>{labelPlural}</label_plural>" +
-               $"      <i18n:label_plural xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelPluralEn}</i18n:label_plural>" +
-               $"      <i18n:label_plural xml:lang='zc' xmlns:i18n='http://www.aras.com/I18N/'>{labelPlural}</i18n:label_plural>" +
-               $"      <i18n:label_plural xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelPluralZt}</i18n:label_plural>" +
+               // 官方多语言AML：默认英文使用无前缀属性，其它语言使用i18n前缀
+               $"      <label xml:lang='en'>{labelEn}</label>" +
+               $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
+               $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
+               $"      <label_plural xml:lang='en'>{labelPluralEn}</label_plural>" +
+               $"      <i18n:label_plural xml:lang='zc'>{labelPlural}</i18n:label_plural>" +
+               $"      <i18n:label_plural xml:lang='zt'>{labelPluralZt}</i18n:label_plural>" +
                // 显示与结构
                $"      <structure_view>{DefaultStructureView}</structure_view>" +
                // 版本与搜索
@@ -563,9 +562,9 @@ public class ObjectClassImportService : IObjectClassImportService
         // Col 1: 父对象名称 → source_id 中的 ItemType name
         // Col 2: 关系类名称 → <name>
         // Col 3: 页签序号 → <sort_order>
-        // Col 4: 页签标签(简) → <label> + <i18n:label xml:lang='zc'>
+        // Col 4: 页签标签(简) → <i18n:label xml:lang='zc'>
         // Col 5: 页签标签(繁) → <i18n:label xml:lang='zt'>
-        // Col 6: 页签标签(英) → <i18n:label xml:lang='en'>
+        // Col 6: 页签标签(英) → <label xml:lang='en'>
         // Col 7: 新建关系选项 → <for_related_option>
         // Col 8: 打开相关窗体 → <new_show_related>
         // Col 9: 相关对象类 → <related_id>
@@ -573,17 +572,26 @@ public class ObjectClassImportService : IObjectClassImportService
         var sourceName = row.GetValueOrDefault(1, "");               // 父对象 ItemType 名称
         var relName = row.GetValueOrDefault(2, "");                  // 关系类名称
         var sortOrder = row.GetValueOrDefault(3, "");                // 页签序号
-        var label = row.GetValueOrDefault(4, "");                    // 页签简体中文标签
+        var labelZc = row.GetValueOrDefault(4, "");                  // 页签简体中文标签
         var labelZt = row.GetValueOrDefault(5, "");                  // 页签繁体中文标签
         var labelEn = row.GetValueOrDefault(6, "");                  // 页签英文标签
         var forRelatedOption = row.GetValueOrDefault(7, "");         // 新建关系选项
         var formIsOpen = row.GetValueOrDefault(8, "");               // 打开相关窗体
         var relatedName = row.GetValueOrDefault(9, "");              // 相关对象类
+        // 相关对象为空时不组装 related_id，支持没有关联对象的关系类。
+        var relatedIdNode = string.IsNullOrWhiteSpace(relatedName)
+            ? ""
+            : $"      <related_id>" +
+              $"          <Item type='ItemType' action='get' select='id'>" +
+              $"              <name>{relatedName}</name>" +
+              $"          </Item>" +
+              $"      </related_id>";
+
         // 新增模式: 创建全新 RelationshipType
         if (importMode == "新增")
         {
             return $"<AML>" +
-                   $"   <Item type='RelationshipType' action='add'>" +
+                   $"   <Item type='RelationshipType' action='add' xmlns:i18n='{I18nNamespaceUri}'>" +
                    // 父对象: 通过 get 动态查询 ItemType ID
                    $"      <source_id>" +
                    $"          <Item type='ItemType' action='get' select='id'>" +
@@ -592,10 +600,9 @@ public class ObjectClassImportService : IObjectClassImportService
                    $"      </source_id>" +
                    // 基本属性
                    $"      <name>{relName}</name>" +
-                   $"      <label>{label}</label>" +
-                   $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
-                   $"      <i18n:label xml:lang='zc' xmlns:i18n='http://www.aras.com/I18N/'>{label}</i18n:label>" +
-                   $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
+                   $"      <label xml:lang='en'>{labelEn}</label>" +
+                   $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
+                   $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
                    // 行为控制
                    $"      <for_related_option>{forRelatedOption}</for_related_option>" +
                    $"      <related_notnull>{DefaultRelatedNotNull}</related_notnull>" +
@@ -607,18 +614,14 @@ public class ObjectClassImportService : IObjectClassImportService
                    // 排序
                    $"      <sort_order>{sortOrder}</sort_order>" +
                    // 关联对象（覆盖模式下复用关联对象名称）
-                   $"      <related_id>" +
-                   $"          <Item type='ItemType' action='get' select='id'>" +
-                   $"              <name>{relatedName}</name>" +
-                   $"          </Item>" +
-                   $"      </related_id>" +
+                   $"{relatedIdNode}" +
                    $"   </Item>" +
                    $"</AML>";
         }
 
         // 覆盖模式: 按关系类名称匹配合并
         return $"<AML>" +
-               $"   <Item type='RelationshipType' action='merge' where=\"RelationshipType.name='{relName}'\">" +
+               $"   <Item type='RelationshipType' action='merge' where=\"RelationshipType.name='{relName}'\" xmlns:i18n='{I18nNamespaceUri}'>" +
                // 父对象: 通过 get 动态查询 ItemType ID
                $"      <source_id>" +
                $"          <Item type='ItemType' action='get' select='id'>" +
@@ -627,10 +630,9 @@ public class ObjectClassImportService : IObjectClassImportService
                $"      </source_id>" +
                // 基本属性
                $"      <name>{relName}</name>" +
-               $"      <label>{label}</label>" +
-               $"      <i18n:label xml:lang='en' xmlns:i18n='http://www.aras.com/I18N/'>{labelEn}</i18n:label>" +
-               $"      <i18n:label xml:lang='zc' xmlns:i18n='http://www.aras.com/I18N/'>{label}</i18n:label>" +
-               $"      <i18n:label xml:lang='zt' xmlns:i18n='http://www.aras.com/I18N/'>{labelZt}</i18n:label>" +
+               $"      <label xml:lang='en'>{labelEn}</label>" +
+               $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
+               $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
                // 行为控制
                $"      <for_related_option>{forRelatedOption}</for_related_option>" +
                $"      <related_notnull>{DefaultRelatedNotNull}</related_notnull>" +
@@ -641,12 +643,8 @@ public class ObjectClassImportService : IObjectClassImportService
                $"      <new_show_related>{formIsOpen}</new_show_related>" +
                // 排序
                $"      <sort_order>{sortOrder}</sort_order>" +
-               // 关联对象（覆盖模式下复用关联对象名称）
-               $"      <related_id>" +
-               $"          <Item type='ItemType' action='get' select='id'>" +
-               $"              <name>{relatedName}</name>" +
-               $"          </Item>" +
-               $"      </related_id>" +
+               // 关联对象（为空时省略 related_id）
+               $"{relatedIdNode}" +
                $"   </Item>" +
                $"</AML>";
     }
