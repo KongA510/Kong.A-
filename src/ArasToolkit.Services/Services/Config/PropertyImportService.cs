@@ -847,11 +847,18 @@ public sealed class PropertyImportService : IPropertyImportService
         query.setProperty("source_id", sourceItemTypeId);
         query.setProperty("name", propertyName);
         var response = query.apply();
+
+        // R37 的“No items found”也会使 isError() 为 true，但 getItemCount() 为 0。
+        // 先识别空结果，使覆盖模式可以新增；真实查询错误仍由 ThrowIfError 拦截。
+        var count = response.getItemCount();
+        if (count == 0)
+            return null;
+
         ThrowIfError(response, $"查询属性“{propertyName}”失败");
-        if (response.getItemCount() > 1)
+        if (count > 1)
             throw new InvalidOperationException(
                 $"检测到多个同名属性“{propertyName}”；source_id + name 必须唯一，请先在 Aras 中修正数据");
-        return response.getItemCount() == 1 ? response.getItemByIndex(0) : null;
+        return count == 1 ? response.getItemByIndex(0) : null;
     }
 
     private static Item FindPropertyByNameOrId(
