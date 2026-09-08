@@ -89,10 +89,10 @@ public class ObjectClassImportService : IObjectClassImportService
             "对象类名称",                    // Col 1 → AML <name>
             "物件显示名称",                  // Col 2 → AML <i18n:label xml:lang='zc'> (简体中文)
             "物件显示名称繁体",              // Col 3 → AML <i18n:label xml:lang='zt'> (繁体中文)
-            "物件显示名称英文",              // Col 4 → AML <label xml:lang='en'>
+            "物件显示名称英文",              // Col 4 → AML <i18n:label xml:lang='en'>
             "TOC显示文字",                   // Col 5 → AML <i18n:label_plural xml:lang='zc'>
             "TOC显示文字繁体",               // Col 6 → AML <i18n:label_plural xml:lang='zt'>
-            "TOC显示文字英文",               // Col 7 → AML <label_plural xml:lang='en'>
+            "TOC显示文字英文",               // Col 7 → AML <i18n:label_plural xml:lang='en'>
             "可换版(1=可以 0=不可以)"         // Col 8 → AML <is_versionable>
         };
         WriteHeaders(ws1, headers1);
@@ -107,7 +107,7 @@ public class ObjectClassImportService : IObjectClassImportService
             "页签序号",                                          // Col 3 → AML <sort_order>
             "页签标签",                                          // Col 4 → AML <i18n:label xml:lang='zc'>
             "页签标签繁体",                                      // Col 5 → AML <i18n:label xml:lang='zt'>
-            "页签标签英文",                                      // Col 6 → AML <label xml:lang='en'>
+            "页签标签英文",                                      // Col 6 → AML <i18n:label xml:lang='en'>
             "新建关系选项(1=仅选取 2=仅创建 3=均可)",              // Col 7 → AML <for_related_option>
             "打开相关窗体",                                      // Col 8 → AML <new_show_related>
             "相关对象类"                                         // Col 9 → AML <related_id>
@@ -461,10 +461,10 @@ public class ObjectClassImportService : IObjectClassImportService
         // Col 1: 对象类名称 → <name>
         // Col 2: 物件显示名称(简) → <i18n:label xml:lang='zc'>
         // Col 3: 物件显示名称(繁) → <i18n:label xml:lang='zt'>
-        // Col 4: 物件显示名称(英) → <label xml:lang='en'>
+        // Col 4: 物件显示名称(英) → <i18n:label xml:lang='en'>
         // Col 5: TOC显示文字(简) → <i18n:label_plural xml:lang='zc'>
         // Col 6: TOC显示文字(繁) → <i18n:label_plural xml:lang='zt'>
-        // Col 7: TOC显示文字(英) → <label_plural xml:lang='en'>
+        // Col 7: TOC显示文字(英) → <i18n:label_plural xml:lang='en'>
         // Col 8: 可换版 → <is_versionable>
 
         var name = row.GetValueOrDefault(1, "");                       // 对象类名称
@@ -483,11 +483,11 @@ public class ObjectClassImportService : IObjectClassImportService
                    $"  <Item type='ItemType' action='add' xmlns:i18n='{I18nNamespaceUri}'>" +
                    // 基本标识
                    $"      <name>{name}</name>" +
-                   // 官方多语言AML：默认英文使用无前缀属性，其它语言使用i18n前缀
-                   $"      <label xml:lang='en'>{labelEn}</label>" +
+                   // 所有语言都使用 i18n，避免英文写入当前会话语言。
+                   $"      <i18n:label xml:lang='en'>{labelEn}</i18n:label>" +
                    $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
                    $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
-                   $"      <label_plural xml:lang='en'>{labelPluralEn}</label_plural>" +
+                   $"      <i18n:label_plural xml:lang='en'>{labelPluralEn}</i18n:label_plural>" +
                    $"      <i18n:label_plural xml:lang='zc'>{labelPlural}</i18n:label_plural>" +
                    $"      <i18n:label_plural xml:lang='zt'>{labelPluralZt}</i18n:label_plural>" +
                    // 显示与结构
@@ -516,11 +516,11 @@ public class ObjectClassImportService : IObjectClassImportService
                $"  <Item type='ItemType' action='merge' where=\"ItemType.name='{name}'\" xmlns:i18n='{I18nNamespaceUri}'>" +
                // 基本标识（merge 模式下 name 重复提供以确保匹配）
                $"      <name>{name}</name>" +
-               // 官方多语言AML：默认英文使用无前缀属性，其它语言使用i18n前缀
-               $"      <label xml:lang='en'>{labelEn}</label>" +
+               // 所有语言都使用 i18n，避免英文写入当前会话语言。
+               $"      <i18n:label xml:lang='en'>{labelEn}</i18n:label>" +
                $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
                $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
-               $"      <label_plural xml:lang='en'>{labelPluralEn}</label_plural>" +
+               $"      <i18n:label_plural xml:lang='en'>{labelPluralEn}</i18n:label_plural>" +
                $"      <i18n:label_plural xml:lang='zc'>{labelPlural}</i18n:label_plural>" +
                $"      <i18n:label_plural xml:lang='zt'>{labelPluralZt}</i18n:label_plural>" +
                // 显示与结构
@@ -564,7 +564,7 @@ public class ObjectClassImportService : IObjectClassImportService
         // Col 3: 页签序号 → <sort_order>
         // Col 4: 页签标签(简) → <i18n:label xml:lang='zc'>
         // Col 5: 页签标签(繁) → <i18n:label xml:lang='zt'>
-        // Col 6: 页签标签(英) → <label xml:lang='en'>
+        // Col 6: 页签标签(英) → <i18n:label xml:lang='en'>
         // Col 7: 新建关系选项 → <for_related_option>
         // Col 8: 打开相关窗体 → <new_show_related>
         // Col 9: 相关对象类 → <related_id>
@@ -600,7 +600,7 @@ public class ObjectClassImportService : IObjectClassImportService
                    $"      </source_id>" +
                    // 基本属性
                    $"      <name>{relName}</name>" +
-                   $"      <label xml:lang='en'>{labelEn}</label>" +
+                   $"      <i18n:label xml:lang='en'>{labelEn}</i18n:label>" +
                    $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
                    $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
                    // 行为控制
@@ -630,7 +630,7 @@ public class ObjectClassImportService : IObjectClassImportService
                $"      </source_id>" +
                // 基本属性
                $"      <name>{relName}</name>" +
-               $"      <label xml:lang='en'>{labelEn}</label>" +
+               $"      <i18n:label xml:lang='en'>{labelEn}</i18n:label>" +
                $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
                $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
                // 行为控制

@@ -951,8 +951,9 @@ public sealed class PropertyImportService : IPropertyImportService
         string simplifiedChinese,
         string traditionalChinese)
     {
+        // 所有语言都必须使用 i18n；无命名空间的属性会写入会话语言，xml:lang="en" 也不能避免串位。
         if (!string.IsNullOrWhiteSpace(english))
-            item.Add(new XElement(propertyName,
+            item.Add(new XElement(I18n + propertyName,
                 new XAttribute(Xml + "lang", "en"), english));
         if (!string.IsNullOrWhiteSpace(simplifiedChinese))
             item.Add(new XElement(I18n + propertyName,

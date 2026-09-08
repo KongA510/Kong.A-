@@ -103,6 +103,99 @@ void CheckAml(PropertyImportPreviewRow row, string action)
     Check(row.PlannedAction == (action == "edit" ? "覆盖现有属性" : "新增属性"), "预览操作与 AML 不一致");
 }
 
+void CheckTranslations(XElement item, string propertyName, string english, string simplified, string traditional)
+{
+    XNamespace i18n = "http://www.aras.com/I18N";
+    var nodes = item.Elements().Where(node => node.Name.LocalName == propertyName).ToList();
+    Check(nodes.Count == 3, $"{propertyName} 必须有三个独立语言值");
+    Check(nodes.All(node => node.Name.Namespace == i18n),
+        $"{propertyName} 的所有语言（包括英文）必须使用 i18n 命名空间，避免写入当前会话语言");
+    foreach (var (language, expected) in new[] { ("en", english), ("zc", simplified), ("zt", traditional) })
+    {
+        var node = nodes.Single(node => (string?)node.Attribute(XNamespace.Xml + "lang") == language);
+        Check(node.Value == expected, $"{propertyName}/{language} 取值错误或列错位");
+    }
+}
+
+async Task<int> CheckMultilingualTemplates()
+{
+    var passed = 0;
+    // 不同文字与 XML 特殊字符用于识别三语串位及转义丢失。
+    const string english = "Description & <English>";
+    const string simplified = "项目描述 & <简中>";
+    const string traditional = "專案說明 & <繁中>";
+    var values = new Dictionary<string, string>
+    {
+        ["名称"] = "describe", ["数据类型"] = "Multilingual String",
+        ["标签(英文)"] = english, ["标签(简中)"] = simplified, ["标签(繁中)"] = traditional,
+        ["默认值(英文)"] = "Default EN", ["默认值(简中)"] = "简体默认值", ["默认值(繁中)"] = "繁體預設值",
+        ["提示(英文)"] = "Help EN", ["提示(简中)"] = "简体提示", ["提示(繁中)"] = "繁體提示"
+    };
+    foreach (var reordered in new[] { false, true })
+    {
+        using var package = new ExcelPackage();
+        var sheet = package.Workbook.Worksheets.Add("属性配置");
+        var columns = reordered ? values.Reverse().ToArray() : values.ToArray();
+        for (var index = 0; index < columns.Length; index++)
+        {
+            // 表头两边空白不应改变列映射。
+            sheet.Cells[1, index + 1].Value = $" {columns[index].Key} ";
+            sheet.Cells[2, index + 1].Value = columns[index].Value;
+        }
+        var file = Path.Combine(workDir, $"multilingual-{reordered}.xlsx");
+        package.SaveAs(new FileInfo(file));
+        foreach (var action in new[] { "add", "edit" })
+        {
+            var (preview, errors) = await Prepare(file, action == "add" ? "新增" : "覆盖", _ =>
+                action == "add" ? Fault("0", "No items of type Property found.") : $"<Result>{Property(propertyId)}</Result>");
+            Check(preview.CanImport && errors.Count == 0, "多语言模板应通过预检");
+            var row = preview.Rows.Single();
+            Check(row.LabelEn == english && row.LabelZhCn == simplified && row.LabelZhTw == traditional,
+                "预览必须按表头读取对应三语列");
+            Check(row.DefaultValueEn == "Default EN" && row.DefaultValueZhCn == "简体默认值" && row.DefaultValueZhTw == "繁體預設值",
+                "默认值的三语列映射错误");
+            Check(row.HelpTooltipEn == "Help EN" && row.HelpTooltipZhCn == "简体提示" && row.HelpTooltipZhTw == "繁體提示",
+                "提示的三语列映射错误");
+            CheckAml(row, action);
+            var item = XDocument.Parse(row.AmlPreview).Root!.Element("Item")!;
+            CheckTranslations(item, "label", english, simplified, traditional);
+            CheckTranslations(item, "default_value", "Default EN", "简体默认值", "繁體預設值");
+            CheckTranslations(item, "help_tooltip", "Help EN", "简体提示", "繁體提示");
+            Console.WriteLine($"PASS 属性三语: {action}, 列顺序调整={reordered}");
+            passed++;
+        }
+    }
+
+    // 对象类汇入使用已由 Excel 读取层转义的列值；检查两个 AML 构建入口。
+    foreach (var mode in new[] { "新增", "覆盖" })
+    {
+        var objectRow = new Dictionary<int, string>
+        {
+            [1] = "RegressionItemType", [2] = "项目", [3] = "專案", [4] = "Project",
+            [5] = "项目列表", [6] = "專案列表", [7] = "Projects", [8] = "0"
+        };
+        var objectBuilder = typeof(ObjectClassImportService).GetMethod("BuildObjectClassAml", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var objectAml = (string)objectBuilder.Invoke(null, [objectRow, mode])!;
+        var objectItem = XDocument.Parse(objectAml).Root!.Element("Item")!;
+        CheckTranslations(objectItem, "label", "Project", "项目", "專案");
+        CheckTranslations(objectItem, "label_plural", "Projects", "项目列表", "專案列表");
+        Console.WriteLine($"PASS 对象类三语标签及 TOC: {mode}");
+        passed++;
+
+        var relationshipRow = new Dictionary<int, string>
+        {
+            [1] = "RegressionItemType", [2] = "RegressionRelationship", [3] = "100",
+            [4] = "项目关系", [5] = "專案關係", [6] = "Project Links", [7] = "0", [8] = "0"
+        };
+        var relationshipBuilder = typeof(ObjectClassImportService).GetMethod("BuildRelationshipTypeAml", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var relationshipAml = (string)relationshipBuilder.Invoke(null, [relationshipRow, mode])!;
+        CheckTranslations(XDocument.Parse(relationshipAml).Root!.Element("Item")!, "label", "Project Links", "项目关系", "專案關係");
+        Console.WriteLine($"PASS 关系类三语页签: {mode}");
+        passed++;
+    }
+    return passed;
+}
+
 try
 {
     var template = CreateTemplate("single.xlsx", ("item_number", "String", ""));
@@ -158,7 +251,9 @@ try
         "缺失数据源不能当成待新增属性放行");
     Check(referenceErrors.Count == 1, "缺失引用应保留错误日志");
     Console.WriteLine("PASS 覆盖: 缺失引用仍阻止提交");
-    Console.WriteLine($"All {passed + 1} regression cases passed.");
+    passed++;
+    passed += await CheckMultilingualTemplates();
+    Console.WriteLine($"All {passed} regression cases passed.");
 }
 finally
 {
