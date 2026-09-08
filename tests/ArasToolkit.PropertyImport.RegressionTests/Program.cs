@@ -253,6 +253,9 @@ try
     Console.WriteLine("PASS 覆盖: 缺失引用仍阻止提交");
     passed++;
     passed += await CheckMultilingualTemplates();
+    var lifecycleTemplate = CreateTemplate("lifecycle.xlsx",
+        ("first_property", "String", ""), ("second_property", "String", ""), ("third_property", "String", ""));
+    passed += await ImportLifecycleTests.RunAsync(lifecycleTemplate);
     Console.WriteLine($"All {passed} regression cases passed.");
 }
 finally

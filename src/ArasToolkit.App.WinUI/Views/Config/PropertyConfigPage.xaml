@@ -127,7 +127,7 @@
                                 <FontIcon Glyph="&#xE72C;" FontSize="14" />
                             </Button>
                         </Grid>
-                        <AutoSuggestBox PlaceholderText="按名称或标签搜索"
+                        <AutoSuggestBox PlaceholderText="按名称或标签搜索" IsEnabled="{Binding IsIdle}"
                                         Text="{Binding ItemTypeSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                         ItemsSource="{Binding FilteredItemTypes}"
                                         SuggestionChosen="ItemTypeSearchBox_SuggestionChosen"
@@ -142,7 +142,7 @@
                             </AutoSuggestBox.ItemTemplate>
                         </AutoSuggestBox>
                         <ComboBox Header="写入模式" ItemsSource="{Binding ImportModeOptions}"
-                                  SelectedItem="{Binding ImportMode, Mode=TwoWay}" />
+                                  SelectedItem="{Binding ImportMode, Mode=TwoWay}" IsEnabled="{Binding IsIdle}" />
                     </StackPanel>
                 </Border>
 
@@ -155,7 +155,7 @@
                             </Border>
                             <StackPanel>
                                 <TextBlock Text="组装与提交" Style="{ThemeResource SectionTitleText}" />
-                                <TextBlock Text="检查引用后逐条即时写入" Style="{ThemeResource CaptionText}" />
+                                <TextBlock Text="逐条写入后自动保存对象类" Style="{ThemeResource CaptionText}" />
                             </StackPanel>
                         </StackPanel>
                         <TextBlock Text="{Binding ModeDescription}" TextWrapping="Wrap"
@@ -177,6 +177,51 @@
                     </StackPanel>
                 </Border>
             </Grid>
+
+            <Border Padding="18,16" CornerRadius="12" Background="#EEF2FF"
+                    BorderBrush="#C7D2FE" BorderThickness="1"
+                    Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ProgressRing Width="36" Height="36" IsActive="{Binding IsBusy}"
+                                      Foreground="#4F46E5" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="{Binding BusyTitle}" FontWeight="SemiBold" Foreground="#3730A3" />
+                            <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#4338CA" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="{Binding BusyElapsedText}" FontSize="12"
+                                   Foreground="#6366F1" VerticalAlignment="Top" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="16"
+                                Visibility="{Binding IsImporting, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="{Binding PreparationStageText}" FontSize="12" Foreground="#4338CA" />
+                        <TextBlock Text="{Binding SubmissionStageText}" FontSize="12" Foreground="#4338CA" />
+                        <TextBlock Text="{Binding SaveStageText}" FontSize="12" Foreground="#4338CA" />
+                    </StackPanel>
+                    <ProgressBar IsIndeterminate="{Binding IsProgressIndeterminate}"
+                                 Value="{Binding ProgressPercentage}" Minimum="0" Maximum="100" Height="5" />
+                    <Grid Visibility="{Binding IsImporting, Converter={StaticResource BoolToVisibility}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                            <TextBlock Text="总进度" Style="{ThemeResource CaptionText}" />
+                            <TextBlock Text="{Binding ProgressPercentage, Converter={StaticResource StringFormat}, ConverterParameter='{}{0:F1}%'}"
+                                       Foreground="#4338CA" FontWeight="SemiBold" FontSize="12" />
+                            <TextBlock Text="· 失败" Style="{ThemeResource CaptionText}" Margin="8,0,0,0" />
+                            <TextBlock Text="{Binding ImportErrorCount}" Foreground="#DC2626" FontSize="12" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="{Binding CancelButtonText}" Command="{Binding CancelImportCommand}"
+                                Style="{ThemeResource FluentButton}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
 
             <Border Style="{ThemeResource SimpleCard}" Visibility="{Binding HasPreview, Converter={StaticResource BoolToVisibility}}">
                 <Grid RowSpacing="12">
@@ -232,7 +277,11 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
                                         <TextBlock Text="{Binding ExcelRowNumber}" Style="{ThemeResource TableCellText}" />
-                                        <TextBlock Text="{Binding SubmitStatus}" Style="{ThemeResource CaptionText}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <ProgressRing Width="12" Height="12" IsActive="{Binding IsSubmitting}"
+                                                          Visibility="{Binding IsSubmitting, Converter={StaticResource BoolToVisibility}}" />
+                                            <TextBlock Text="{Binding SubmitStatus}" Style="{ThemeResource CaptionText}" />
+                                        </StackPanel>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1">
                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
@@ -261,31 +310,6 @@
                 </Grid>
             </Border>
 
-            <StackPanel Visibility="{Binding IsImporting, Converter={StaticResource BoolToVisibility}}" Spacing="6">
-                <Border Padding="14,12" CornerRadius="8" Background="#ECFDF5">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="{Binding ProgressText}" Foreground="#166534" FontWeight="SemiBold" />
-                            <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,3,0,0">
-                                <TextBlock Text="进度" Style="{ThemeResource CaptionText}" />
-                                <TextBlock Text="{Binding ProgressPercentage, Converter={StaticResource StringFormat}, ConverterParameter='{}{0:F1}%'}"
-                                           Foreground="#15803D" FontWeight="Bold" FontSize="12" />
-                                <TextBlock Text="· 失败" Style="{ThemeResource CaptionText}" Margin="8,0,0,0" />
-                                <TextBlock Text="{Binding ImportErrorCount}" Foreground="#DC2626" FontWeight="Bold" FontSize="12" />
-                            </StackPanel>
-                        </StackPanel>
-                        <Button Grid.Column="1" Content="停止后续提交" Command="{Binding CancelImportCommand}"
-                                Style="{ThemeResource FluentButton}" />
-                    </Grid>
-                </Border>
-                <ProgressBar IsIndeterminate="{Binding IsProgressIndeterminate}"
-                             Value="{Binding ProgressPercentage}" Minimum="0" Maximum="100" Height="4" />
-            </StackPanel>
-
             <Border Style="{ThemeResource SimpleCard}"
                     Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibility}}">
                 <Grid>
@@ -296,7 +320,9 @@
                     <StackPanel>
                         <TextBlock Text="本次提交结果" Style="{ThemeResource SectionTitleText}" />
                         <TextBlock Text="{Binding ResultSummary}" Margin="0,6,0,0"
-                                   Foreground="{ThemeResource TextPrimaryBrush}" />
+                                   Foreground="{ThemeResource TextPrimaryBrush}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ObjectSaveSummary}" Margin="0,6,0,0"
+                                   Foreground="{ThemeResource TextPrimaryBrush}" TextWrapping="Wrap" />
                     </StackPanel>
                     <Button Grid.Column="1" Content="查看详细日志" Click="OpenLogFile_Click"
                             Tag="{Binding LastResult.LogFilePath}" Style="{ThemeResource FluentButton}"

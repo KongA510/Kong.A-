@@ -264,6 +264,8 @@ public sealed class PropertyImportService : IPropertyImportService
             var preview = await PrepareAsync(filePath, itemTypeId, itemTypeName, mode, cancellationToken)
                 .ConfigureAwait(false);
             result.Sheet1Total = preview.Rows.Count;
+            foreach (var row in preview.Rows)
+                result.RowStatuses[row.ExcelRowNumber] = "未提交";
             if (!preview.CanImport)
             {
                 var details = preview.Rows
@@ -276,50 +278,59 @@ public sealed class PropertyImportService : IPropertyImportService
             }
 
             var innovator = GetInnovator();
-            for (var index = 0; index < preview.Rows.Count; index++)
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var row = preview.Rows[index];
-                progress?.Report(new ImportProgressInfo
+                for (var index = 0; index < preview.Rows.Count; index++)
                 {
-                    Phase = row.PlannedAction,
-                    Current = index + 1,
-                    PhaseTotal = preview.Rows.Count,
-                    OverallCurrent = index + 1,
-                    OverallTotal = preview.Rows.Count,
-                    ItemName = row.Name,
-                    ErrorCount = result.FailedDetails.Count
-                });
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var row = preview.Rows[index];
+                    ReportPropertyProgress(progress, row, result, index, "正在提交");
 
-                try
-                {
-                    var response = innovator.applyAML(row.AmlPreview);
-                    if (response.isError())
-                        throw new InvalidOperationException(response.getErrorString());
+                    try
+                    {
+                        var response = innovator.applyAML(row.AmlPreview);
+                        if (response.isError())
+                            throw new InvalidOperationException(response.getErrorString());
 
-                    row.SubmitStatus = row.PlannedAction.StartsWith("覆盖", StringComparison.Ordinal)
-                        ? "已覆盖"
-                        : "已新增";
-                    if (row.SubmitStatus == "已覆盖") result.UpdatedCount++;
-                    else result.AddedCount++;
-                    result.Sheet1Count++;
-                    await writer.WriteLineAsync(
-                        $"[成功][行{row.ExcelRowNumber}] {row.SubmitStatus} {row.Name}").ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    row.SubmitStatus = "提交失败";
-                    var failure = $"[行{row.ExcelRowNumber}] {row.Name} — {ex.Message}";
-                    result.FailedDetails.Add(failure);
-                    await writer.WriteLineAsync($"[失败]{failure}").ConfigureAwait(false);
-                    await _errorLogService.LogErrorAsync("属性配置-逐条提交", failure,
-                        ErrorLog.LevelP1, ex.StackTrace).ConfigureAwait(false);
+                        row.SubmitStatus = row.PlannedAction.StartsWith("覆盖", StringComparison.Ordinal)
+                            ? "已覆盖"
+                            : "已新增";
+                        result.RowStatuses[row.ExcelRowNumber] = row.SubmitStatus;
+                        if (row.SubmitStatus == "已覆盖") result.UpdatedCount++;
+                        else result.AddedCount++;
+                        result.Sheet1Count++;
+                        await writer.WriteLineAsync(
+                            $"[成功][行{row.ExcelRowNumber}] {row.SubmitStatus} {row.Name}").ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        row.SubmitStatus = "提交失败";
+                        result.RowStatuses[row.ExcelRowNumber] = row.SubmitStatus;
+                        var failure = $"[行{row.ExcelRowNumber}] {row.Name} — {ex.Message}";
+                        result.FailedDetails.Add(failure);
+                        await writer.WriteLineAsync($"[失败]{failure}").ConfigureAwait(false);
+                        await _errorLogService.LogErrorAsync("属性配置-逐条提交", failure,
+                            ErrorLog.LevelP1, ex.StackTrace).ConfigureAwait(false);
+                    }
+
+                    ReportPropertyProgress(progress, row, result, index + 1, row.SubmitStatus);
                 }
             }
+            finally
+            {
+                // 即使中途取消或部分失败，也必须保存已经成功提交的属性。
+                // 此收尾步骤不使用取消令牌，且只对本次目标对象类执行一次。
+                if (result.Sheet1Count > 0)
+                    await SaveTargetItemTypeAsync(innovator, itemTypeId, itemTypeName, result, writer, progress)
+                        .ConfigureAwait(false);
+            }
+
+            if (result.ItemTypeSaveAttempted && !result.ItemTypeSaved)
+                throw new InvalidOperationException(result.ItemTypeSaveError);
 
             result.IsSuccess = true;
             var status = result.HasFailures
@@ -337,7 +348,7 @@ public sealed class PropertyImportService : IPropertyImportService
             };
             await SaveLogAsync(log).ConfigureAwait(false);
             await TryLogOperationAsync(log.Id,
-                $"属性配置导入 {itemTypeName}: 新增{result.AddedCount}条，覆盖{result.UpdatedCount}条，失败{result.Sheet1Failed}条")
+                $"属性配置导入 {itemTypeName}: 新增{result.AddedCount}条，覆盖{result.UpdatedCount}条，失败{result.Sheet1Failed}条；对象类保存：{result.ItemTypeSaved}")
                 .ConfigureAwait(false);
 
             progress?.Report(new ImportProgressInfo
@@ -345,8 +356,8 @@ public sealed class PropertyImportService : IPropertyImportService
                 Phase = "完成",
                 Current = preview.Rows.Count,
                 PhaseTotal = preview.Rows.Count,
-                OverallCurrent = preview.Rows.Count,
-                OverallTotal = preview.Rows.Count,
+                OverallCurrent = preview.Rows.Count + 1,
+                OverallTotal = preview.Rows.Count + 1,
                 ItemName = $"新增 {result.AddedCount} · 覆盖 {result.UpdatedCount}",
                 ErrorCount = result.FailedDetails.Count
             });
@@ -354,9 +365,16 @@ public sealed class PropertyImportService : IPropertyImportService
         catch (OperationCanceledException)
         {
             result.IsSuccess = false;
-            result.ErrorMessage = "导入已取消；取消前成功提交的属性已即时保存在 Aras。";
+            result.IsCanceled = true;
+            result.ErrorMessage = result.ItemTypeSaveError != null
+                ? $"导入已取消；{result.ItemTypeSaveError}"
+                : result.ItemTypeSaved
+                    ? "导入已取消；已提交的属性已完成对象类保存，未提交的行已停止。"
+                    : "导入已取消，尚未成功提交属性。";
             await writer.WriteLineAsync($"[取消] {result.ErrorMessage}").ConfigureAwait(false);
             await TrySaveFailedLogAsync(relativePath, result.ErrorMessage, result).ConfigureAwait(false);
+            await _errorLogService.LogErrorAsync("属性配置-取消导入", result.ErrorMessage,
+                ErrorLog.LevelP1).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -377,6 +395,64 @@ public sealed class PropertyImportService : IPropertyImportService
         }
 
         return result;
+    }
+
+    private static void ReportPropertyProgress(
+        IProgress<ImportProgressInfo>? progress, PropertyImportPreviewRow row,
+        PropertyImportResult result, int completedCount, string submitStatus)
+    {
+        progress?.Report(new PropertyImportProgressInfo
+        {
+            Phase = "提交属性",
+            Current = completedCount,
+            PhaseTotal = result.Sheet1Total,
+            OverallCurrent = completedCount,
+            OverallTotal = result.Sheet1Total + 1,
+            ItemName = row.Name,
+            ExcelRowNumber = row.ExcelRowNumber,
+            SubmitStatus = submitStatus,
+            ErrorCount = result.FailedDetails.Count
+        });
+    }
+
+    private async Task SaveTargetItemTypeAsync(
+        Innovator innovator, string itemTypeId, string itemTypeName,
+        PropertyImportResult result, StreamWriter writer, IProgress<ImportProgressInfo>? progress)
+    {
+        result.ItemTypeSaveAttempted = true;
+        progress?.Report(new PropertyImportProgressInfo
+        {
+            Phase = "保存对象类",
+            Current = 0,
+            PhaseTotal = 1,
+            OverallCurrent = result.Sheet1Count + result.FailedRowCount,
+            OverallTotal = result.Sheet1Total + 1,
+            ItemName = itemTypeName,
+            IsFinalizing = true,
+            ErrorCount = result.FailedDetails.Count
+        });
+
+        try
+        {
+            var aml = new XElement("AML", new XElement("Item",
+                new XAttribute("type", "ItemType"),
+                new XAttribute("action", "edit"),
+                new XAttribute("id", itemTypeId))).ToString(SaveOptions.DisableFormatting);
+            ThrowIfError(innovator.applyAML(aml), $"对象类“{itemTypeName}”保存失败");
+            result.ItemTypeSaved = true;
+        }
+        catch (Exception ex)
+        {
+            result.ItemTypeSaveError = $"属性已提交，但对象类保存未完成：{ex.Message}。请对目标对象类重新执行保存。";
+            result.FailedDetails.Add(result.ItemTypeSaveError);
+            await writer.WriteLineAsync($"[对象类保存失败] {result.ItemTypeSaveError}").ConfigureAwait(false);
+            await _errorLogService.LogErrorAsync("属性配置-保存对象类", ex.Message,
+                ErrorLog.LevelP1, ex.StackTrace).ConfigureAwait(false);
+        }
+
+        if (result.ItemTypeSaved)
+            await writer.WriteLineAsync($"[对象类保存成功] {itemTypeName} ({itemTypeId})，已执行不修改字段的 edit")
+                .ConfigureAwait(false);
     }
 
     public async Task<(List<PropertyImportLog> Items, int TotalCount)> GetHistoryAsync(
@@ -1140,7 +1216,7 @@ public sealed class PropertyImportService : IPropertyImportService
     {
         try
         {
-            await SaveLogAsync(new PropertyImportLog
+            var log = new PropertyImportLog
             {
                 UserId = CurrentUserContext.CurrentUserId ?? "system",
                 ImportTime = DateTime.Now,
@@ -1149,10 +1225,16 @@ public sealed class PropertyImportService : IPropertyImportService
                 ErrorLog = errorDetail,
                 Sheet1Count = result.Sheet1Count,
                 CreatorOn = DateTime.Now
-            }).ConfigureAwait(false);
+            };
+            await SaveLogAsync(log).ConfigureAwait(false);
+            await TryLogOperationAsync(log.Id,
+                $"属性配置导入未完成：已提交 {result.Sheet1Count} 条；对象类保存：{result.ItemTypeSaved}；{errorDetail}")
+                .ConfigureAwait(false);
         }
         catch (Exception ex)
         {
+            await _errorLogService.LogErrorAsync("属性配置-保存失败日志", ex.Message,
+                ErrorLog.LevelP0, ex.StackTrace).ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"[PropertyImport] 失败日志保存失败: {ex.Message}");
         }
     }
