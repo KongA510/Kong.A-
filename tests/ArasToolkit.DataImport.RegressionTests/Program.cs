@@ -24,6 +24,8 @@ using (var package = new ExcelPackage())
 const string template = "<AML><Item type='Part' action='add'><name>@A</name></Item></AML>";
 int calls = 0;
 bool fail = false, auditFails = false;
+bool failLast = false;
+var submittedNames = new ConcurrentBag<string>();
 var messages = new ConcurrentBag<string>();
 var audits = new ConcurrentBag<string>();
 var transport = DispatchProxy.Create<IServerConnection, TestProxy>();
@@ -31,8 +33,10 @@ var transport = DispatchProxy.Create<IServerConnection, TestProxy>();
 {
     if (method.Name != "CallAction") throw new Exception("Unexpected transport call: " + method.Name);
     Interlocked.Increment(ref calls);
+    var name = ((XmlDocument)args[1]!).SelectSingleNode("//name")!.InnerText;
+    submittedNames.Add(name);
     ((XmlDocument)args[2]!).LoadXml("<SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'><SOAP-ENV:Body>"
-        + (fail ? "<SOAP-ENV:Fault><faultcode>1</faultcode><faultstring>Server rejected row</faultstring></SOAP-ENV:Fault>"
+        + (fail || (failLast && name == "last") ? "<SOAP-ENV:Fault><faultcode>1</faultcode><faultstring>Server rejected row&#10;details&#9;column</faultstring></SOAP-ENV:Fault>"
             : "<Result><Item type='Part' id='11111111111111111111111111111111'/></Result>")
         + "</SOAP-ENV:Body></SOAP-ENV:Envelope>");
     return null;
@@ -56,6 +60,8 @@ void Check(bool condition, string name)
 Task<ImportResult> Run(Func<int, int, Task>? callback = null, CancellationToken token = default) =>
     service.ExecuteImportAsync(file, "Data", 2, -1, 1, -1, template, 1, token, callback);
 
+AmlRenderingTests.Run(service, Check);
+
 var success = await Run();
 Check(success.IsCompleted && success.TotalRows == 3 && success.ProcessedRows == 3
     && success.SuccessCount == 2 && success.SkippedCount == 1 && calls == 2 && audits.Count == 2,
@@ -73,7 +79,44 @@ var rejected = await Run();
 Check(rejected.IsCompleted && rejected.FailureCount == 2 && rejected.SuccessCount == 0
     && rejected.SkippedCount == 1 && messages.Any(x => x.Contains("Server rejected row")),
     "server faults count as row failures and are recorded");
+var failureLines = File.ReadAllLines(rejected.LogFilePath).Where(line => line.StartsWith("[失败]\t")).ToArray();
+Check(rejected.FailedRowNumbers.SequenceEqual(new[] { 2, 4 }) && failureLines.Length == 2
+    && failureLines.All(line => line.Split('\t').Length == 4)
+    && failureLines.Select(line => int.Parse(line.Split('\t')[^1])).SequenceEqual(new[] { 2, 4 })
+    && failureLines.All(line => line.Contains(@"\ndetails\tcolumn")),
+    "failure log final column holds original Excel row numbers even with multiline errors");
 fail = false;
+failLast = true;
+var mixed = await Run();
+Check(mixed.SuccessCount == 1 && mixed.FailureCount == 1 && mixed.FailedRowNumbers.SequenceEqual(new[] { 4 })
+    && File.ReadAllLines(mixed.LogFilePath).Where(line => line.StartsWith("[成功]\t") || line.StartsWith("[跳过]\t"))
+        .All(line => line.Split('\t').Length == 4 && line.Split('\t')[^1] == ""),
+    "success and skipped rows leave the final failure column empty");
+var offset = await service.ExecuteImportAsync(file, "Data", 4, 4, 1, -1, template);
+Check(offset.FailedRowNumbers.SequenceEqual(new[] { 4 })
+    && File.ReadAllLines(offset.LogFilePath).Single(line => line.StartsWith("[失败]\t")).EndsWith("\t4\t4"),
+    "non-default starting rows retain the source worksheet row number");
+failLast = false;
+
+var specialFile = Path.Combine(directory, "special.xlsx");
+const string specialValue = "  R&D <零件> 'single' \"double\" &#x20; @A ]]>\r\nline\t😀 \r\n";
+using (var package = new ExcelPackage())
+{
+    var sheet = package.Workbook.Worksheets.Add("Data");
+    sheet.Cells[1, 1].Value = "name";
+    sheet.Cells[2, 1].Value = specialValue;
+    sheet.Cells[3, 1].Value = "bad\u0001value";
+    package.SaveAs(new FileInfo(specialFile));
+}
+var priorCalls = calls;
+var specialPreview = await service.ReadSheetRangeAsync(specialFile, "Data", 2, 2, 1, -1);
+Check(specialPreview.Data.Rows[0]["name"].ToString() == specialValue, "Excel preview preserves leading and trailing whitespace");
+var special = await service.ExecuteImportAsync(specialFile, "Data", 2, -1, 1, -1, template);
+Check(special.IsCompleted && special.SuccessCount == 1 && special.FailureCount == 1
+    && calls == priorCalls + 1 && submittedNames.Contains(specialValue) && special.FailedRowNumbers.SequenceEqual(new[] { 3 })
+    && File.ReadAllLines(special.LogFilePath).Single(line => line.StartsWith("[失败]\t")).EndsWith("\t3\t3"),
+    "actual Excel-to-IOM roundtrip preserves special text and logs invalid XML rows without submitting them");
+
 auditFails = true;
 var audited = await Run();
 Check(audited.IsCompleted && audited.SuccessCount == 2 && audited.FailureCount == 0,

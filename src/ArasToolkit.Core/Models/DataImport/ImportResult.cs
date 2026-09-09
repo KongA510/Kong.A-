@@ -15,6 +15,8 @@ public class ImportResult
     public string LogFilePath { get; set; } = string.Empty;
     public string ErrorMessage { get; set; } = string.Empty;
     public bool IsCancelled { get; set; }
+    /// <summary>失败的 Excel 原始行号（从 1 开始，升序）。</summary>
+    public List<int> FailedRowNumbers { get; set; } = [];
     public bool IsCompleted => !IsCancelled && string.IsNullOrEmpty(ErrorMessage)
         && TotalRows > 0 && ProcessedRows == TotalRows;
 }

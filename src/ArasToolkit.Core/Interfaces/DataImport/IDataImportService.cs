@@ -23,6 +23,7 @@ public interface IDataImportService
         int startCol, int endCol);
 
     // ---- AML 替换 ----
+    /// <summary>将单元格原始文本写入 AML 文本/属性节点，由 XML 序列化转义特殊字符。</summary>
     string ReplaceAmlPlaceholders(string amlTemplate, Dictionary<string, string> rowData);
     string PreviewAml(string amlTemplate, Dictionary<string, string> firstRowData);
 
