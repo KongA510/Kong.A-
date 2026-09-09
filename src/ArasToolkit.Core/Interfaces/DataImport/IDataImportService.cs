@@ -32,7 +32,7 @@ public interface IDataImportService
   /// </summary>
   /// <param name="maxConcurrency">并发线程数（1=串行，最大10），默认1</param>
   /// <param name="cancellationToken">取消令牌，支持暂停/取消</param>
-  /// <param name="progressCallback">进度回调：(已完成行数, 总行数)，为 null 时不汇报进度</param>
+  /// <param name="progressCallback">后台进度回调：(已完成行数, 总行数)。界面调用方必须切回 UI 线程；返回的 Task 可用于暂停当前工作线程。</param>
   Task<ImportResult> ExecuteImportAsync(
        string filePath, string? sheetName,
        int startRow, int endRow, int startCol, int endCol,

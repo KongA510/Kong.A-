@@ -13,6 +13,10 @@ public class ImportResult
    public int ProcessedRows { get; set; }
    public DateTime ImportTime { get; set; }
     public string LogFilePath { get; set; } = string.Empty;
+    public string ErrorMessage { get; set; } = string.Empty;
+    public bool IsCancelled { get; set; }
+    public bool IsCompleted => !IsCancelled && string.IsNullOrEmpty(ErrorMessage)
+        && TotalRows > 0 && ProcessedRows == TotalRows;
 }
 
 /// <summary>

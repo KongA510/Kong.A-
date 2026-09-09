@@ -21,6 +21,7 @@
 
         <!-- 文件选择 + 范围设置 -->
         <Border Grid.Row="1" Style="{ThemeResource CardStyle}" Padding="16,12">
+            <ContentControl IsEnabled="{Binding CanEditImport}" HorizontalContentAlignment="Stretch">
             <StackPanel Spacing="8">
                 <StackPanel x:Name="FileToolbar" Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="文件: " FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
@@ -44,6 +45,7 @@
                     <TextBox Text="{Binding MaxConcurrency, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Style="{ThemeResource DarkTextBox}" Width="42" TextAlignment="Center" />
                 </StackPanel>
             </StackPanel>
+            </ContentControl>
         </Border>
 
         <!-- 列映射表 -->
@@ -114,6 +116,7 @@
                     </StackPanel>
 
                     <TextBox Grid.Row="1" Text="{Binding AmlContent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             IsEnabled="{Binding CanEditImport}"
                              AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="12"
                              Style="{ThemeResource DarkTextBox}" Padding="10" MinHeight="100"
                              ScrollViewer.VerticalScrollBarVisibility="Auto" />

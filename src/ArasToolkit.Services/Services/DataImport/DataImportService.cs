@@ -16,7 +16,7 @@ public class DataImportService : IDataImportService
     private readonly IOperationLogService _operationLogService;
     private readonly ArasConnectionService _connectionService;
     private readonly ArasConnectionPool _connectionPool;
-    private readonly SemaphoreSlim _writeSemaphore = new(1, 1); // StreamWriter 异步线程安全 // StreamWriter 线程安全锁
+    private readonly SemaphoreSlim _writeSemaphore = new(1, 1); // StreamWriter 异步线程安全锁
 
     public DataImportService(
         IDbContextFactory<ArasToolkitDbContext> contextFactory,
@@ -235,15 +235,25 @@ public class DataImportService : IDataImportService
     }
 
     /// <summary>
-    /// 执行导入 — 支持多线程并发 + 暂停/继续（通过 CancellationToken）
+    /// 执行导入 — 支持并发、取消；进度回调可等待暂停信号。
     /// </summary>
-    public async Task<ImportResult> ExecuteImportAsync(
+    public Task<ImportResult> ExecuteImportAsync(
         string filePath, string? sheetName,
         int startRow, int endRow, int startCol, int endCol,
         string amlContent,
         int maxConcurrency = 1,
         CancellationToken cancellationToken = default,
         Func<int, int, Task>? progressCallback = null)
+    {
+        // Excel 解包、连接初始化及同步 IOM 请求全部在后台执行。
+        return Task.Run(() => ExecuteImportCoreAsync(filePath, sheetName, startRow, endRow,
+            startCol, endCol, amlContent, maxConcurrency, cancellationToken, progressCallback));
+    }
+
+    private async Task<ImportResult> ExecuteImportCoreAsync(
+        string filePath, string? sheetName, int startRow, int endRow, int startCol, int endCol,
+        string amlContent, int maxConcurrency, CancellationToken cancellationToken,
+        Func<int, int, Task>? progressCallback)
     {
         var result = new ImportResult
         {
@@ -256,10 +266,10 @@ public class DataImportService : IDataImportService
 
         var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "Import");
         Directory.CreateDirectory(logDir);
-        var logFile = Path.Combine(logDir, $"import_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+        var logFile = Path.Combine(logDir, $"import_{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}.log");
         result.LogFilePath = logFile;
 
-        using var writer = new StreamWriter(logFile, false);
+        using var writer = new StreamWriter(logFile, false) { AutoFlush = true };
         await writer.WriteLineAsync("===== 数据导入日志 =====");
         await writer.WriteLineAsync("文件: " + Path.GetFileName(filePath));
         await writer.WriteLineAsync("Sheet: " + (sheetName ?? "N/A"));
@@ -267,15 +277,26 @@ public class DataImportService : IDataImportService
         await writer.WriteLineAsync("范围: 行" + startRow + "~" + endRow + ", 列" + startCol + "~" + endCol);
         await writer.WriteLineAsync("并发线程数: " + maxConcurrency);
 
+        int processed = 0, success = 0, failure = 0, skipped = 0;
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(amlContent))
+                throw new ArgumentException("请先填写 AML 模板。");
+            if (startRow < 1 || startCol < 1 || (endRow != -1 && endRow < startRow)
+                || (endCol != -1 && endCol < startCol))
+                throw new ArgumentException("行列范围无效，起始值必须大于 0，结束值必须为 -1 或不小于起始值。");
+            maxConcurrency = Math.Clamp(maxConcurrency, 1, 10);
+            // 复用登录时持久化的 Innovator，不能每一行再次 Login。
+            var currentInnovator = _connectionService.TypedInnovator
+                ?? throw new InvalidOperationException("尚未连接 Aras，请先登录目标数据库。");
+            await writer.WriteLineAsync("数据库: " + _connectionService.CurrentConnection?.Database);
+
             // 连接池懒初始化 — 仅在多线程导入时按需创建
             if (maxConcurrency > 1)
             {
-                if (_connectionPool.PoolSize < maxConcurrency)
-                {
-                    await _connectionPool.ReinitializeAsync(maxConcurrency);
-                }
+                // 每次从当前连接重建，避免切换数据库后继续使用旧池。
+                await _connectionPool.ReinitializeAsync(maxConcurrency);
                 if (_connectionPool.PoolSize < maxConcurrency)
                 {
                     await writer.WriteLineAsync("[警告] 连接池初始化失败，回退为单线程");
@@ -287,12 +308,13 @@ public class DataImportService : IDataImportService
             var worksheet = sheetName != null ? package.Workbook.Worksheets[sheetName] : package.Workbook.Worksheets[0];
             if (worksheet?.Dimension == null)
             {
-                await writer.WriteLineAsync("[错误] 工作表无数据");
-                return result;
+                throw new InvalidOperationException("工作表不存在或无数据。");
             }
 
-            int maxCol = endCol == -1 ? worksheet.Dimension.Columns : Math.Min(endCol, worksheet.Dimension.Columns);
-            int maxRow = endRow == -1 ? worksheet.Dimension.Rows : Math.Min(endRow, worksheet.Dimension.Rows);
+            int maxCol = endCol == -1 ? worksheet.Dimension.End.Column : Math.Min(endCol, worksheet.Dimension.End.Column);
+            int maxRow = endRow == -1 ? worksheet.Dimension.End.Row : Math.Min(endRow, worksheet.Dimension.End.Row);
+            if (startRow > maxRow || startCol > maxCol)
+                throw new ArgumentException("所选范围内没有数据。");
             result.TotalRows = maxRow - startRow + 1;
 
             // 先串行收集所有行数据到 List（Excel 读取串行更安全）
@@ -303,6 +325,7 @@ public class DataImportService : IDataImportService
             var rows = new List<(int rowNum, Dictionary<string, string> rowData)>();
             for (int r = startRow; r <= maxRow; r++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var rowData = new Dictionary<string, string>();
                 foreach (var kv in colMap)
                     rowData[kv.Key] = worksheet.Cells[r, kv.Value].Text?.Trim() ?? "";
@@ -316,44 +339,25 @@ public class DataImportService : IDataImportService
                 CancellationToken = cancellationToken
             };
 
-            // 使用 Interlocked 保证多线程计数安全
-            int processed = 0, success = 0, failure = 0;
-
             await Parallel.ForEachAsync(rows, parallelOptions, async (item, ct) =>
             {
-                // 检查取消令牌（暂停时快速退出）
+                // 取消时不再启动新请求。
                 ct.ThrowIfCancellationRequested();
 
                 // 从连接池租用一个独立连接（多线程时），单线程用全局连接
                 PooledConnection? pooledConn = null;
-                Innovator? innovator;
-                if (maxConcurrency > 1)
-                {
-                    pooledConn = _connectionPool.Rent();
-                    innovator = pooledConn.Innovator;
-                }
-                else
-                {
-                    // 单线程时：从全局连接获取，使用标准登录链
-                    var httpConn = _connectionService.HttpConnection as HttpServerConnection;
-                    if (httpConn != null)
-                    {
-                        var loginResult = httpConn.Login();
-                        innovator = loginResult.getInnovator();
-                    }
-                    else
-                    {
-                        innovator = null;
-                    }
-                }
-
+                bool counted = false;
                 try
                 {
-                    if (innovator == null)
+                    if (item.rowData.Values.All(string.IsNullOrWhiteSpace))
                     {
-                        Interlocked.Increment(ref failure);
+                        Interlocked.Increment(ref skipped);
+                        counted = true;
                         return;
                     }
+                    if (maxConcurrency > 1)
+                        pooledConn = _connectionPool.Rent();
+                    var innovator = pooledConn?.Innovator ?? currentInnovator;
 
                     // 替换占位符并执行 AML（同步 HTTP 调用）
                     var replacedAml = ReplaceAmlPlaceholders(amlContent, item.rowData);
@@ -362,22 +366,42 @@ public class DataImportService : IDataImportService
                     if (!resultItem.isError())
                     {
                         Interlocked.Increment(ref success);
+                        counted = true;
+                        await _writeSemaphore.WaitAsync();
+                        try { await writer.WriteLineAsync($"[成功] 行{item.rowNum}: {resultItem.getID()}"); }
+                        finally { _writeSemaphore.Release(); }
+                        try
+                        {
+                            await _operationLogService.LogAsync("Import", "DataImport", resultItem.getID(),
+                                $"数据汇入: {Path.GetFileName(filePath)} / {sheetName} / 行{item.rowNum}");
+                        }
+                        catch (Exception ex)
+                        {
+                            await _errorLogService.LogErrorAsync("数据导入-操作日志", DescribeException(ex), ErrorLog.LevelP1, ex.ToString());
+                        }
                     }
                     else
                     {
                         Interlocked.Increment(ref failure);
+                        counted = true;
                         var errMsg = resultItem.getErrorString();
+                        if (string.IsNullOrWhiteSpace(errMsg)) errMsg = resultItem.ToString();
                         await _writeSemaphore.WaitAsync(); try { await writer.WriteLineAsync("[失败] 行" + item.rowNum + ": " + errMsg); } finally { _writeSemaphore.Release(); }
+                        await _errorLogService.LogErrorAsync($"数据导入-行{item.rowNum}", errMsg, ErrorLog.LevelP1);
                     }
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
-                    throw; // 重新抛出，让 Parallel.ForEachAsync 处理暂停
+                    if (!counted) Interlocked.Increment(ref failure);
+                    throw;
                 }
                 catch (Exception ex)
                 {
+                    // 已收到服务端结果后日志异常不能改变该行的成功/失败计数。
+                    if (counted) throw;
                     Interlocked.Increment(ref failure);
-                    await _writeSemaphore.WaitAsync(); try { await writer.WriteLineAsync("[失败] 行" + item.rowNum + ": " + ex.Message); } finally { _writeSemaphore.Release(); }
+                    await _writeSemaphore.WaitAsync(); try { await writer.WriteLineAsync("[失败] 行" + item.rowNum + ": " + ex); } finally { _writeSemaphore.Release(); }
+                    await _errorLogService.LogErrorAsync($"数据导入-行{item.rowNum}", DescribeException(ex), ErrorLog.LevelP1, ex.ToString());
                 }
                 finally
                 {
@@ -392,19 +416,25 @@ public class DataImportService : IDataImportService
                 }
             });
 
-            result.SuccessCount = success;
-            result.FailureCount = failure;
-            result.ProcessedRows = processed;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // 暂停/取消：保留已处理数据
-            await writer.WriteLineAsync("[暂停] 用户取消，已处理: " + result.ProcessedRows + "/" + result.TotalRows);
+            result.IsCancelled = true;
+            await writer.WriteLineAsync("[取消] 已处理: " + processed + "/" + result.TotalRows);
         }
         catch (Exception ex)
         {
-            await writer.WriteLineAsync("[错误] 导入过程异常: " + ex.Message);
-            await _errorLogService.LogErrorAsync("数据导入-执行", ex.Message, ErrorLog.LevelP1, ex.StackTrace);
+            result.ErrorMessage = DescribeException(ex);
+            await writer.WriteLineAsync("[错误] 导入过程异常: " + ex);
+            await _errorLogService.LogErrorAsync("数据导入-执行", result.ErrorMessage, ErrorLog.LevelP1, ex.ToString());
+        }
+        finally
+        {
+            // 中断也必须保留已提交数据的计数，避免误报 0 成功/0 失败。
+            result.SuccessCount = success;
+            result.FailureCount = failure;
+            result.SkippedCount = skipped;
+            result.ProcessedRows = processed;
         }
 
         await writer.WriteLineAsync("-----");
@@ -413,7 +443,12 @@ public class DataImportService : IDataImportService
         await writer.WriteLineAsync("===== 日志结束 =====");
 
         return result;
-    }    private static string SanitizeHeader(string rawHeader)
+    }
+
+    private static string DescribeException(Exception ex) => string.IsNullOrWhiteSpace(ex.Message)
+        ? $"{ex.GetType().Name} (0x{ex.HResult:X8})" : ex.Message;
+
+    private static string SanitizeHeader(string rawHeader)
     {
         if (string.IsNullOrEmpty(rawHeader)) return rawHeader;
         return rawHeader
