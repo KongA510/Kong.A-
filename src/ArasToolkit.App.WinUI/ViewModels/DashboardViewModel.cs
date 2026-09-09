@@ -88,6 +88,7 @@ public class DashboardViewModel : ObservableObject
         new() { Name = "表单翻译", Description = "按对象类翻译关联 Form 标签", Icon = "\uE70F" },
         new() { Name = "窗体翻译", Description = "翻译 Form Field 标签与说明", Icon = "\uE8A7" },
         new() { Name = "窗体配置", Description = "按四列坐标规范生成 Aras 经典窗体", Icon = "\uE8B9" },
+        new() { Name = "窗体配置修改", Description = "编辑已有窗体，拖动对齐与控件增删", Icon = "🛠️" },
         new() { Name = "对象类汇入", Description = "通过 Excel 批量创建 Aras 对象类和关系类", Icon = "\uE8B5" },
         new() { Name = "对象类配置", Description = "批量配置权限页签、可创建者和标准生命周期", Icon = "\uE7B8" },
         new() { Name = "类结构汇入", Description = "从 Excel 多级路径全量覆盖 ItemType 类结构", Icon = "\uE8F1" },

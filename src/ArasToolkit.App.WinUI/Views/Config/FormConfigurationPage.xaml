@@ -102,6 +102,7 @@
                                         Orientation="Horizontal" Spacing="20">
                                 <CheckBox Content="覆盖同名窗体" IsChecked="{Binding ReplaceExisting, Mode=TwoWay}" />
                                 <CheckBox Content="设为对象类默认视图" IsChecked="{Binding SetAsDefaultView, Mode=TwoWay}" />
+                                <TextBox Header="窗体高度（px）" Width="150" Text="{Binding FormHeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                 <ProgressRing Width="20" Height="20" IsActive="{Binding IsBusy}" />
                             </StackPanel>
                         </Grid>

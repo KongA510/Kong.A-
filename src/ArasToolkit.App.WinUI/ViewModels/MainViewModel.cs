@@ -85,6 +85,7 @@ public class MainViewModel : ObservableObject
         // ===== 二级菜单：系统配置 =====
         var sysConfig = new MenuItemInfo { Name = "系统配置", Icon = "Cog", CardIcon = "\uE713", Description = "Aras系统配置工具集" };
         sysConfig.Children.Add(new MenuItemInfo { Name = "窗体配置", Icon = "Cog", CardIcon = "\uE8B9", Description = "按规范生成 Aras 经典窗体字段布局" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "窗体配置修改", Icon = "Cog", CardIcon = "🛠️", Description = "读取已有窗体，拖动对齐并增量保存控件配置" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "对象类汇入", Icon = "DatabaseImport", CardIcon = "\uE8B5", Description = "通过 Excel 批量创建 Aras 对象类和关系类" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "对象类配置", Icon = "CubeOutline", CardIcon = "\uE7B8", Description = "批量配置权限页签、可创建者和标准生命周期" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "类结构汇入", Icon = "TreeFolderFolder", CardIcon = "\uE8F1", Description = "从 Excel 多级路径全量覆盖 ItemType 类结构" });

@@ -40,6 +40,7 @@
   <ItemGroup>
     <None Remove="app.ico" />
     <Content Include="app.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\FormEditor\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- 构建时将 R37lib 全部 DLL 复制到输出目录的 R37lib 子目录（IOM.dll 运行时依赖，App 通过 AssemblyResolve 探测） -->

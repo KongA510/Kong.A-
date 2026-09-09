@@ -7,6 +7,28 @@ using ArasToolkit.Core.Models;
 
 namespace ArasToolkit.App.WinUI.Converters;
 
+/// <summary>仪表盘同时支持既有 Fluent 字形和新功能 emoji。</summary>
+public sealed class FeatureIconFontConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var text = value?.ToString() ?? "";
+        var glyph = text.Length > 0 && text[0] >= '\uE000' && text[0] <= '\uF8FF';
+        return new FontFamily(glyph ? "Segoe Fluent Icons" : "Segoe UI Emoji");
+    }
+    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
+}
+
+public sealed class FeatureIconSizeConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var text = value?.ToString() ?? "";
+        return text.Length > 0 && text[0] >= '\uE000' && text[0] <= '\uF8FF' ? 17d : 28d;
+    }
+    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
+}
+
 /// <summary>Bool → Visibility（支持 Invert 参数反转）。</summary>
 public class BoolToVisibilityConverter : IValueConverter
 {

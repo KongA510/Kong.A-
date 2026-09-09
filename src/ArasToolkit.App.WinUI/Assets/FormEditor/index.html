@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://form-resources.local; frame-src 'self' about:; img-src 'self' data: https://form-resources.local; font-src https://form-resources.local; connect-src 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>窗体编辑画布</title>
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+  <div id="notice" role="status">选择已有窗体后在此预览</div>
+  <div id="viewport" tabindex="0" aria-label="窗体编辑画布，按住 Ctrl 多选，拖动空白区域框选">
+    <div id="extent"><div id="scene">
+      <iframe id="preview" title="窗体静态预览" sandbox="allow-same-origin" tabindex="-1"></iframe>
+      <div id="boundary"><span>窗体尺寸</span></div>
+      <div id="overlay"><div id="marquee" hidden></div><div id="guide" hidden></div></div>
+    </div></div>
+  </div>
+  <script src="editor.js"></script>
+</body>
+</html>
