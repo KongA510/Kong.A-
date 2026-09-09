@@ -24,9 +24,34 @@
     <EnableCoreMrtTooling>false</EnableCoreMrtTooling>
   </PropertyGroup>
 
+  <!-- WebView2 WinRT selects x86 native assets for AnyCPU. Match the process architecture
+       explicitly, including ordinary builds without a RuntimeIdentifier. -->
+  <PropertyGroup Condition="'$(PlatformTarget)' == '' or '$(PlatformTarget)' == 'AnyCPU'">
+    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget Condition="'$(Platform)' == 'x86' or '$(RuntimeIdentifier)' == 'win-x86'">x86</PlatformTarget>
+    <PlatformTarget Condition="'$(Platform)' == 'ARM64' or '$(RuntimeIdentifier)' == 'win-arm64'">ARM64</PlatformTarget>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\ArasToolkit.Core\ArasToolkit.Core.csproj" />
     <ProjectReference Include="..\ArasToolkit.Services\ArasToolkit.Services.csproj" />
+  </ItemGroup>
+
+  <!-- Opt-in native integration host. Default application startup is unchanged. -->
+  <PropertyGroup Condition="'$(FormEditorSmokeTest)' == 'true'">
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <StartupObject>ArasToolkit.FormEditor.NativeTests.NativeProgram</StartupObject>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(FormEditorSmokeTest)' == 'true'">
+    <Compile Include="..\..\tests\ArasToolkit.FormEditor.RegressionTests\NativeSmoke.cs" Link="NativeSmoke.cs" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(DataImportSmokeTest)' == 'true'">
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <StartupObject>ArasToolkit.DataImport.NativeTests.NativeProgram</StartupObject>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(DataImportSmokeTest)' == 'true'">
+    <Compile Include="..\..\tests\ArasToolkit.DataImport.RegressionTests\NativeSmoke.cs" Link="DataImportNativeSmoke.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -40,6 +65,7 @@
   <ItemGroup>
     <None Remove="app.ico" />
     <Content Include="app.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\FormEditor\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- 构建时将 R37lib 全部 DLL 复制到输出目录的 R37lib 子目录（IOM.dll 运行时依赖，App 通过 AssemblyResolve 探测） -->

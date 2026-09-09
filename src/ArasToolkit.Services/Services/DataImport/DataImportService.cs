@@ -1,4 +1,9 @@
 using System.Data;
+using System.Collections.Concurrent;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Xml;
+using System.Xml.Linq;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Interfaces;
 using ArasToolkit.Core.Models;
@@ -16,7 +21,8 @@ public class DataImportService : IDataImportService
     private readonly IOperationLogService _operationLogService;
     private readonly ArasConnectionService _connectionService;
     private readonly ArasConnectionPool _connectionPool;
-    private readonly SemaphoreSlim _writeSemaphore = new(1, 1); // StreamWriter 异步线程安全 // StreamWriter 线程安全锁
+    private readonly SemaphoreSlim _writeSemaphore = new(1, 1); // StreamWriter 异步线程安全锁
+    private static readonly Regex ColumnPlaceholder = new(@"@(?<column>[A-Z]+)", RegexOptions.CultureInvariant);
 
     public DataImportService(
         IDbContextFactory<ArasToolkitDbContext> contextFactory,
@@ -186,9 +192,9 @@ public class DataImportService : IDataImportService
                 bool hasData = false;
                 foreach (var m in result.ColumnMappings)
                 {
-                    var val = worksheet.Cells[r, m.Index + 1].Text?.Trim() ?? "";
+                    var val = worksheet.Cells[r, m.Index + 1].Text ?? "";
                     row[m.Header] = val;
-                    if (!string.IsNullOrEmpty(val)) hasData = true;
+                    if (!string.IsNullOrWhiteSpace(val)) hasData = true;
                 }
                 if (hasData) result.Data.Rows.Add(row);
             }
@@ -219,14 +225,57 @@ public class DataImportService : IDataImportService
         });
     }
 
-   public string ReplaceAmlPlaceholders(string amlTemplate, Dictionary<string, string> rowData)
-   {
-       // 反转义AML模板中的 \n \t \r（文字反斜杠序列 → 实际控制字符）
-       amlTemplate = amlTemplate.Replace(@"\n", "\n").Replace(@"\t", "\t").Replace(@"\r", "\r");
-       var result = amlTemplate;
-       foreach (var kv in rowData)
-           result = result.Replace("@" + kv.Key, kv.Value);
-        return result;
+    public string ReplaceAmlPlaceholders(string amlTemplate, Dictionary<string, string> rowData)
+    {
+        return RenderAml(ParseAmlTemplate(amlTemplate), rowData);
+    }
+
+    private static XDocument ParseAmlTemplate(string amlTemplate)
+    {
+        // 兼容旧模板在标签之间保存的文字换行符，不改写属性/文本中的文件路径。
+        amlTemplate = Regex.Replace(amlTemplate, @"(^|>)(?<space>(?:\s|\\[nrt])+)(?=<|$)", match =>
+            match.Groups[1].Value + match.Groups["space"].Value
+                .Replace(@"\n", "\n").Replace(@"\r", "\r").Replace(@"\t", "\t"));
+        using var reader = XmlReader.Create(new StringReader(amlTemplate), new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null
+        });
+        return XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+    }
+
+    private static string RenderAml(XDocument template, Dictionary<string, string> rowData)
+    {
+        // 只替换数据节点，每行使用独立副本；单元格内容不能变成 AML 结构。
+        var document = new XDocument(template);
+        string ReplaceValue(string value) => ColumnPlaceholder.Replace(value, match =>
+        {
+            var column = match.Groups["column"].Value;
+            if (!rowData.TryGetValue(column, out var cellValue))
+                throw new ArgumentException($"AML 占位符 @{column} 不在所选 Excel 列范围内。");
+            // XML 1.0 不允许的控制字符不能通过实体引用变合法，保留错误供逐行定位。
+            return XmlConvert.VerifyXmlChars(cellValue ?? string.Empty);
+        });
+
+        foreach (var attribute in document.Descendants().Attributes().Where(a => !a.IsNamespaceDeclaration))
+            attribute.Value = ReplaceValue(attribute.Value);
+        foreach (var node in document.DescendantNodes().OfType<XText>().ToList())
+        {
+            var replaced = ReplaceValue(node.Value);
+            if (node is XCData && replaced != node.Value)
+                node.ReplaceWith(new XText(replaced)); // 数据中含 ]]> 时也能安全序列化。
+            else
+                node.Value = replaced;
+        }
+
+        var output = new StringBuilder();
+        using (var writer = XmlWriter.Create(output, new XmlWriterSettings
+        {
+            OmitXmlDeclaration = true,
+            NewLineHandling = NewLineHandling.Entitize
+        }))
+            document.WriteTo(writer);
+        return output.ToString();
     }
 
     public string PreviewAml(string amlTemplate, Dictionary<string, string> firstRowData)
@@ -235,15 +284,25 @@ public class DataImportService : IDataImportService
     }
 
     /// <summary>
-    /// 执行导入 — 支持多线程并发 + 暂停/继续（通过 CancellationToken）
+    /// 执行导入 — 支持并发、取消；进度回调可等待暂停信号。
     /// </summary>
-    public async Task<ImportResult> ExecuteImportAsync(
+    public Task<ImportResult> ExecuteImportAsync(
         string filePath, string? sheetName,
         int startRow, int endRow, int startCol, int endCol,
         string amlContent,
         int maxConcurrency = 1,
         CancellationToken cancellationToken = default,
         Func<int, int, Task>? progressCallback = null)
+    {
+        // Excel 解包、连接初始化及同步 IOM 请求全部在后台执行。
+        return Task.Run(() => ExecuteImportCoreAsync(filePath, sheetName, startRow, endRow,
+            startCol, endCol, amlContent, maxConcurrency, cancellationToken, progressCallback));
+    }
+
+    private async Task<ImportResult> ExecuteImportCoreAsync(
+        string filePath, string? sheetName, int startRow, int endRow, int startCol, int endCol,
+        string amlContent, int maxConcurrency, CancellationToken cancellationToken,
+        Func<int, int, Task>? progressCallback)
     {
         var result = new ImportResult
         {
@@ -256,29 +315,43 @@ public class DataImportService : IDataImportService
 
         var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "Import");
         Directory.CreateDirectory(logDir);
-        var logFile = Path.Combine(logDir, $"import_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+        var logFile = Path.Combine(logDir, $"import_{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}.log");
         result.LogFilePath = logFile;
 
-        using var writer = new StreamWriter(logFile, false);
+        using var writer = new StreamWriter(logFile, false) { AutoFlush = true };
         await writer.WriteLineAsync("===== 数据导入日志 =====");
         await writer.WriteLineAsync("文件: " + Path.GetFileName(filePath));
         await writer.WriteLineAsync("Sheet: " + (sheetName ?? "N/A"));
         await writer.WriteLineAsync("开始时间: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         await writer.WriteLineAsync("范围: 行" + startRow + "~" + endRow + ", 列" + startCol + "~" + endCol);
         await writer.WriteLineAsync("并发线程数: " + maxConcurrency);
+        await writer.WriteLineAsync("状态\t信息\tExcel行号\t失败行号");
 
+        int processed = 0, success = 0, failure = 0, skipped = 0;
+        var failedRows = new ConcurrentBag<int>();
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(amlContent))
+                throw new ArgumentException("请先填写 AML 模板。");
+            if (startRow < 1 || startCol < 1 || (endRow != -1 && endRow < startRow)
+                || (endCol != -1 && endCol < startCol))
+                throw new ArgumentException("行列范围无效，起始值必须大于 0，结束值必须为 -1 或不小于起始值。");
+            maxConcurrency = Math.Clamp(maxConcurrency, 1, 10);
+            var amlTemplate = ParseAmlTemplate(amlContent);
+            // 复用登录时持久化的 Innovator，不能每一行再次 Login。
+            var currentInnovator = _connectionService.TypedInnovator
+                ?? throw new InvalidOperationException("尚未连接 Aras，请先登录目标数据库。");
+            await WriteImportLogAsync(writer, "信息", "数据库: " + _connectionService.CurrentConnection?.Database);
+
             // 连接池懒初始化 — 仅在多线程导入时按需创建
             if (maxConcurrency > 1)
             {
+                // 每次从当前连接重建，避免切换数据库后继续使用旧池。
+                await _connectionPool.ReinitializeAsync(maxConcurrency);
                 if (_connectionPool.PoolSize < maxConcurrency)
                 {
-                    await _connectionPool.ReinitializeAsync(maxConcurrency);
-                }
-                if (_connectionPool.PoolSize < maxConcurrency)
-                {
-                    await writer.WriteLineAsync("[警告] 连接池初始化失败，回退为单线程");
+                    await WriteImportLogAsync(writer, "警告", "连接池初始化失败，回退为单线程");
                     maxConcurrency = 1;
                 }
             }
@@ -287,12 +360,13 @@ public class DataImportService : IDataImportService
             var worksheet = sheetName != null ? package.Workbook.Worksheets[sheetName] : package.Workbook.Worksheets[0];
             if (worksheet?.Dimension == null)
             {
-                await writer.WriteLineAsync("[错误] 工作表无数据");
-                return result;
+                throw new InvalidOperationException("工作表不存在或无数据。");
             }
 
-            int maxCol = endCol == -1 ? worksheet.Dimension.Columns : Math.Min(endCol, worksheet.Dimension.Columns);
-            int maxRow = endRow == -1 ? worksheet.Dimension.Rows : Math.Min(endRow, worksheet.Dimension.Rows);
+            int maxCol = endCol == -1 ? worksheet.Dimension.End.Column : Math.Min(endCol, worksheet.Dimension.End.Column);
+            int maxRow = endRow == -1 ? worksheet.Dimension.End.Row : Math.Min(endRow, worksheet.Dimension.End.Row);
+            if (startRow > maxRow || startCol > maxCol)
+                throw new ArgumentException("所选范围内没有数据。");
             result.TotalRows = maxRow - startRow + 1;
 
             // 先串行收集所有行数据到 List（Excel 读取串行更安全）
@@ -303,9 +377,10 @@ public class DataImportService : IDataImportService
             var rows = new List<(int rowNum, Dictionary<string, string> rowData)>();
             for (int r = startRow; r <= maxRow; r++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var rowData = new Dictionary<string, string>();
                 foreach (var kv in colMap)
-                    rowData[kv.Key] = worksheet.Cells[r, kv.Value].Text?.Trim() ?? "";
+                    rowData[kv.Key] = worksheet.Cells[r, kv.Value].Text ?? "";
                 rows.Add((r, rowData));
             }
 
@@ -316,68 +391,75 @@ public class DataImportService : IDataImportService
                 CancellationToken = cancellationToken
             };
 
-            // 使用 Interlocked 保证多线程计数安全
-            int processed = 0, success = 0, failure = 0;
-
             await Parallel.ForEachAsync(rows, parallelOptions, async (item, ct) =>
             {
-                // 检查取消令牌（暂停时快速退出）
+                // 取消时不再启动新请求。
                 ct.ThrowIfCancellationRequested();
 
                 // 从连接池租用一个独立连接（多线程时），单线程用全局连接
                 PooledConnection? pooledConn = null;
-                Innovator? innovator;
-                if (maxConcurrency > 1)
-                {
-                    pooledConn = _connectionPool.Rent();
-                    innovator = pooledConn.Innovator;
-                }
-                else
-                {
-                    // 单线程时：从全局连接获取，使用标准登录链
-                    var httpConn = _connectionService.HttpConnection as HttpServerConnection;
-                    if (httpConn != null)
-                    {
-                        var loginResult = httpConn.Login();
-                        innovator = loginResult.getInnovator();
-                    }
-                    else
-                    {
-                        innovator = null;
-                    }
-                }
-
+                bool counted = false;
                 try
                 {
-                    if (innovator == null)
+                    if (item.rowData.Values.All(string.IsNullOrWhiteSpace))
                     {
-                        Interlocked.Increment(ref failure);
+                        Interlocked.Increment(ref skipped);
+                        counted = true;
+                        await WriteImportLogAsync(writer, "跳过", "空行", item.rowNum);
                         return;
                     }
+                    if (maxConcurrency > 1)
+                        pooledConn = _connectionPool.Rent();
+                    var innovator = pooledConn?.Innovator ?? currentInnovator;
 
                     // 替换占位符并执行 AML（同步 HTTP 调用）
-                    var replacedAml = ReplaceAmlPlaceholders(amlContent, item.rowData);
+                    var replacedAml = RenderAml(amlTemplate, item.rowData);
                     var resultItem = innovator.applyAML(replacedAml);
 
                     if (!resultItem.isError())
                     {
                         Interlocked.Increment(ref success);
+                        counted = true;
+                        await WriteImportLogAsync(writer, "成功", resultItem.getID(), item.rowNum);
+                        try
+                        {
+                            await _operationLogService.LogAsync("Import", "DataImport", resultItem.getID(),
+                                $"数据汇入: {Path.GetFileName(filePath)} / {sheetName} / 行{item.rowNum}");
+                        }
+                        catch (Exception ex)
+                        {
+                            await _errorLogService.LogErrorAsync("数据导入-操作日志", DescribeException(ex), ErrorLog.LevelP1, ex.ToString());
+                        }
                     }
                     else
                     {
                         Interlocked.Increment(ref failure);
+                        counted = true;
+                        failedRows.Add(item.rowNum);
                         var errMsg = resultItem.getErrorString();
-                        await _writeSemaphore.WaitAsync(); try { await writer.WriteLineAsync("[失败] 行" + item.rowNum + ": " + errMsg); } finally { _writeSemaphore.Release(); }
+                        if (string.IsNullOrWhiteSpace(errMsg)) errMsg = resultItem.ToString();
+                        await WriteImportLogAsync(writer, "失败", errMsg, item.rowNum, isFailure: true);
+                        await _errorLogService.LogErrorAsync($"数据导入-行{item.rowNum}", errMsg, ErrorLog.LevelP1);
                     }
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
-                    throw; // 重新抛出，让 Parallel.ForEachAsync 处理暂停
+                    if (!counted)
+                    {
+                        Interlocked.Increment(ref failure);
+                        failedRows.Add(item.rowNum);
+                        await WriteImportLogAsync(writer, "失败", "请求被取消，服务端结果未确认", item.rowNum, isFailure: true);
+                    }
+                    throw;
                 }
                 catch (Exception ex)
                 {
+                    // 已收到服务端结果后日志异常不能改变该行的成功/失败计数。
+                    if (counted) throw;
                     Interlocked.Increment(ref failure);
-                    await _writeSemaphore.WaitAsync(); try { await writer.WriteLineAsync("[失败] 行" + item.rowNum + ": " + ex.Message); } finally { _writeSemaphore.Release(); }
+                    failedRows.Add(item.rowNum);
+                    await WriteImportLogAsync(writer, "失败", ex.ToString(), item.rowNum, isFailure: true);
+                    await _errorLogService.LogErrorAsync($"数据导入-行{item.rowNum}", DescribeException(ex), ErrorLog.LevelP1, ex.ToString());
                 }
                 finally
                 {
@@ -392,28 +474,56 @@ public class DataImportService : IDataImportService
                 }
             });
 
-            result.SuccessCount = success;
-            result.FailureCount = failure;
-            result.ProcessedRows = processed;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // 暂停/取消：保留已处理数据
-            await writer.WriteLineAsync("[暂停] 用户取消，已处理: " + result.ProcessedRows + "/" + result.TotalRows);
+            result.IsCancelled = true;
+            await WriteImportLogAsync(writer, "取消", "已处理: " + processed + "/" + result.TotalRows);
         }
         catch (Exception ex)
         {
-            await writer.WriteLineAsync("[错误] 导入过程异常: " + ex.Message);
-            await _errorLogService.LogErrorAsync("数据导入-执行", ex.Message, ErrorLog.LevelP1, ex.StackTrace);
+            result.ErrorMessage = DescribeException(ex);
+            await WriteImportLogAsync(writer, "错误", "导入过程异常: " + ex);
+            await _errorLogService.LogErrorAsync("数据导入-执行", result.ErrorMessage, ErrorLog.LevelP1, ex.ToString());
+        }
+        finally
+        {
+            // 中断也必须保留已提交数据的计数，避免误报 0 成功/0 失败。
+            result.SuccessCount = success;
+            result.FailureCount = failure;
+            result.SkippedCount = skipped;
+            result.ProcessedRows = processed;
+            result.FailedRowNumbers = failedRows.Distinct().OrderBy(row => row).ToList();
         }
 
         await writer.WriteLineAsync("-----");
         await writer.WriteLineAsync("结束时间: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         await writer.WriteLineAsync("总计: " + result.TotalRows + "  成功: " + result.SuccessCount + "  失败: " + result.FailureCount + "  跳过: " + result.SkippedCount);
+        await writer.WriteLineAsync("失败行号汇总（Excel原始行号）: " + (result.FailedRowNumbers.Count == 0
+            ? "无" : string.Join(",", result.FailedRowNumbers)));
         await writer.WriteLineAsync("===== 日志结束 =====");
 
         return result;
-    }    private static string SanitizeHeader(string rawHeader)
+    }
+
+    private static string DescribeException(Exception ex) => string.IsNullOrWhiteSpace(ex.Message)
+        ? $"{ex.GetType().Name} (0x{ex.HResult:X8})" : ex.Message;
+
+    private async Task WriteImportLogAsync(StreamWriter writer, string status, string message,
+        int? excelRow = null, bool isFailure = false)
+    {
+        // 每条记录固定四列，换行/制表符转为可见文字，避免错误详情挤走最后的行号列。
+        var singleLineMessage = message.Replace("\\", "\\\\").Replace("\r", @"\r")
+            .Replace("\n", @"\n").Replace("\t", @"\t");
+        await _writeSemaphore.WaitAsync();
+        try
+        {
+            await writer.WriteLineAsync($"[{status}]\t{singleLineMessage}\t{excelRow}\t{(isFailure ? excelRow?.ToString() : string.Empty)}");
+        }
+        finally { _writeSemaphore.Release(); }
+    }
+
+    private static string SanitizeHeader(string rawHeader)
     {
         if (string.IsNullOrEmpty(rawHeader)) return rawHeader;
         return rawHeader

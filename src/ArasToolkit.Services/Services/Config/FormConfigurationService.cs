@@ -551,7 +551,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
                 new XElement("name", request.FormName),
                 new XElement("label", request.FormLabel),
                 new XElement("width", CalculateFormWidth(request.Fields)),
-                new XElement("height", CalculateFormHeight(request.Fields)),
+                new XElement("height", request.FormHeight ?? CalculateFormHeight(request.Fields)),
                 new XElement("Relationships", BuildBodyItem(request.Fields))));
 
     /// <summary>构造更新 Form 标签和尺寸的 Item，可选附带关系数据。</summary>
@@ -566,7 +566,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
             new XAttribute("id", formId),
             new XElement("label", request.FormLabel),
             new XElement("width", CalculateFormWidth(request.Fields)),
-            new XElement("height", CalculateFormHeight(request.Fields)));
+            new XElement("height", request.FormHeight ?? CalculateFormHeight(request.Fields)));
         if (relationships != null)
             item.Add(relationships);
         return item;
@@ -663,6 +663,8 @@ public sealed class FormConfigurationService : IFormConfigurationService
     /// <summary>在生成 AML 前校验请求，防止写入无法绑定 Property 的无效 Field。</summary>
     private static void ValidateRequest(ArasFormConfigurationRequest request)
     {
+        if (request.FormHeight is <= 0)
+            throw new InvalidOperationException("窗体高度必须为正整数。");
         ArgumentException.ThrowIfNullOrWhiteSpace(request.ItemTypeId);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.ItemTypeName);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.FormName);

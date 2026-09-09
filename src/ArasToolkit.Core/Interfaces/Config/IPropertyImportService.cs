@@ -39,7 +39,8 @@ public interface IPropertyImportService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 执行导入 — 读取 Excel，导入属性到 Aras
+    /// 执行导入 — 读取 Excel，逐行提交属性后对目标 ItemType 执行一次不修改字段的 edit。
+    /// 部分成功或取消时仍保存已提交的属性；对象类保存失败时结果不会标记成功。
     /// </summary>
     /// <param name="filePath">上传的 Excel 文件完整路径</param>
     /// <param name="itemTypeId">用户在系统现有对象类列表中选中的 ItemType GUID</param>

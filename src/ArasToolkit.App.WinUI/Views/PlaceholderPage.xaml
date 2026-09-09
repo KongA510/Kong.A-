@@ -44,8 +44,8 @@
                                         </Grid.ColumnDefinitions>
                                         <Border Width="36" Height="36" CornerRadius="8"
                                                 Background="{ThemeResource AccentFillColorSecondaryBrush}">
-                                            <FontIcon Glyph="{Binding CardIcon}" FontSize="17"
-                                                      FontFamily="Segoe Fluent Icons"
+                                            <FontIcon Glyph="{Binding CardIcon}" FontSize="{Binding CardIcon, Converter={StaticResource FeatureIconSize}}"
+                                                      FontFamily="{Binding CardIcon, Converter={StaticResource FeatureIconFont}}"
                                                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
                                         </Border>

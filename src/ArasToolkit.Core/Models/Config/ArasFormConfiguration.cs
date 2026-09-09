@@ -144,6 +144,8 @@ public sealed class ArasFormFieldLayout : ObservableObject
 /// <summary>创建或覆盖 Aras 窗体的请求。</summary>
 public sealed class ArasFormConfigurationRequest
 {
+    /// <summary>显式窗体高度；省略时保留历史调用的自动计算行为。</summary>
+    public int? FormHeight { get; init; }
     public string ItemTypeId { get; init; } = string.Empty;
     public string ItemTypeName { get; init; } = string.Empty;
     public string FormName { get; init; } = string.Empty;

@@ -130,8 +130,14 @@ public sealed class PropertyImportPreviewRow : ObservableObject
     public string SubmitStatus
     {
         get => _submitStatus;
-        set => SetProperty(ref _submitStatus, value);
+        set
+        {
+            if (SetProperty(ref _submitStatus, value))
+                OnPropertyChanged(nameof(IsSubmitting));
+        }
     }
+
+    public bool IsSubmitting => SubmitStatus == "正在提交";
 
     public bool IsValid => string.IsNullOrWhiteSpace(ValidationMessage);
     public bool HasAmlPreview => !string.IsNullOrWhiteSpace(AmlPreview);

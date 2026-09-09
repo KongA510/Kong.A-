@@ -71,6 +71,8 @@ public partial class App : Application
         services.AddTransient<ListConfigViewModel>();
         services.AddTransient<PropertyConfigViewModel>();
         services.AddTransient<FormConfigurationViewModel>();
+        services.AddTransient<FormConfigurationEditViewModel>();
+        services.AddTransient<FormConfigurationEditPage>();
         services.AddTransient<PermissionConfigViewModel>();
         services.AddTransient<LifecycleConfigViewModel>();
         services.AddTransient<WorkflowMapViewModel>();
@@ -108,6 +110,7 @@ public partial class App : Application
         nav.Register("List配置", typeof(ListConfigPage));
         nav.Register("属性配置", typeof(PropertyConfigPage));
         nav.Register("窗体配置", typeof(FormConfigurationPage));
+        nav.Register("窗体配置修改", typeof(FormConfigurationEditPage));
         nav.Register("权限配置", typeof(PermissionConfigPage));
         nav.Register("生命周期配置", typeof(LifecycleConfigPage));
         nav.Register("工作流程设定", typeof(WorkflowMapPage));

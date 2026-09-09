@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows.Input;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Extensions;
@@ -31,6 +32,10 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
     private bool _initialized;
     private bool _disposed;
     private bool _reloadPending;
+    private bool _isCancellationRequested;
+    private bool _isFinalizing;
+    private readonly Stopwatch _busyStopwatch = new();
+    private DispatcherQueueTimer? _busyTimer;
     private PropertyImportPreview? _preview;
     private PropertyImportResult? _lastResult;
     private ImportProgressInfo? _importProgress;
@@ -60,7 +65,7 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
             _ => CanPrepare);
         ExecuteImportCommand = new RelayCommand(async _ => await ExecuteImportAsync(),
             _ => CanExecuteImport);
-        CancelImportCommand = new RelayCommand(_ => CancelImport(), _ => IsImporting);
+        CancelImportCommand = new RelayCommand(_ => CancelImport(), _ => CanCancelImport);
         RefreshHistoryCommand = new RelayCommand(async _ => await LoadHistoryAsync(), _ => !IsBusy);
         PrevPageCommand = new RelayCommand(async _ => await GoToPageAsync(CurrentPage - 1),
             _ => CurrentPage > 1 && !IsBusy);
@@ -168,8 +173,55 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
                 return;
             OnPropertyChanged(nameof(CanPrepare));
             OnPropertyChanged(nameof(CanExecuteImport));
+            OnPropertyChanged(nameof(IsIdle));
+            if (value)
+            {
+                _busyStopwatch.Restart();
+                if (_busyTimer == null && _dispatcherQueue != null)
+                {
+                    _busyTimer = _dispatcherQueue.CreateTimer();
+                    _busyTimer.Interval = TimeSpan.FromSeconds(1);
+                    _busyTimer.Tick += OnBusyTimerTick;
+                }
+                _busyTimer?.Start();
+            }
+            else
+            {
+                _busyStopwatch.Stop();
+                _busyTimer?.Stop();
+            }
+            OnPropertyChanged(nameof(BusyElapsedText));
+            RefreshBusyPresentation();
             RefreshCommands();
         }
+    }
+
+    public bool IsIdle => !IsBusy;
+    public string BusyElapsedText => $"已用时 {_busyStopwatch.Elapsed:mm\\:ss}";
+    public bool CanCancelImport => IsImporting && !_isCancellationRequested && !_isFinalizing;
+    public string CancelButtonText => _isFinalizing ? "正在保存对象类" : _isCancellationRequested ? "正在停止…" : "停止后续提交";
+    public string BusyTitle => !IsImporting ? "正在处理，请稍候"
+        : _isFinalizing ? "正在保存对象类"
+        : _isCancellationRequested ? "正在停止后续提交"
+        : ImportProgress?.Phase ?? "正在准备汇入";
+    public string PreparationStageText => ImportProgress?.OverallTotal > 0 ? "✓ 预检" : "① 预检";
+    public string SubmissionStageText => _isFinalizing
+        ? _isCancellationRequested ? "已停止后续提交" : "② 提交结束"
+        : "② 属性提交";
+    public string SaveStageText => _isFinalizing ? "③ 保存中…" : "③ 保存对象类";
+
+    private void OnBusyTimerTick(DispatcherQueueTimer sender, object args) => OnPropertyChanged(nameof(BusyElapsedText));
+
+    private void RefreshBusyPresentation()
+    {
+        OnPropertyChanged(nameof(BusyTitle));
+        OnPropertyChanged(nameof(CanCancelImport));
+        OnPropertyChanged(nameof(CancelButtonText));
+        OnPropertyChanged(nameof(PreparationStageText));
+        OnPropertyChanged(nameof(SubmissionStageText));
+        OnPropertyChanged(nameof(SaveStageText));
+        OnPropertyChanged(nameof(IsProgressIndeterminate));
+        (CancelImportCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
     public bool IsImporting
@@ -179,8 +231,7 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
         {
             if (!SetProperty(ref _isImporting, value))
                 return;
-            (CancelImportCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            OnPropertyChanged(nameof(IsProgressIndeterminate));
+            RefreshBusyPresentation();
         }
     }
 
@@ -217,6 +268,7 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(HasResult));
             OnPropertyChanged(nameof(HasFailures));
             OnPropertyChanged(nameof(ResultSummary));
+            OnPropertyChanged(nameof(ObjectSaveSummary));
         }
     }
 
@@ -224,7 +276,11 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
     public bool HasFailures => LastResult?.HasFailures == true;
     public string ResultSummary => LastResult == null
         ? string.Empty
-        : $"成功 {LastResult.Sheet1Count}/{LastResult.Sheet1Total} · 新增 {LastResult.AddedCount} · 覆盖 {LastResult.UpdatedCount} · 失败 {LastResult.Sheet1Failed}";
+        : $"已提交 {LastResult.Sheet1Count}/{LastResult.Sheet1Total} · 新增 {LastResult.AddedCount} · 覆盖 {LastResult.UpdatedCount} · 失败 {LastResult.FailedRowCount} · 未提交 {LastResult.UnsubmittedCount}";
+    public string ObjectSaveSummary => LastResult == null ? string.Empty
+        : LastResult.ItemTypeSaved ? "✓ 对象类已保存"
+        : LastResult.ItemTypeSaveAttempted ? "对象类保存失败，请查看详细日志并重新保存对象类。"
+        : "尚未成功写入属性，无需保存对象类。";
 
     public ImportProgressInfo? ImportProgress
     {
@@ -237,13 +293,14 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(ProgressText));
             OnPropertyChanged(nameof(ImportErrorCount));
             OnPropertyChanged(nameof(IsProgressIndeterminate));
+            RefreshBusyPresentation();
         }
     }
 
     public double ProgressPercentage => ImportProgress?.Percentage ?? 0;
     public string ProgressText => ImportProgress?.StatusText ?? "正在准备逐条提交...";
     public int ImportErrorCount => ImportProgress?.ErrorCount ?? 0;
-    public bool IsProgressIndeterminate => IsImporting && ImportProgress == null;
+    public bool IsProgressIndeterminate => IsBusy && (!IsImporting || ImportProgress?.OverallTotal is null or 0 || _isFinalizing);
 
     public int CurrentPage
     {
@@ -304,7 +361,9 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
                 return;
 
             IsBusy = true;
-            await File.WriteAllBytesAsync(filePath, _importService.GenerateTemplate());
+            StatusMessage = "正在生成模板…";
+            var template = await Task.Run(() => _importService.GenerateTemplate());
+            await File.WriteAllBytesAsync(filePath, template);
             StatusMessage = $"模板已保存：{filePath}";
         }
         catch (Exception ex)
@@ -331,7 +390,7 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
             SelectedFilePath = filePath;
             IsBusy = true;
             StatusMessage = "正在读取并校验模板...";
-            SetPreview(await _importService.PreviewAsync(filePath));
+            SetPreview(await Task.Run(() => _importService.PreviewAsync(filePath)));
             StatusMessage = PreviewSummary;
         }
         catch (Exception ex)
@@ -368,7 +427,7 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
             IsBusy = true;
             ClearMessages();
             StatusMessage = "正在从 Aras 加载系统已有对象类...";
-            var itemTypes = await _importService.GetItemTypesAsync();
+            var itemTypes = await Task.Run(() => _importService.GetItemTypesAsync());
             ItemTypes.Clear();
             foreach (var itemType in itemTypes)
                 ItemTypes.Add(itemType);
@@ -401,9 +460,14 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
             IsBusy = true;
             ClearMessages();
             LastResult = null;
+            ImportProgress = null;
+            _isFinalizing = false;
+            var filePath = SelectedFilePath;
+            var target = SelectedItemType;
+            var mode = ImportMode;
             StatusMessage = $"正在为 {SelectedItemType.DisplayName} 解析引用并组装 AML...";
-            var preview = await _importService.PrepareAsync(
-                SelectedFilePath, SelectedItemType.Id, SelectedItemType.Name, ImportMode);
+            var preview = await Task.Run(() => _importService.PrepareAsync(
+                filePath, target.Id, target.Name, mode));
             SetPreview(preview);
             StatusMessage = preview.CanImport
                 ? $"AML 已组装完成：{preview.ValidCount} 行可逐条提交。"
@@ -422,20 +486,24 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
 
     private async Task ExecuteImportAsync()
     {
-        if (SelectedItemType == null || Preview?.CanImport != true)
-            return;
-
-        var confirmed = await _dialogService.ConfirmAsync(
-            "确认逐条写入 Aras",
-            $"目标对象类：{SelectedItemType.DisplayName}\n模式：{ImportMode}\n属性：{Preview.Rows.Count} 条\n\n开始后每一条成功请求都会立即保存；取消不会回滚已经成功的属性。是否继续？",
-            "开始逐条提交",
-            "返回检查");
-        if (!confirmed)
+        if (IsBusy || SelectedItemType == null || Preview?.CanImport != true)
             return;
 
         try
         {
             IsBusy = true;
+            var filePath = SelectedFilePath;
+            var target = SelectedItemType;
+            var mode = ImportMode;
+            var confirmed = await _dialogService.ConfirmAsync(
+                "确认逐条写入 Aras",
+                $"目标对象类：{target.DisplayName}\n模式：{mode}\n属性：{Preview.Rows.Count} 条\n\n属性逐条提交后会自动保存目标对象类。停止不会回滚已提交的属性，仍会完成这些属性的对象类保存。是否继续？",
+                "开始逐条提交", "返回检查");
+            if (!confirmed)
+                return;
+
+            _isCancellationRequested = false;
+            _isFinalizing = false;
             IsImporting = true;
             ClearMessages();
             LastResult = null;
@@ -444,24 +512,27 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
                 row.SubmitStatus = "待提交";
 
             _cancellationSource = new CancellationTokenSource();
+            var token = _cancellationSource.Token;
             var progress = new Progress<ImportProgressInfo>(UpdateProgress);
-            LastResult = await _importService.ImportAsync(
-                SelectedFilePath,
-                SelectedItemType.Id,
-                SelectedItemType.Name,
-                ImportMode,
+            // IOM 请求为同步调用；整个导入放到后台，进度通过 UI 上创建的 Progress 回送。
+            LastResult = await Task.Run(() => _importService.ImportAsync(
+                filePath,
+                target.Id,
+                target.Name,
+                mode,
                 progress,
-                _cancellationSource.Token);
+                token));
 
             ApplyFinalRowStatuses(LastResult);
             if (LastResult.IsSuccess)
             {
                 StatusMessage = LastResult.HasFailures
-                    ? $"逐条提交完成，部分失败：{ResultSummary}"
-                    : $"逐条提交完成：{ResultSummary}";
+                    ? $"逐条提交结束，存在失败：{ResultSummary}"
+                    : $"导入完成，对象类已保存：{ResultSummary}";
             }
             else
             {
+                StatusMessage = string.Empty;
                 ErrorMessage = LastResult.ErrorMessage ?? "导入未完成。";
             }
 
@@ -482,6 +553,8 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
         finally
         {
             IsImporting = false;
+            _isCancellationRequested = false;
+            _isFinalizing = false;
             IsBusy = false;
             _cancellationSource?.Dispose();
             _cancellationSource = null;
@@ -490,25 +563,26 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
 
     private void UpdateProgress(ImportProgressInfo progress)
     {
+        // 后台排队的进度不能覆盖最终结果或已卸载的页面。
+        if (_disposed || !IsImporting || LastResult != null)
+            return;
+        if (progress is PropertyImportProgressInfo { IsFinalizing: true })
+            _isFinalizing = true;
         ImportProgress = progress;
         StatusMessage = progress.StatusText;
-        var current = PreviewRows.FirstOrDefault(row =>
-            row.Name.Equals(progress.ItemName, StringComparison.OrdinalIgnoreCase));
-        if (current != null && progress.Phase is "覆盖现有属性" or "新增属性")
-            current.SubmitStatus = "正在提交";
+        if (progress is PropertyImportProgressInfo rowProgress && rowProgress.ExcelRowNumber > 0)
+        {
+            var current = PreviewRows.FirstOrDefault(row => row.ExcelRowNumber == rowProgress.ExcelRowNumber);
+            if (current != null)
+                current.SubmitStatus = rowProgress.SubmitStatus;
+        }
     }
 
     private void ApplyFinalRowStatuses(PropertyImportResult result)
     {
         foreach (var row in PreviewRows)
         {
-            var failed = result.FailedDetails.Any(detail =>
-                detail.Contains($"[行{row.ExcelRowNumber}]", StringComparison.Ordinal));
-            row.SubmitStatus = failed
-                ? "提交失败"
-                : row.PlannedAction.StartsWith("覆盖", StringComparison.Ordinal)
-                    ? "已覆盖"
-                    : "已新增";
+            row.SubmitStatus = result.RowStatuses.GetValueOrDefault(row.ExcelRowNumber, "未提交");
         }
     }
 
@@ -516,8 +590,12 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
     {
         try
         {
+            if (!CanCancelImport)
+                return;
+            _isCancellationRequested = true;
             _cancellationSource?.Cancel();
-            StatusMessage = "正在停止后续提交；已成功的属性不会回滚...";
+            RefreshBusyPresentation();
+            StatusMessage = "正在停止后续提交；当前请求结束后会保存已提交属性的对象类…";
         }
         catch (Exception ex)
         {
@@ -667,6 +745,9 @@ public sealed class PropertyConfigViewModel : ObservableObject, IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        _busyTimer?.Stop();
+        if (_busyTimer != null)
+            _busyTimer.Tick -= OnBusyTimerTick;
         _connectionService.ConnectionChanged -= OnConnectionChanged;
         _cancellationSource?.Cancel();
         _cancellationSource?.Dispose();

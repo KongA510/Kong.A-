@@ -20,6 +20,12 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
 
     private ArasItemTypeInfo? _selectedItemType;
     private string _formName = string.Empty;
+    private string _formHeight = "350";
+    public string FormHeight
+    {
+        get => _formHeight;
+        set => SetProperty(ref _formHeight, value);
+    }
     private string _statusMessage = string.Empty;
     private string _errorMessage = string.Empty;
     private bool _isBusy;
@@ -303,6 +309,11 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
 
     private async Task ApplyAsync()
     {
+        if (!int.TryParse(FormHeight, out var formHeight) || formHeight <= 0)
+        {
+            ErrorMessage = "窗体高度必须为正整数。";
+            return;
+        }
         if (SelectedItemType == null)
             return;
 
@@ -340,6 +351,7 @@ public sealed class FormConfigurationViewModel : ObservableObject, IDisposable
                 ItemTypeName = SelectedItemType.Name,
                 FormName = FormName.Trim(),
                 FormLabel = FormName.Trim(),
+                FormHeight = formHeight,
                 ReplaceExisting = ReplaceExisting,
                 SetAsDefaultView = SetAsDefaultView,
                 Fields = LayoutFields.ToList()

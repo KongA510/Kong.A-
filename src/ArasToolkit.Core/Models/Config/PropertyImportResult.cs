@@ -20,6 +20,18 @@ public class PropertyImportResult
     /// <summary>实际覆盖的属性数量。</summary>
     public int UpdatedCount { get; set; }
 
+    /// <summary>按 Excel 行号记录实际提交状态，未执行行不会被误报成功。</summary>
+    public Dictionary<int, string> RowStatuses { get; } = new();
+
+    public int FailedRowCount => RowStatuses.Values.Count(status => status == "提交失败");
+    public int UnsubmittedCount => Math.Max(0, Sheet1Total - Sheet1Count - FailedRowCount);
+    public bool IsCanceled { get; set; }
+
+    /// <summary>属性提交后，对目标 ItemType 执行一次空 edit 的结果。</summary>
+    public bool ItemTypeSaveAttempted { get; set; }
+    public bool ItemTypeSaved { get; set; }
+    public string? ItemTypeSaveError { get; set; }
+
     /// <summary>失败明细列表</summary>
     public List<string> FailedDetails { get; set; } = new();
 

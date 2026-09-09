@@ -10,6 +10,8 @@
             </ResourceDictionary.MergedDictionaries>
 
             <!-- 全局转换器 -->
+            <converters:FeatureIconFontConverter x:Key="FeatureIconFont" />
+            <converters:FeatureIconSizeConverter x:Key="FeatureIconSize" />
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
             <converters:StringToVisibilityConverter x:Key="StringToVisibility" />
             <converters:InverseBoolConverter x:Key="InverseBool" />
