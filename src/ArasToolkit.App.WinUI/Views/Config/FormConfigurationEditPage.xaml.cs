@@ -30,6 +30,12 @@ public sealed partial class FormConfigurationEditPage : Page
     private const string ShellOrigin = "https://form-editor.local";
     private string? _pendingTool;
     private FormEditorProperty? _pendingProperty;
+    private Microsoft.UI.Windowing.AppWindow? _hostWindow;
+    private Window? _hostXamlWindow;
+    private Frame? _hostFrame;
+    private CoreWebView2? _configuredCore;
+    private TaskCompletionSource<bool>? _canvasReady;
+    private bool _initializingCanvas;
 
     public FormConfigurationEditPage()
     {
@@ -44,33 +50,105 @@ public sealed partial class FormConfigurationEditPage : Page
     private async void Page_Loaded(object sender, RoutedEventArgs e)
     {
         Loaded -= Page_Loaded;
-        if (Frame != null) Frame.Navigating += Frame_Navigating;
-        if (App.MainWindow != null) App.MainWindow.AppWindow.Closing += Window_Closing;
-        try
-        {
-            await CanvasBrowser.EnsureCoreWebView2Async();
-            var core = CanvasBrowser.CoreWebView2;
-            core.SetVirtualHostNameToFolderMapping("form-editor.local", Path.Combine(AppContext.BaseDirectory, "Assets", "FormEditor"), CoreWebView2HostResourceAccessKind.DenyCors);
-            core.Settings.AreDevToolsEnabled = false; core.Settings.AreDefaultContextMenusEnabled = false;
-            core.Settings.IsStatusBarEnabled = false; core.Settings.IsZoomControlEnabled = false;
-            core.WebMessageReceived += Browser_Message;
-            core.NavigationStarting += (_, args) => { if (!args.Uri.StartsWith(ShellOrigin + "/", StringComparison.OrdinalIgnoreCase)) args.Cancel = true; };
-            core.NewWindowRequested += (_, args) => args.Handled = true;
-            core.PermissionRequested += (_, args) => args.State = CoreWebView2PermissionState.Deny;
-            core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
-            core.WebResourceRequested += Browser_ResourceRequested;
-            core.Navigate(ShellOrigin + "/index.html");
-            await _vm.InitializeAsync();
-        }
-        catch (Exception ex) { await _vm.ReportErrorAsync("初始化画布", ex); }
-        RenderInspector();
+        _hostFrame = Frame;
+        _hostXamlWindow = App.MainWindow;
+        _hostWindow = _hostXamlWindow?.AppWindow;
+        if (_hostXamlWindow != null) _hostXamlWindow.Closed += HostWindow_Closed;
+        if (_hostFrame != null) _hostFrame.Navigating += Frame_Navigating;
+        if (_hostWindow != null) _hostWindow.Closing += Window_Closing;
+        await Task.WhenAll(InitializeCanvasAsync(), _vm.InitializeAsync());
+        if (!_disposed) RenderInspector();
     }
 
-    private void Page_Unloaded(object sender, RoutedEventArgs e)
+    private async Task InitializeCanvasAsync()
+    {
+        if (_disposed || _initializingCanvas) return;
+        _initializingCanvas = true;
+        _ready = false;
+        var token = _lifetime.Token;
+        CanvasBrowser.Visibility = Visibility.Visible;
+        CanvasBrowser.IsHitTestVisible = false;
+        CanvasStatusPanel.Visibility = Visibility.Visible;
+        CanvasStatusTitle.Text = "正在加载画布";
+        CanvasStatusMessage.Text = "正在初始化窗体预览组件…";
+        CanvasLoading.IsActive = true;
+        CanvasRetry.Visibility = Visibility.Collapsed;
+        try
+        {
+            var assets = Path.Combine(AppContext.BaseDirectory, "Assets", "FormEditor");
+            foreach (var file in new[] { "index.html", "editor.js", "editor.css" })
+                if (!File.Exists(Path.Combine(assets, file))) throw new FileNotFoundException($"缺少画布文件：Assets/FormEditor/{file}");
+            await CanvasBrowser.EnsureCoreWebView2Async().AsTask().WaitAsync(TimeSpan.FromSeconds(30), token);
+            if (_disposed) return;
+            var core = CanvasBrowser.CoreWebView2;
+            core.SetVirtualHostNameToFolderMapping("form-editor.local", assets, CoreWebView2HostResourceAccessKind.DenyCors);
+            if (_configuredCore != core)
+            {
+                _configuredCore = core;
+                core.Settings.AreDevToolsEnabled = false; core.Settings.AreDefaultContextMenusEnabled = false;
+                core.Settings.IsStatusBarEnabled = false; core.Settings.IsZoomControlEnabled = false;
+                core.WebMessageReceived += Browser_Message;
+                core.NavigationStarting += (_, args) => { if (!args.Uri.StartsWith(ShellOrigin + "/", StringComparison.OrdinalIgnoreCase)) args.Cancel = true; };
+                core.NavigationCompleted += (_, args) =>
+                {
+                    if (!args.IsSuccess || args.HttpStatusCode >= 400)
+                        _canvasReady?.TrySetException(new InvalidOperationException($"画布页面加载失败：{args.WebErrorStatus}（HTTP {args.HttpStatusCode}）"));
+                };
+                core.ProcessFailed += async (_, args) =>
+                {
+                    if (_disposed) return;
+                    var error = new InvalidOperationException($"画布预览进程异常：{args.ProcessFailedKind}");
+                    if (_initializingCanvas) _canvasReady?.TrySetException(error);
+                    else await ReportCanvasErrorAsync(error);
+                };
+                core.NewWindowRequested += (_, args) => args.Handled = true;
+                core.PermissionRequested += (_, args) => args.State = CoreWebView2PermissionState.Deny;
+                core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
+                core.WebResourceRequested += Browser_ResourceRequested;
+            }
+            _canvasReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            core.Navigate(ShellOrigin + "/index.html");
+            await _canvasReady.Task.WaitAsync(TimeSpan.FromSeconds(15), token);
+            if (_disposed) return;
+            _ready = true;
+            CanvasLoading.IsActive = false;
+            CanvasStatusPanel.Visibility = Visibility.Collapsed;
+            CanvasBrowser.IsHitTestVisible = true;
+            QueueCanvas();
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (TimeoutException ex)
+        {
+            if (!_disposed) await ReportCanvasErrorAsync(new TimeoutException("画布加载超时，预览组件未能完成初始化。请重试加载。", ex));
+        }
+        catch (Exception ex) { if (!_disposed) await ReportCanvasErrorAsync(ex); }
+        finally { _initializingCanvas = false; }
+    }
+
+    private async Task ReportCanvasErrorAsync(Exception error, string area = "初始化画布")
+    {
+        _ready = false;
+        CanvasBrowser.Visibility = Visibility.Collapsed;
+        CanvasLoading.IsActive = false;
+        CanvasStatusPanel.Visibility = Visibility.Visible;
+        CanvasStatusTitle.Text = "画布加载失败";
+        CanvasStatusMessage.Text = $"{error.Message}\n可重试加载画布；已读取的配置和未保存修改会保留。若持续失败，请确认使用完整安装包及与程序架构一致的 WebView2 组件。";
+        CanvasRetry.Visibility = Visibility.Visible;
+        // Canvas failures stay in their own panel; generic data operations must not clear them.
+        await _vm.ReportErrorAsync(area, error, showError: false);
+    }
+
+    private async void CanvasRetry_Click(object sender, RoutedEventArgs e) => await InitializeCanvasAsync();
+
+    private void Page_Unloaded(object sender, RoutedEventArgs e) => DisposeEditor();
+    private void HostWindow_Closed(object sender, WindowEventArgs e) => DisposeEditor();
+
+    private void DisposeEditor()
     {
         if (_disposed) return; _disposed = true;
-        if (Frame != null) Frame.Navigating -= Frame_Navigating;
-        if (App.MainWindow != null) App.MainWindow.AppWindow.Closing -= Window_Closing;
+        if (_hostXamlWindow != null) _hostXamlWindow.Closed -= HostWindow_Closed;
+        if (_hostFrame != null) _hostFrame.Navigating -= Frame_Navigating;
+        if (_hostWindow != null) _hostWindow.Closing -= Window_Closing;
         _vm.EditorChanged -= OnEditorChanged; _vm.Dispose();
         _lifetime.Cancel();
         CanvasBrowser.Close();
@@ -112,7 +190,7 @@ public sealed partial class FormConfigurationEditPage : Page
         {
             using var document = JsonDocument.Parse(args.WebMessageAsJson);
             var message = document.RootElement; var kind = message.GetProperty("kind").GetString();
-            if (kind == "ready") { _ready = true; QueueCanvas(); return; }
+            if (kind == "ready") { _canvasReady?.TrySetResult(true); return; }
             if (_vm.Session == null || !message.TryGetProperty("revision", out var revision) || revision.GetInt64() != _revision) return;
             switch (kind)
             {
@@ -233,8 +311,13 @@ public sealed partial class FormConfigurationEditPage : Page
     private async Task ScriptAsync(string script)
     {
         if (!_ready || _disposed) return;
-        try { await CanvasBrowser.CoreWebView2.ExecuteScriptAsync(script); }
-        catch (Exception ex) { if (!_disposed) await _vm.ReportErrorAsync("更新画布", ex); }
+        try
+        {
+            // ExecuteScriptAsync otherwise returns null for both success and JavaScript exceptions.
+            var result = await CanvasBrowser.CoreWebView2.ExecuteScriptAsync($"(() => {{ try {{ {script}; return null; }} catch (error) {{ return String(error.stack || error); }} }})()");
+            if (result != "null") throw new InvalidOperationException($"画布渲染失败：{JsonSerializer.Deserialize<string>(result)}");
+        }
+        catch (Exception ex) { if (!_disposed) await ReportCanvasErrorAsync(ex, "更新画布"); }
     }
     private void SendSelection() => _ = ScriptAsync($"window.formEditor.setSelection({JsonSerializer.Serialize(_vm.Session?.SelectedIds ?? [])})");
 

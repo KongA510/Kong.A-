@@ -230,8 +230,11 @@ public sealed class FormConfigurationEditViewModel : ObservableObject, IDisposab
         catch (Exception ex) { Error = ex.Message; await _errors.LogErrorAsync($"窗体配置修改-{name}", ex.Message, ErrorLog.LevelP1, ex.StackTrace); }
         finally { IsBusy = false; NotifyState(); }
     }
-    public async Task ReportErrorAsync(string area, Exception exception)
-    { Error = exception.Message; await _errors.LogErrorAsync($"窗体配置修改-{area}", exception.Message, ErrorLog.LevelP1, exception.StackTrace); }
+    public async Task ReportErrorAsync(string area, Exception exception, bool showError = true)
+    {
+        if (showError) Error = exception.Message;
+        await _errors.LogErrorAsync($"窗体配置修改-{area}", exception.Message, ErrorLog.LevelP1, exception.StackTrace ?? exception.InnerException?.StackTrace);
+    }
     private void Changed(string kind) { NotifyState(); EditorChanged?.Invoke(kind); }
     private void NotifyState()
     {

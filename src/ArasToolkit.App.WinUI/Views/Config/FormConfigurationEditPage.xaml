@@ -81,7 +81,17 @@
                 </Grid>
             </Border>
             <Border Grid.Column="1" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" CornerRadius="8">
-                <WebView2 x:Name="CanvasBrowser" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                <Grid>
+                    <WebView2 x:Name="CanvasBrowser" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                    <Border x:Name="CanvasStatusPanel" Background="{ThemeResource CardBrush}" CornerRadius="8" Padding="16">
+                        <StackPanel VerticalAlignment="Center" Spacing="12">
+                            <ProgressRing x:Name="CanvasLoading" IsActive="True" Width="28" Height="28" />
+                            <TextBlock x:Name="CanvasStatusTitle" Text="正在加载画布" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock x:Name="CanvasStatusMessage" Text="正在初始化窗体预览组件…" TextWrapping="Wrap" />
+                            <Button x:Name="CanvasRetry" Content="重新加载画布" Visibility="Collapsed" Click="CanvasRetry_Click" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </Border>
             <Border Grid.Column="2" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" CornerRadius="8" Background="{ThemeResource CardBrush}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
