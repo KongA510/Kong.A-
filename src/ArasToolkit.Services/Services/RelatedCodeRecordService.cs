@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ArasToolkit.Services.Services;
 
-/// <summary>相关代码主题与有序代码段的数据库服务。</summary>
+/// <summary>管理员可查询全部代码主题及代码段；写操作仍限主题创建者。</summary>
 public sealed class RelatedCodeRecordService : IRelatedCodeRecordService
 {
     private readonly IDbContextFactory<ArasToolkitDbContext> _dbFactory;
@@ -29,9 +29,10 @@ public sealed class RelatedCodeRecordService : IRelatedCodeRecordService
         {
             await using var db = await _dbFactory.CreateDbContextAsync().ConfigureAwait(false);
             var userId = CurrentUserContext.CurrentUserId;
+            var isAdmin = CurrentUserContext.IsAdmin;
             var query = db.RelatedCodeRecords
                 .AsNoTracking()
-                .Where(item => item.UserId == userId);
+                .Where(item => isAdmin || item.UserId == userId);
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
@@ -65,10 +66,11 @@ public sealed class RelatedCodeRecordService : IRelatedCodeRecordService
         {
             await using var db = await _dbFactory.CreateDbContextAsync().ConfigureAwait(false);
             var userId = CurrentUserContext.CurrentUserId;
+            var isAdmin = CurrentUserContext.IsAdmin;
             var record = await db.RelatedCodeRecords
                 .AsNoTracking()
                 .Include(item => item.Segments)
-                .FirstOrDefaultAsync(item => item.Id == id && item.UserId == userId)
+                .FirstOrDefaultAsync(item => item.Id == id && (isAdmin || item.UserId == userId))
                 .ConfigureAwait(false);
             if (record != null)
                 record.Segments = record.Segments.OrderBy(item => item.SortOrder).ToList();
@@ -91,8 +93,12 @@ public sealed class RelatedCodeRecordService : IRelatedCodeRecordService
             var existing = string.IsNullOrWhiteSpace(record.Id)
                 ? null
                 : await db.RelatedCodeRecords
-                    .FirstOrDefaultAsync(item => item.Id == record.Id && item.UserId == userId)
+                    .FirstOrDefaultAsync(item => item.Id == record.Id)
                     .ConfigureAwait(false);
+
+            // 管理员查看他人的主题后保存，不得转成新增主题或改变原创建者。
+            if (existing != null && existing.UserId != userId)
+                throw new InvalidOperationException("仅创建者可修改此主题，当前账号可查看和复制复用。");
 
             if (existing == null)
             {

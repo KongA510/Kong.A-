@@ -20,6 +20,7 @@ public sealed class CommonQuerySnippetViewModel : ObservableObject
     private string _selectedFilterType = AllTypes;
     private string _searchKeyword = string.Empty;
     private string _editingId = string.Empty;
+    private string _editingUserId = string.Empty;
     private string _title = string.Empty;
     private string _contentType = CommonQuerySnippetTypes.Sql;
     private string _description = string.Empty;
@@ -41,7 +42,8 @@ public sealed class CommonQuerySnippetViewModel : ObservableObject
         RefreshCommand = new RelayCommand(async _ => await LoadAsync(), _ => !IsBusy);
         NewCommand = new RelayCommand(_ => BeginNew(), _ => !IsBusy);
         SaveCommand = new RelayCommand(async _ => await SaveAsync(), _ => CanSave());
-        DeleteCommand = new RelayCommand(async _ => await DeleteAsync(), _ => SelectedSnippet != null && !IsBusy);
+        DeleteCommand = new RelayCommand(async _ => await DeleteAsync(),
+            _ => SelectedSnippet?.UserId == CurrentUserContext.CurrentUserId && !IsBusy);
         FormatCommand = new RelayCommand(_ => FormatAndApply(), _ => CanFormat());
 
         _ = LoadAsync();
@@ -163,7 +165,10 @@ public sealed class CommonQuerySnippetViewModel : ObservableObject
     public bool HasStatus => !string.IsNullOrWhiteSpace(StatusMessage);
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
     public string LibrarySummary => $"当前 {Snippets.Count} 条";
-    public string EditorTitle => string.IsNullOrWhiteSpace(_editingId) ? "新建片段" : "编辑片段";
+    public bool IsSharedReadOnly => !string.IsNullOrWhiteSpace(_editingId)
+        && _editingUserId != CurrentUserContext.CurrentUserId;
+    public string EditorTitle => string.IsNullOrWhiteSpace(_editingId) ? "新建片段"
+        : IsSharedReadOnly ? "查看片段（仅创建者可修改）" : "编辑片段";
 
     public ICommand RefreshCommand { get; }
     public ICommand NewCommand { get; }
@@ -225,6 +230,7 @@ public sealed class CommonQuerySnippetViewModel : ObservableObject
     {
         SelectedSnippet = null;
         _editingId = string.Empty;
+        _editingUserId = string.Empty;
         Title = string.Empty;
         ContentType = CommonQuerySnippetTypes.Sql;
         Description = string.Empty;
@@ -238,6 +244,7 @@ public sealed class CommonQuerySnippetViewModel : ObservableObject
 
     private async Task SaveAsync()
     {
+        if (!CanSave()) return;
         IsBusy = true;
         ErrorMessage = string.Empty;
         try
@@ -252,6 +259,7 @@ public sealed class CommonQuerySnippetViewModel : ObservableObject
             };
             await _service.SaveAsync(snippet);
             _editingId = snippet.Id;
+            _editingUserId = CurrentUserContext.CurrentUserId;
             await LoadAsync();
             StatusMessage = $"已保存 {snippet.ContentType} 片段“{snippet.Title}”。";
             OnPropertyChanged(nameof(EditorTitle));
@@ -270,7 +278,7 @@ public sealed class CommonQuerySnippetViewModel : ObservableObject
 
     private async Task DeleteAsync()
     {
-        if (SelectedSnippet == null)
+        if (SelectedSnippet == null || SelectedSnippet.UserId != CurrentUserContext.CurrentUserId)
             return;
 
         var snippet = SelectedSnippet;
@@ -305,6 +313,7 @@ public sealed class CommonQuerySnippetViewModel : ObservableObject
     private void LoadIntoEditor(CommonQuerySnippet snippet)
     {
         _editingId = snippet.Id;
+        _editingUserId = snippet.UserId;
         Title = snippet.Title;
         ContentType = snippet.ContentType;
         Description = snippet.Description ?? string.Empty;
@@ -377,7 +386,7 @@ public sealed class CommonQuerySnippetViewModel : ObservableObject
     }
 
     private bool CanSave() =>
-        !IsBusy &&
+        !IsBusy && !IsSharedReadOnly &&
         !string.IsNullOrWhiteSpace(Title) &&
         !string.IsNullOrWhiteSpace(Content);
 

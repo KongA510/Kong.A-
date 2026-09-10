@@ -153,6 +153,12 @@ public sealed partial class RelatedCodeRecordPage : Page
         await Vm.SearchAsync();
     }
 
+    private void ThemeList_DragItemsStarting(object sender, DragItemsStartingEventArgs e)
+    {
+        e.Cancel = Vm.IsBusy || e.Items.OfType<RelatedCodeRecord>()
+            .Any(item => item.UserId != CurrentUserContext.CurrentUserId);
+    }
+
     private async void ThemeList_DragItemsCompleted(object sender, DragItemsCompletedEventArgs e)
     {
         if (e.DropResult == DataPackageOperation.Move)

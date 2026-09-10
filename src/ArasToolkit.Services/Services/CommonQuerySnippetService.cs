@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ArasToolkit.Services.Services;
 
-/// <summary>按当前应用用户隔离的常用 SQL/AML/XML 片段 CRUD 服务。</summary>
+/// <summary>管理员可查询全部常用 SQL/AML/XML 片段；写操作仍限创建者。</summary>
 public sealed class CommonQuerySnippetService : ICommonQuerySnippetService
 {
     private readonly IDbContextFactory<ArasToolkitDbContext> _dbFactory;
@@ -29,9 +29,10 @@ public sealed class CommonQuerySnippetService : ICommonQuerySnippetService
         {
             await using var db = await _dbFactory.CreateDbContextAsync().ConfigureAwait(false);
             var userId = CurrentUserContext.CurrentUserId;
+            var isAdmin = CurrentUserContext.IsAdmin;
             var query = db.CommonQuerySnippets
                 .AsNoTracking()
-                .Where(item => item.UserId == userId);
+                .Where(item => isAdmin || item.UserId == userId);
 
             if (!string.IsNullOrWhiteSpace(contentType))
             {
@@ -71,8 +72,12 @@ public sealed class CommonQuerySnippetService : ICommonQuerySnippetService
             var existing = string.IsNullOrWhiteSpace(snippet.Id)
                 ? null
                 : await db.CommonQuerySnippets
-                    .FirstOrDefaultAsync(item => item.Id == snippet.Id && item.UserId == userId)
+                    .FirstOrDefaultAsync(item => item.Id == snippet.Id)
                     .ConfigureAwait(false);
+
+            // 共享记录仅供查看复用，不能把无权编辑的记录误判为新建并生成副本。
+            if (existing != null && existing.UserId != userId)
+                throw new InvalidOperationException("仅创建者可修改此片段，当前账号可查看和复制复用。");
 
             if (existing == null)
             {
