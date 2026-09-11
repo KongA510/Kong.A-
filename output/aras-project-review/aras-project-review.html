@@ -1,0 +1,319 @@
+<!-- Aras HTML 字段粘贴片段：复制本文件全部内容（包括 style）。
+空位中的注释不会显示；不包含脚本、示例数据或数据库读写。
+如同一个页面放多份表格，请给各份 id 加不同前缀，避免重复。
+宿主字段的宽度设置见“Aras使用说明.md”。 -->
+<style>
+/* 所有样式限定在本表格内，避免影响 Aras 的其他字段。 */
+.apr-sheet {
+  --apr-row-height: 44px;
+  --apr-field-height: 30px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 8px;
+  box-sizing: border-box;
+  container-type: inline-size;
+  container-name: apr-review;
+  background: #fff;
+  color: #111;
+  font: 18px/1.45 "SimSun", "Songti SC", "Microsoft YaHei", serif;
+  text-align: left;
+}
+.apr-sheet *, .apr-sheet *::before, .apr-sheet *::after { box-sizing: border-box; }
+.apr-sheet .apr-title {
+  margin: 0 0 12px;
+  padding: 0;
+  font: bold 32px/1.4 "SimSun", "Songti SC", serif;
+  text-align: center;
+  letter-spacing: 2px;
+}
+.apr-sheet .apr-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 4px 16px;
+  margin: 0 0 5px;
+  font-size: 14px;
+}
+.apr-sheet .apr-number { display: flex; align-items: center; gap: 6px; }
+.apr-sheet .apr-number .apr-slot { width: 120px; min-height: 22px; }
+.apr-sheet .apr-code { margin-left: auto; overflow-wrap: anywhere; }
+.apr-sheet .apr-table {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+  border-spacing: 0;
+  border: 1.5px solid #222;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+.apr-sheet .apr-table th, .apr-sheet .apr-table td {
+  height: var(--apr-row-height);
+  padding: 5px 8px;
+  border: 1px solid #222;
+  background: #fff;
+  color: #111;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-align: left;
+  font: inherit;
+}
+.apr-sheet .apr-table .apr-head { font-weight: bold; text-align: center; }
+.apr-sheet .apr-table .apr-group { font-weight: bold; vertical-align: top; }
+.apr-sheet .apr-table .apr-criterion { font-size: 0.92em; }
+.apr-sheet .apr-long-row { height: 60px; }
+/* 每个空位有唯一 id；data-slot 仅标识位置，不会自动绑定 Aras 属性。 */
+.apr-sheet .apr-slot {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--apr-field-height);
+  overflow-wrap: anywhere;
+}
+.apr-sheet .apr-table .apr-section { padding: 6px 8px; vertical-align: top; }
+.apr-sheet .apr-section-label { margin: 0; }
+.apr-sheet .apr-slot.apr-area { min-height: 76px; }
+.apr-sheet .apr-sign-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  margin-top: 4px;
+}
+.apr-sheet .apr-sign-item {
+  display: flex;
+  flex: 1 1 220px;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+}
+.apr-sheet .apr-sign-item > span { flex: 0 0 auto; }
+.apr-sheet .apr-sign-item .apr-slot { flex: 1 1 0; }
+/* 仅作用于你放进空位的普通 HTML 输入控件；不会移动 Aras 原生字段。 */
+.apr-sheet .apr-slot input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="hidden"]),
+.apr-sheet .apr-slot select, .apr-sheet .apr-slot textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  font: inherit;
+  box-sizing: border-box;
+}
+.apr-sheet .apr-slot textarea { min-height: 72px; resize: vertical; }
+.apr-sheet .apr-slot input:focus-visible,
+.apr-sheet .apr-slot select:focus-visible,
+.apr-sheet .apr-slot textarea:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
+/* 按表格容器宽度调整，而不是只看整个浏览器窗口的宽度。 */
+@container apr-review (max-width: 720px) {
+  .apr-sheet .apr-table { font-size: 14px; --apr-row-height: 40px; }
+  .apr-sheet .apr-title { font-size: 26px; }
+  .apr-sheet .apr-table th, .apr-sheet .apr-table td { padding: 5px; }
+  .apr-sheet .apr-meta { font-size: 12px; }
+}
+@container apr-review (max-width: 440px) {
+  .apr-sheet .apr-table { font-size: 12px; }
+  .apr-sheet .apr-title { font-size: 22px; letter-spacing: 1px; }
+  .apr-sheet .apr-table th, .apr-sheet .apr-table td { padding: 4px; }
+  .apr-sheet .apr-sign-item { flex-basis: 100%; }
+}
+@media print {
+  .apr-sheet { padding: 0; }
+  .apr-sheet .apr-title { font-size: 22pt; }
+  .apr-sheet .apr-table { font-size: 10pt; --apr-row-height: 25px; --apr-field-height: 18px; }
+  .apr-sheet .apr-table th, .apr-sheet .apr-table td { padding: 3px 5px; }
+  .apr-sheet .apr-long-row { height: 32px; }
+  .apr-sheet .apr-slot.apr-area { min-height: 42px; }
+  .apr-sheet .apr-table tr { break-inside: avoid; }
+}
+</style>
+<div id="apr-project-review" class="apr-sheet" lang="zh-CN">
+  <h2 id="apr-title" class="apr-title">项目立项评审表</h2>
+  <div class="apr-meta">
+    <div class="apr-number"><span>No:</span><div id="apr-review-no" class="apr-slot" data-slot="review-no"><!-- 编号：在此放入对应属性字段 --></div></div>
+    <div class="apr-code">表单编号：JSAB-TD-FR-22016&nbsp;&nbsp;版本：A.0</div>
+  </div>
+  <table class="apr-table" aria-labelledby="apr-title">
+    <!-- 六个基础列保证顶部信息区和下方评审区的边框准确对齐。
+         评审区比例：类别 31.5% / 检查项 23.5% / 结论 22% / 问题 23%。 -->
+    <colgroup>
+      <col style="width:15.5%">
+      <col style="width:16%">
+      <col style="width:11.5%">
+      <col style="width:12%">
+      <col style="width:22%">
+      <col style="width:23%">
+    </colgroup>
+    <tbody>
+      <tr>
+        <th id="apr-label-project-name">项目名称</th>
+        <td colspan="2" headers="apr-label-project-name"><div id="apr-project-name" class="apr-slot" data-slot="project-name"><!-- 项目名称：在此放入对应属性字段 --></div></td>
+        <th id="apr-label-stage-name">阶段名称</th>
+        <td colspan="2" headers="apr-label-stage-name"><div id="apr-stage-name" class="apr-slot" data-slot="stage-name"><!-- 阶段名称：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-label-project-owner">项目负责人</th>
+        <td colspan="2" headers="apr-label-project-owner"><div id="apr-project-owner" class="apr-slot" data-slot="project-owner"><!-- 项目负责人：在此放入对应属性字段 --></div></td>
+        <th id="apr-label-host-department">主持部门</th>
+        <td colspan="2" headers="apr-label-host-department"><div id="apr-host-department" class="apr-slot" data-slot="host-department"><!-- 主持部门：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-label-review-location">评审地点</th>
+        <td colspan="2" headers="apr-label-review-location"><div id="apr-review-location" class="apr-slot" data-slot="review-location"><!-- 评审地点：在此放入对应属性字段 --></div></td>
+        <th id="apr-label-review-date">评审日期</th>
+        <td colspan="2" headers="apr-label-review-date"><div id="apr-review-date" class="apr-slot" data-slot="review-date"><!-- 评审日期：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-h-content" class="apr-head" colspan="4" scope="colgroup">评审内容</th>
+        <th id="apr-h-result" class="apr-head" scope="col">评审结论</th>
+        <th id="apr-h-issue" class="apr-head" scope="col">存在的问题或不足</th>
+      </tr>
+    </tbody>
+    <!-- 第 1 组：功能和性能要求 -->
+    <tbody>
+      <tr>
+        <th id="apr-group-1" class="apr-group" colspan="2" rowspan="5" scope="rowgroup">1. 功能和性能要求：</th>
+        <th id="apr-check-1-1" class="apr-criterion" colspan="2" scope="row">是否充分</th>
+        <td headers="apr-group-1 apr-check-1-1 apr-h-result"><div id="apr-g1-r1-result" class="apr-slot" data-slot="g1-r1-result"><!-- 功能和性能要求 / 是否充分 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-1 apr-check-1-1 apr-h-issue"><div id="apr-g1-r1-issue" class="apr-slot" data-slot="g1-r1-issue"><!-- 功能和性能要求 / 是否充分 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-1-2" class="apr-criterion" colspan="2" scope="row">是否适宜</th>
+        <td headers="apr-group-1 apr-check-1-2 apr-h-result"><div id="apr-g1-r2-result" class="apr-slot" data-slot="g1-r2-result"><!-- 功能和性能要求 / 是否适宜 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-1 apr-check-1-2 apr-h-issue"><div id="apr-g1-r2-issue" class="apr-slot" data-slot="g1-r2-issue"><!-- 功能和性能要求 / 是否适宜 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-1-3" class="apr-criterion" colspan="2" scope="row">要求是否完整</th>
+        <td headers="apr-group-1 apr-check-1-3 apr-h-result"><div id="apr-g1-r3-result" class="apr-slot" data-slot="g1-r3-result"><!-- 功能和性能要求 / 要求是否完整 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-1 apr-check-1-3 apr-h-issue"><div id="apr-g1-r3-issue" class="apr-slot" data-slot="g1-r3-issue"><!-- 功能和性能要求 / 要求是否完整 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-1-4" class="apr-criterion" colspan="2" scope="row">要求是否清楚</th>
+        <td headers="apr-group-1 apr-check-1-4 apr-h-result"><div id="apr-g1-r4-result" class="apr-slot" data-slot="g1-r4-result"><!-- 功能和性能要求 / 要求是否清楚 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-1 apr-check-1-4 apr-h-issue"><div id="apr-g1-r4-issue" class="apr-slot" data-slot="g1-r4-issue"><!-- 功能和性能要求 / 要求是否清楚 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr class="apr-long-row">
+        <th id="apr-check-1-5" class="apr-criterion" colspan="2" scope="row">所有要求是否没有相矛盾</th>
+        <td headers="apr-group-1 apr-check-1-5 apr-h-result"><div id="apr-g1-r5-result" class="apr-slot" data-slot="g1-r5-result"><!-- 功能和性能要求 / 所有要求是否没有相矛盾 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-1 apr-check-1-5 apr-h-issue"><div id="apr-g1-r5-issue" class="apr-slot" data-slot="g1-r5-issue"><!-- 功能和性能要求 / 所有要求是否没有相矛盾 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+    </tbody>
+    <!-- 第 2 组：法律法规要求 -->
+    <tbody>
+      <tr>
+        <th id="apr-group-2" class="apr-group" colspan="2" rowspan="5" scope="rowgroup">2. 法律法规要求：</th>
+        <th id="apr-check-2-1" class="apr-criterion" colspan="2" scope="row">是否充分</th>
+        <td headers="apr-group-2 apr-check-2-1 apr-h-result"><div id="apr-g2-r1-result" class="apr-slot" data-slot="g2-r1-result"><!-- 法律法规要求 / 是否充分 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-2 apr-check-2-1 apr-h-issue"><div id="apr-g2-r1-issue" class="apr-slot" data-slot="g2-r1-issue"><!-- 法律法规要求 / 是否充分 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-2-2" class="apr-criterion" colspan="2" scope="row">是否适宜</th>
+        <td headers="apr-group-2 apr-check-2-2 apr-h-result"><div id="apr-g2-r2-result" class="apr-slot" data-slot="g2-r2-result"><!-- 法律法规要求 / 是否适宜 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-2 apr-check-2-2 apr-h-issue"><div id="apr-g2-r2-issue" class="apr-slot" data-slot="g2-r2-issue"><!-- 法律法规要求 / 是否适宜 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-2-3" class="apr-criterion" colspan="2" scope="row">要求是否完整</th>
+        <td headers="apr-group-2 apr-check-2-3 apr-h-result"><div id="apr-g2-r3-result" class="apr-slot" data-slot="g2-r3-result"><!-- 法律法规要求 / 要求是否完整 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-2 apr-check-2-3 apr-h-issue"><div id="apr-g2-r3-issue" class="apr-slot" data-slot="g2-r3-issue"><!-- 法律法规要求 / 要求是否完整 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-2-4" class="apr-criterion" colspan="2" scope="row">要求是否清楚</th>
+        <td headers="apr-group-2 apr-check-2-4 apr-h-result"><div id="apr-g2-r4-result" class="apr-slot" data-slot="g2-r4-result"><!-- 法律法规要求 / 要求是否清楚 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-2 apr-check-2-4 apr-h-issue"><div id="apr-g2-r4-issue" class="apr-slot" data-slot="g2-r4-issue"><!-- 法律法规要求 / 要求是否清楚 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr class="apr-long-row">
+        <th id="apr-check-2-5" class="apr-criterion" colspan="2" scope="row">所有要求是否没有相矛盾</th>
+        <td headers="apr-group-2 apr-check-2-5 apr-h-result"><div id="apr-g2-r5-result" class="apr-slot" data-slot="g2-r5-result"><!-- 法律法规要求 / 所有要求是否没有相矛盾 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-2 apr-check-2-5 apr-h-issue"><div id="apr-g2-r5-issue" class="apr-slot" data-slot="g2-r5-issue"><!-- 法律法规要求 / 所有要求是否没有相矛盾 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+    </tbody>
+    <!-- 第 3 组：以往可利用的设计信息 -->
+    <tbody>
+      <tr>
+        <th id="apr-group-3" class="apr-group" colspan="2" rowspan="5" scope="rowgroup">3. 以往可利用的设计信息：</th>
+        <th id="apr-check-3-1" class="apr-criterion" colspan="2" scope="row">是否充分</th>
+        <td headers="apr-group-3 apr-check-3-1 apr-h-result"><div id="apr-g3-r1-result" class="apr-slot" data-slot="g3-r1-result"><!-- 以往可利用的设计信息 / 是否充分 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-3 apr-check-3-1 apr-h-issue"><div id="apr-g3-r1-issue" class="apr-slot" data-slot="g3-r1-issue"><!-- 以往可利用的设计信息 / 是否充分 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-3-2" class="apr-criterion" colspan="2" scope="row">是否适宜</th>
+        <td headers="apr-group-3 apr-check-3-2 apr-h-result"><div id="apr-g3-r2-result" class="apr-slot" data-slot="g3-r2-result"><!-- 以往可利用的设计信息 / 是否适宜 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-3 apr-check-3-2 apr-h-issue"><div id="apr-g3-r2-issue" class="apr-slot" data-slot="g3-r2-issue"><!-- 以往可利用的设计信息 / 是否适宜 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-3-3" class="apr-criterion" colspan="2" scope="row">要求是否完整</th>
+        <td headers="apr-group-3 apr-check-3-3 apr-h-result"><div id="apr-g3-r3-result" class="apr-slot" data-slot="g3-r3-result"><!-- 以往可利用的设计信息 / 要求是否完整 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-3 apr-check-3-3 apr-h-issue"><div id="apr-g3-r3-issue" class="apr-slot" data-slot="g3-r3-issue"><!-- 以往可利用的设计信息 / 要求是否完整 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-3-4" class="apr-criterion" colspan="2" scope="row">要求是否清楚</th>
+        <td headers="apr-group-3 apr-check-3-4 apr-h-result"><div id="apr-g3-r4-result" class="apr-slot" data-slot="g3-r4-result"><!-- 以往可利用的设计信息 / 要求是否清楚 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-3 apr-check-3-4 apr-h-issue"><div id="apr-g3-r4-issue" class="apr-slot" data-slot="g3-r4-issue"><!-- 以往可利用的设计信息 / 要求是否清楚 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr class="apr-long-row">
+        <th id="apr-check-3-5" class="apr-criterion" colspan="2" scope="row">所有要求是否没有相矛盾</th>
+        <td headers="apr-group-3 apr-check-3-5 apr-h-result"><div id="apr-g3-r5-result" class="apr-slot" data-slot="g3-r5-result"><!-- 以往可利用的设计信息 / 所有要求是否没有相矛盾 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-3 apr-check-3-5 apr-h-issue"><div id="apr-g3-r5-issue" class="apr-slot" data-slot="g3-r5-issue"><!-- 以往可利用的设计信息 / 所有要求是否没有相矛盾 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+    </tbody>
+    <!-- 第 4 组：设计开发其他要求 -->
+    <tbody>
+      <tr>
+        <th id="apr-group-4" class="apr-group" colspan="2" rowspan="5" scope="rowgroup">4. 设计开发其他要求：</th>
+        <th id="apr-check-4-1" class="apr-criterion" colspan="2" scope="row">是否充分</th>
+        <td headers="apr-group-4 apr-check-4-1 apr-h-result"><div id="apr-g4-r1-result" class="apr-slot" data-slot="g4-r1-result"><!-- 设计开发其他要求 / 是否充分 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-4 apr-check-4-1 apr-h-issue"><div id="apr-g4-r1-issue" class="apr-slot" data-slot="g4-r1-issue"><!-- 设计开发其他要求 / 是否充分 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-4-2" class="apr-criterion" colspan="2" scope="row">是否适宜</th>
+        <td headers="apr-group-4 apr-check-4-2 apr-h-result"><div id="apr-g4-r2-result" class="apr-slot" data-slot="g4-r2-result"><!-- 设计开发其他要求 / 是否适宜 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-4 apr-check-4-2 apr-h-issue"><div id="apr-g4-r2-issue" class="apr-slot" data-slot="g4-r2-issue"><!-- 设计开发其他要求 / 是否适宜 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-4-3" class="apr-criterion" colspan="2" scope="row">要求是否完整</th>
+        <td headers="apr-group-4 apr-check-4-3 apr-h-result"><div id="apr-g4-r3-result" class="apr-slot" data-slot="g4-r3-result"><!-- 设计开发其他要求 / 要求是否完整 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-4 apr-check-4-3 apr-h-issue"><div id="apr-g4-r3-issue" class="apr-slot" data-slot="g4-r3-issue"><!-- 设计开发其他要求 / 要求是否完整 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr>
+        <th id="apr-check-4-4" class="apr-criterion" colspan="2" scope="row">要求是否清楚</th>
+        <td headers="apr-group-4 apr-check-4-4 apr-h-result"><div id="apr-g4-r4-result" class="apr-slot" data-slot="g4-r4-result"><!-- 设计开发其他要求 / 要求是否清楚 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-4 apr-check-4-4 apr-h-issue"><div id="apr-g4-r4-issue" class="apr-slot" data-slot="g4-r4-issue"><!-- 设计开发其他要求 / 要求是否清楚 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+      <tr class="apr-long-row">
+        <th id="apr-check-4-5" class="apr-criterion" colspan="2" scope="row">所有要求是否没有相矛盾</th>
+        <td headers="apr-group-4 apr-check-4-5 apr-h-result"><div id="apr-g4-r5-result" class="apr-slot" data-slot="g4-r5-result"><!-- 设计开发其他要求 / 所有要求是否没有相矛盾 / 评审结论：在此放入对应属性字段 --></div></td>
+        <td headers="apr-group-4 apr-check-4-5 apr-h-issue"><div id="apr-g4-r5-issue" class="apr-slot" data-slot="g4-r5-issue"><!-- 设计开发其他要求 / 所有要求是否没有相矛盾 / 存在的问题或不足：在此放入对应属性字段 --></div></td>
+      </tr>
+    </tbody>
+    <tbody>
+      <tr>
+        <td colspan="6" class="apr-section">
+          <p class="apr-section-label">对存在问题和不足采取措施的建议（内容较多可另附页）：</p>
+          <div id="apr-action-advice" class="apr-slot apr-area" data-slot="action-advice"><!-- 措施建议：在此放入对应属性字段 --></div>
+          <div class="apr-sign-line">
+            <div class="apr-sign-item"><span>负责人：</span><div id="apr-action-owner" class="apr-slot" data-slot="action-owner"><!-- 措施负责人：在此放入对应属性字段 --></div></div>
+            <div class="apr-sign-item"><span>预计完成期：</span><div id="apr-action-due-date" class="apr-slot" data-slot="action-due-date"><!-- 预计完成期：在此放入对应属性字段 --></div></div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="6" class="apr-section">
+          <p class="apr-section-label">解决问题情况跟踪/评审总结：</p>
+          <div id="apr-review-summary" class="apr-slot apr-area" data-slot="review-summary"><!-- 跟踪情况及评审总结：在此放入对应属性字段 --></div>
+          <div class="apr-sign-line">
+            <div class="apr-sign-item"><span>主评人（签名）：</span><div id="apr-lead-reviewer" class="apr-slot" data-slot="lead-reviewer"><!-- 主评人签名：在此放入对应属性字段 --></div></div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <th id="apr-label-participants">参评人（签名）</th>
+        <td colspan="5" headers="apr-label-participants"><div id="apr-participants" class="apr-slot" data-slot="participants"><!-- 参评人签名：在此放入对应属性字段 --></div></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
