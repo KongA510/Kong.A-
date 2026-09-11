@@ -1,32 +1,33 @@
-# 项目立项评审表 · 整体宽度 900px
+# 项目立项评审表 · 问题列加宽 100px
 
-按原图保留固定标签、合并单元格及 53 个数据空位。本版将包含左右留白的整体横向宽度控制为 900px，适配笔记本较小的窗体区域。继续使用固定布局，保留 44px 起的行高及 30px 高的空位，便于放入属性字段。
+按原图保留固定标签、合并单元格及 53 个数据空位。按用户确认，将“存在的问题或不足”列从 147px 加宽到 247px，前五个基础列保持原宽 147px，整体外宽从 900px 调整到 1000px。字号、行高、固定标签、合并单元格结构和字段空位保持原样。
 
 ## 尺寸
 
 | 区域 | 宽度 |
 | --- | --- |
-| 每个基础列 | 147px |
-| 六个基础列总宽 | 882px（包含折叠外边框实际约 883px） |
-| 表格外层 HTML 字段 | 900px（包含左右各 8px 留白及边框余量） |
-| 顶部信息区 | 标签 147 / 数据空位 294 / 标签 147 / 数据空位 294 |
-| 评审区 | 类别 294 / 检查项 294 / 评审结论 147 / 问题说明 147 |
+| 前五个基础列 | 各 147px |
+| 最右侧问题列 | 247px（增加 100px） |
+| 六个基础列总宽 | 982px（包含折叠外边框实际约 983px） |
+| 表格外层 HTML 字段 | 1000px（包含左右各 8px 留白及边框余量） |
+| 顶部信息区 | 标签 147 / 数据空位 294 / 标签 147 / 数据空位 394 |
+| 评审区 | 类别 294 / 检查项 294 / 评审结论 147 / 问题说明 247 |
 | 普通行高 | 44px 起；长内容可增高 |
 
-正文由 18px 调整为 14px，标题由 32px 调整为 26px。147px 单元格内可放约 130px 宽的字段；294px 合并单元格内可放约 280px 宽的字段。
+正文仍为 14px，标题仍为 26px。147px 单元格内可放约 130px 宽的字段；294px 合并单元格内可放约 280px 宽的字段；247px 问题单元格内可放约 230px 宽的字段。顶部右侧合并空位随末列一起加宽到 394px。
 
-900px 指整体横向宽度；表单仍可纵向滚动。有效内容区至少有 900px 时可完整显示；若窗体本身更窄或存在额外 X 偏移、侧边留白，仍需为这些空间留出位置。
+1000px 指本版整体横向宽度；表单仍可纵向滚动。有效内容区至少有 1000px 时可完整显示；若窗体本身更窄或存在额外 X 偏移、侧边留白，仍需为这些空间留出位置。
 
 ## 替换现有表格
 
 1. 打开现有 HTML 字段的 **HTML Code**，用 `aras-project-review.txt` 的全部内容替换旧代码（包含 `<style>`）。HTML 片段与该 TXT 完全相同。
-2. 在该 HTML 字段的 **Field CSS** 中删除旧的宽度设置（包括 1216px 的 width/min-width），改为 `Aras字段容器样式.css` 的内容：
+2. 在该 HTML 字段的 **Field CSS** 中删除旧的 900px 宽度设置，改为 `Aras字段容器样式.css` 的内容：
 
 ```css
 /* 粘贴到承载表格的 HTML 字段的 Field CSS，替换旧版宽度设置。 */
-width: 900px !important;
-min-width: 900px !important;
-max-width: 900px !important;
+width: 1000px !important;
+min-width: 1000px !important;
+max-width: 1000px !important;
 height: auto !important;
 min-height: 1600px;
 overflow: visible !important;
@@ -34,7 +35,7 @@ padding: 0 !important;
 box-sizing: border-box;
 ```
 
-3. 如果设计器有 Width/宽度设置，也设为 `900`，位置 X/Y 按当前窗体保留。
+3. 如果设计器有 Width/宽度设置，也设为 `1000`，位置 X/Y 按当前窗体保留。
 4. 如果表格下半部仍被截断，增加 Form 的设计高度，让内容及字段都处于可滚动区域内（本表格自身约 1600px 高，还需加上顶部 Y 偏移）。单纯增加内部表格宽度不能解除祖先容器的 `overflow:hidden` 裁切；此时需调整对应容器的滚动/高度设置。
 5. 打开 `preview.html` 预览本版固定宽度布局。不要把预览文件的 `<html>`、`<head>`、`<body>` 一起贴入 Aras 字段。
 
@@ -55,7 +56,7 @@ box-sizing: border-box;
 - 若通过 Classic Form 设计器的 X/Y 坐标摆放原生字段，请以本版固定尺寸重新对齐。窗口变窄时表格不会收缩；后续改动行高、字号或内容换行仍可能影响下方字段的坐标。
 - 表格不会自行移动原生字段。如果需要控件跟随内容增高，应将真实控件接入相应空位，并保留原有绑定与事件。
 - 如需加高，修改 CSS 中 `--apr-row-height: 44px`、`--apr-field-height: 30px`。
-- 如需改为其他列宽，同步修改 6 个 `<col>`、表格 width/min-width、外层 width/min-width/flex 以及 Field CSS；外层宽度等于六列总宽加 16px 留白及折叠边框余量，最终不得超过 900px。
+- 如需改为其他列宽，同步修改 6 个 `<col>`、表格 width/min-width、外层 width/min-width/flex 以及 Field CSS；外层宽度等于六列总宽加 16px 留白及折叠边框余量，本版整体外宽为 1000px。
 - 固定编号 `JSAB-TD-FR-22016` 和版本 `A.0` 可按实际需求修改。
 
 ## 空位对照
@@ -121,6 +122,6 @@ box-sizing: border-box;
 - [Aras 官方文档：Classic Form 的 X/Y 坐标布局](https://docs.aras.com/aras-innovator-platform-33/introduction-to-responsive-forms/0000019f-1799-dcff-a7bf-5f99a4540000)
 - [Aras Labs：Field CSS 应用于字段外层容器](https://www.aras.com/community/f/getting-started/3840/how-to-format-field-css/1852)
 
-Chrome 实测外框宽度和内容滚动宽度均为 900px，含边框的表格宽度为 883px；在 900px 内容区内右侧问题栏完整显示。长文本不会撑大表格，53 个空位保留，普通空位高度仍为 30px。详细测量见 validation.json；预览截图为 preview-900.png。
+Chrome 对比验证通过：前五个基础列的宽度和横向位置完全一致，问题列增加恰好 100px，所有行的位置及高度一致，53 个空位全部保留。整体外宽为 1000px。详细结果见 validation.json，预览截图为 preview-issue-plus100.png。
 
 本次为静态布局修正，未连接或修改 Aras 实例；实际 Aras 外层容器裁切需按窗体设置确认。

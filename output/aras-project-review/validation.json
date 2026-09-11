@@ -1,159 +1,341 @@
 {
-  "mode": "fixed-outer-900",
-  "results": [
-    {
-      "hostWidth": 1200,
-      "outerWidth": 900,
-      "outerScrollWidth": 900,
-      "tableWidth": 883,
-      "outerHeight": 1542.984375,
-      "columnWidths": [
-        147,
-        147,
-        147,
-        147,
-        147,
-        147
-      ],
-      "topWidths": [
-        147,
-        294,
-        147,
-        294
-      ],
-      "reviewWidths": [
-        294,
-        294,
-        147,
-        147
-      ],
-      "font": "14px",
-      "rightmostCellVisible": true,
-      "overflowingCells": 0,
-      "fieldHeight": 30
-    },
-    {
-      "hostWidth": 900,
-      "outerWidth": 900,
-      "outerScrollWidth": 900,
-      "tableWidth": 883,
-      "outerHeight": 1542.984375,
-      "columnWidths": [
-        147,
-        147,
-        147,
-        147,
-        147,
-        147
-      ],
-      "topWidths": [
-        147,
-        294,
-        147,
-        294
-      ],
-      "reviewWidths": [
-        294,
-        294,
-        147,
-        147
-      ],
-      "font": "14px",
-      "rightmostCellVisible": true,
-      "overflowingCells": 0,
-      "fieldHeight": 30
-    },
-    {
-      "hostWidth": 760,
-      "outerWidth": 900,
-      "outerScrollWidth": 900,
-      "tableWidth": 883,
-      "outerHeight": 1542.984375,
-      "columnWidths": [
-        147,
-        147,
-        147,
-        147,
-        147,
-        147
-      ],
-      "topWidths": [
-        147,
-        294,
-        147,
-        294
-      ],
-      "reviewWidths": [
-        294,
-        294,
-        147,
-        147
-      ],
-      "font": "14px",
-      "rightmostCellVisible": true,
-      "overflowingCells": 0,
-      "fieldHeight": 30
-    },
-    {
-      "hostWidth": 32,
-      "outerWidth": 900,
-      "outerScrollWidth": 900,
-      "tableWidth": 883,
-      "outerHeight": 1542.984375,
-      "columnWidths": [
-        147,
-        147,
-        147,
-        147,
-        147,
-        147
-      ],
-      "topWidths": [
-        147,
-        294,
-        147,
-        294
-      ],
-      "reviewWidths": [
-        294,
-        294,
-        147,
-        147
-      ],
-      "font": "14px",
-      "rightmostCellVisible": true,
-      "overflowingCells": 0,
-      "fieldHeight": 30
-    }
-  ],
-  "stress": {
+  "mode": "issue-column-plus-100",
+  "before": {
     "outerWidth": 900,
     "outerScrollWidth": 900,
+    "outerHeight": 1542.984375,
     "tableWidth": 883,
-    "outerHeight": 2017.40625,
-    "columnWidths": [
-      147,
-      147,
-      147,
-      147,
-      147,
-      147
-    ],
-    "topWidths": [
-      147,
-      294,
-      147,
-      294
-    ],
-    "reviewWidths": [
-      294,
-      294,
-      147,
-      147
-    ],
     "font": "14px",
-    "rightmostCellVisible": true,
-    "overflowingCells": 0,
-    "fieldHeight": 30
+    "columns": [
+      {
+        "x": 20.5,
+        "width": 147
+      },
+      {
+        "x": 167.5,
+        "width": 147
+      },
+      {
+        "x": 314.5,
+        "width": 147
+      },
+      {
+        "x": 461.5,
+        "width": 147
+      },
+      {
+        "x": 608.5,
+        "width": 147
+      },
+      {
+        "x": 755.5,
+        "width": 147
+      }
+    ],
+    "rows": [
+      {
+        "y": 95.890625,
+        "height": 44
+      },
+      {
+        "y": 139.890625,
+        "height": 44
+      },
+      {
+        "y": 183.890625,
+        "height": 44
+      },
+      {
+        "y": 227.890625,
+        "height": 44
+      },
+      {
+        "y": 271.890625,
+        "height": 44
+      },
+      {
+        "y": 315.890625,
+        "height": 44
+      },
+      {
+        "y": 359.890625,
+        "height": 44
+      },
+      {
+        "y": 403.890625,
+        "height": 44
+      },
+      {
+        "y": 447.890625,
+        "height": 60
+      },
+      {
+        "y": 507.890625,
+        "height": 44
+      },
+      {
+        "y": 551.890625,
+        "height": 44
+      },
+      {
+        "y": 595.890625,
+        "height": 44
+      },
+      {
+        "y": 639.890625,
+        "height": 44
+      },
+      {
+        "y": 683.890625,
+        "height": 60
+      },
+      {
+        "y": 743.890625,
+        "height": 44
+      },
+      {
+        "y": 787.890625,
+        "height": 44
+      },
+      {
+        "y": 831.890625,
+        "height": 44
+      },
+      {
+        "y": 875.890625,
+        "height": 44
+      },
+      {
+        "y": 919.890625,
+        "height": 60
+      },
+      {
+        "y": 979.890625,
+        "height": 44
+      },
+      {
+        "y": 1023.890625,
+        "height": 44
+      },
+      {
+        "y": 1067.890625,
+        "height": 44
+      },
+      {
+        "y": 1111.890625,
+        "height": 44
+      },
+      {
+        "y": 1155.890625,
+        "height": 60
+      },
+      {
+        "y": 1215.890625,
+        "height": 143.296875
+      },
+      {
+        "y": 1359.1875,
+        "height": 143.296875
+      },
+      {
+        "y": 1502.484375,
+        "height": 44
+      }
+    ],
+    "issueWidths": [
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147,
+      147
+    ],
+    "overflowingCells": 0
+  },
+  "after": {
+    "outerWidth": 1000,
+    "outerScrollWidth": 1000,
+    "outerHeight": 1542.984375,
+    "tableWidth": 983,
+    "font": "14px",
+    "columns": [
+      {
+        "x": 20.5,
+        "width": 147
+      },
+      {
+        "x": 167.5,
+        "width": 147
+      },
+      {
+        "x": 314.5,
+        "width": 147
+      },
+      {
+        "x": 461.5,
+        "width": 147
+      },
+      {
+        "x": 608.5,
+        "width": 147
+      },
+      {
+        "x": 755.5,
+        "width": 247
+      }
+    ],
+    "rows": [
+      {
+        "y": 95.890625,
+        "height": 44
+      },
+      {
+        "y": 139.890625,
+        "height": 44
+      },
+      {
+        "y": 183.890625,
+        "height": 44
+      },
+      {
+        "y": 227.890625,
+        "height": 44
+      },
+      {
+        "y": 271.890625,
+        "height": 44
+      },
+      {
+        "y": 315.890625,
+        "height": 44
+      },
+      {
+        "y": 359.890625,
+        "height": 44
+      },
+      {
+        "y": 403.890625,
+        "height": 44
+      },
+      {
+        "y": 447.890625,
+        "height": 60
+      },
+      {
+        "y": 507.890625,
+        "height": 44
+      },
+      {
+        "y": 551.890625,
+        "height": 44
+      },
+      {
+        "y": 595.890625,
+        "height": 44
+      },
+      {
+        "y": 639.890625,
+        "height": 44
+      },
+      {
+        "y": 683.890625,
+        "height": 60
+      },
+      {
+        "y": 743.890625,
+        "height": 44
+      },
+      {
+        "y": 787.890625,
+        "height": 44
+      },
+      {
+        "y": 831.890625,
+        "height": 44
+      },
+      {
+        "y": 875.890625,
+        "height": 44
+      },
+      {
+        "y": 919.890625,
+        "height": 60
+      },
+      {
+        "y": 979.890625,
+        "height": 44
+      },
+      {
+        "y": 1023.890625,
+        "height": 44
+      },
+      {
+        "y": 1067.890625,
+        "height": 44
+      },
+      {
+        "y": 1111.890625,
+        "height": 44
+      },
+      {
+        "y": 1155.890625,
+        "height": 60
+      },
+      {
+        "y": 1215.890625,
+        "height": 143.296875
+      },
+      {
+        "y": 1359.1875,
+        "height": 143.296875
+      },
+      {
+        "y": 1502.484375,
+        "height": 44
+      }
+    ],
+    "issueWidths": [
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247,
+      247
+    ],
+    "overflowingCells": 0
+  },
+  "checks": {
+    "first_five_columns_unchanged": true,
+    "issue_column_grew_exactly_100": true,
+    "all_row_positions_and_heights_unchanged": true,
+    "all_53_slots_preserved": true
   }
 }
