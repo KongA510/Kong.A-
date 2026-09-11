@@ -1,149 +1,159 @@
 {
-  "mode": "fixed-200",
+  "mode": "fixed-outer-900",
   "results": [
     {
-      "hostWidth": 1300,
-      "sheetWidth": 1216,
-      "tableWidth": 1201,
-      "tableHeight": 1463.1875,
-      "sheetHeight": 1562.984375,
+      "hostWidth": 1200,
+      "outerWidth": 900,
+      "outerScrollWidth": 900,
+      "tableWidth": 883,
+      "outerHeight": 1542.984375,
       "columnWidths": [
-        200,
-        200,
-        200,
-        200,
-        200,
-        200
+        147,
+        147,
+        147,
+        147,
+        147,
+        147
       ],
       "topWidths": [
-        200,
-        400,
-        200,
-        400
+        147,
+        294,
+        147,
+        294
       ],
       "reviewWidths": [
-        400,
-        400,
-        200,
-        200
+        294,
+        294,
+        147,
+        147
       ],
-      "font": "18px",
-      "overflowingCells": 0
+      "font": "14px",
+      "rightmostCellVisible": true,
+      "overflowingCells": 0,
+      "fieldHeight": 30
+    },
+    {
+      "hostWidth": 900,
+      "outerWidth": 900,
+      "outerScrollWidth": 900,
+      "tableWidth": 883,
+      "outerHeight": 1542.984375,
+      "columnWidths": [
+        147,
+        147,
+        147,
+        147,
+        147,
+        147
+      ],
+      "topWidths": [
+        147,
+        294,
+        147,
+        294
+      ],
+      "reviewWidths": [
+        294,
+        294,
+        147,
+        147
+      ],
+      "font": "14px",
+      "rightmostCellVisible": true,
+      "overflowingCells": 0,
+      "fieldHeight": 30
     },
     {
       "hostWidth": 760,
-      "sheetWidth": 1216,
-      "tableWidth": 1201,
-      "tableHeight": 1463.1875,
-      "sheetHeight": 1562.984375,
+      "outerWidth": 900,
+      "outerScrollWidth": 900,
+      "tableWidth": 883,
+      "outerHeight": 1542.984375,
       "columnWidths": [
-        200,
-        200,
-        200,
-        200,
-        200,
-        200
+        147,
+        147,
+        147,
+        147,
+        147,
+        147
       ],
       "topWidths": [
-        200,
-        400,
-        200,
-        400
+        147,
+        294,
+        147,
+        294
       ],
       "reviewWidths": [
-        400,
-        400,
-        200,
-        200
+        294,
+        294,
+        147,
+        147
       ],
-      "font": "18px",
-      "overflowingCells": 0
-    },
-    {
-      "hostWidth": 390,
-      "sheetWidth": 1216,
-      "tableWidth": 1201,
-      "tableHeight": 1463.1875,
-      "sheetHeight": 1562.984375,
-      "columnWidths": [
-        200,
-        200,
-        200,
-        200,
-        200,
-        200
-      ],
-      "topWidths": [
-        200,
-        400,
-        200,
-        400
-      ],
-      "reviewWidths": [
-        400,
-        400,
-        200,
-        200
-      ],
-      "font": "18px",
-      "overflowingCells": 0
+      "font": "14px",
+      "rightmostCellVisible": true,
+      "overflowingCells": 0,
+      "fieldHeight": 30
     },
     {
       "hostWidth": 32,
-      "sheetWidth": 1216,
-      "tableWidth": 1201,
-      "tableHeight": 1463.1875,
-      "sheetHeight": 1562.984375,
+      "outerWidth": 900,
+      "outerScrollWidth": 900,
+      "tableWidth": 883,
+      "outerHeight": 1542.984375,
       "columnWidths": [
-        200,
-        200,
-        200,
-        200,
-        200,
-        200
+        147,
+        147,
+        147,
+        147,
+        147,
+        147
       ],
       "topWidths": [
-        200,
-        400,
-        200,
-        400
+        147,
+        294,
+        147,
+        294
       ],
       "reviewWidths": [
-        400,
-        400,
-        200,
-        200
+        294,
+        294,
+        147,
+        147
       ],
-      "font": "18px",
-      "overflowingCells": 0
+      "font": "14px",
+      "rightmostCellVisible": true,
+      "overflowingCells": 0,
+      "fieldHeight": 30
     }
   ],
   "stress": {
-    "sheetWidth": 1216,
-    "tableWidth": 1201,
-    "tableHeight": 2056.4375,
-    "sheetHeight": 2156.234375,
+    "outerWidth": 900,
+    "outerScrollWidth": 900,
+    "tableWidth": 883,
+    "outerHeight": 2017.40625,
     "columnWidths": [
-      200,
-      200,
-      200,
-      200,
-      200,
-      200
+      147,
+      147,
+      147,
+      147,
+      147,
+      147
     ],
     "topWidths": [
-      200,
-      400,
-      200,
-      400
+      147,
+      294,
+      147,
+      294
     ],
     "reviewWidths": [
-      400,
-      400,
-      200,
-      200
+      294,
+      294,
+      147,
+      147
     ],
-    "font": "18px",
-    "overflowingCells": 0
+    "font": "14px",
+    "rightmostCellVisible": true,
+    "overflowingCells": 0,
+    "fieldHeight": 30
   }
 }

@@ -1,4 +1,4 @@
-<!-- Aras HTML 字段粘贴片段（固定列宽 200px）：复制本文件全部内容（包括 style）。
+<!-- Aras HTML 字段粘贴片段（整体宽度 900px）：复制本文件全部内容（包括 style）。
 空位中的注释不会显示；不包含脚本、示例数据或数据库读写。
 如同一个页面放多份表格，请给各份 id 加不同前缀，避免重复。
 宿主字段的宽度设置见“Aras使用说明.md”。 -->
@@ -7,25 +7,25 @@
 .apr-sheet {
   --apr-row-height: 44px;
   --apr-field-height: 30px;
-  /* 六个基础列各 200px，表格 1200px；外框另留左右各 8px。 */
-  width: 1216px !important;
-  min-width: 1216px !important;
-  max-width: none !important;
-  flex: 0 0 1216px;
+  /* 六列各 147px = 882px，另留折叠边框和左右各 8px，总外宽 900px。 */
+  width: 900px !important;
+  min-width: 900px !important;
+  max-width: 900px !important;
+  flex: 0 0 900px;
   margin: 0;
   padding: 8px;
   box-sizing: border-box;
   overflow: visible;
   background: #fff;
   color: #111;
-  font: 18px/1.45 "SimSun", "Songti SC", "Microsoft YaHei", serif;
+  font: 14px/1.45 "SimSun", "Songti SC", "Microsoft YaHei", serif;
   text-align: left;
 }
 .apr-sheet *, .apr-sheet *::before, .apr-sheet *::after { box-sizing: border-box; }
 .apr-sheet .apr-title {
   margin: 0 0 12px;
   padding: 0;
-  font: bold 32px/1.4 "SimSun", "Songti SC", serif;
+  font: bold 26px/1.4 "SimSun", "Songti SC", serif;
   text-align: center;
   letter-spacing: 2px;
 }
@@ -36,15 +36,15 @@
   align-items: flex-end;
   gap: 4px 16px;
   margin: 0 0 5px;
-  font-size: 14px;
+  font-size: 12px;
 }
 .apr-sheet .apr-number { display: flex; align-items: center; gap: 6px; }
-.apr-sheet .apr-number .apr-slot { width: 200px; min-height: 22px; }
+.apr-sheet .apr-number .apr-slot { width: 147px; min-height: 22px; }
 .apr-sheet .apr-code { margin-left: auto; overflow-wrap: anywhere; }
 .apr-sheet .apr-table {
-  width: 1200px !important;
-  min-width: 1200px !important;
-  max-width: none !important;
+  width: 882px !important;
+  min-width: 882px !important;
+  max-width: 884px !important;
   margin: 0;
   table-layout: fixed;
   border-collapse: collapse;
@@ -56,7 +56,7 @@
 }
 .apr-sheet .apr-table th, .apr-sheet .apr-table td {
   height: var(--apr-row-height);
-  padding: 5px 8px;
+  padding: 5px 6px;
   border: 1px solid #222;
   background: #fff;
   color: #111;
@@ -123,16 +123,16 @@
     <div class="apr-code">表单编号：JSAB-TD-FR-22016&nbsp;&nbsp;版本：A.0</div>
   </div>
   <table class="apr-table" aria-labelledby="apr-title">
-    <!-- 六个基础列，每列固定 200px。
-         顶部：标签 200 / 空位 400 / 标签 200 / 空位 400。
-         评审区：类别 400 / 检查项 400 / 结论 200 / 问题 200。 -->
+    <!-- 六个基础列，每列固定 147px，表格和外框总宽不超过 900px。
+         顶部：标签 147 / 空位 294 / 标签 147 / 空位 294。
+         评审区：类别 294 / 检查项 294 / 结论 147 / 问题 147。 -->
     <colgroup>
-      <col style="width:200px">
-      <col style="width:200px">
-      <col style="width:200px">
-      <col style="width:200px">
-      <col style="width:200px">
-      <col style="width:200px">
+      <col style="width:147px">
+      <col style="width:147px">
+      <col style="width:147px">
+      <col style="width:147px">
+      <col style="width:147px">
+      <col style="width:147px">
     </colgroup>
     <tbody>
       <tr>

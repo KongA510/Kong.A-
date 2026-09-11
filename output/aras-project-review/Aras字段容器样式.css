@@ -1,8 +1,9 @@
-/* 粘贴到承载表格的 HTML 字段的 Field CSS；替换之前的百分比宽度。 */
-width: 1216px !important;
-min-width: 1216px !important;
-max-width: none !important;
+/* 粘贴到承载表格的 HTML 字段的 Field CSS，替换旧版宽度设置。 */
+width: 900px !important;
+min-width: 900px !important;
+max-width: 900px !important;
 height: auto !important;
 min-height: 1600px;
 overflow: visible !important;
+padding: 0 !important;
 box-sizing: border-box;
