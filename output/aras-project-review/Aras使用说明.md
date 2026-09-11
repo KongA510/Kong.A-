@@ -1,35 +1,45 @@
-# 项目立项评审表 · Aras 静态 HTML
+# 项目立项评审表 · 固定列宽 200px
 
-按用户提供的图一制作。绿色框是区域标记，成品采用黑色细边框；固定标签保留，数据位置为空。未收到图二，因此未猜测属性名称或字段类型。
+按原图保留固定标签、合并单元格及 53 个数据空位。本版按用户反馈改为固定宽度，窗口或 HTML 字段容器变窄时，不再缩小表格、字号或行高。
 
-## 文件
+## 尺寸
 
-- `aras-project-review.txt`：用编辑器打开，全选复制到 Aras 的 HTML Code；与 HTML 片段内容完全相同。
-- `aras-project-review.html`：同一份粘贴片段，只有 `<style>` 和表格容器，无外部依赖，无 JavaScript。
-- `preview.html`：浏览器预览页面。直接打开后调整窗口大小查看效果；不要把预览文件的整页标签贴进字段。
+| 区域 | 宽度 |
+| --- | --- |
+| 每个基础列 | 200px |
+| 六个基础列总宽 | 1200px（折叠外边框可能另占 1px） |
+| 表格外层 HTML 字段 | 1216px（含左右各 8px 留白） |
+| 顶部信息区 | 标签 200 / 数据空位 400 / 标签 200 / 数据空位 400 |
+| 评审区 | 类别 400 / 检查项 400 / 评审结论 200 / 问题说明 200 |
+| 普通行高 | 44px 起；长内容可增高 |
 
-## 在 Aras 中放置表格
+“200px”指基础列的宽度，含单元格内边距。200px 单元格内可放约 180px 宽的字段；400px 合并单元格内可放约 380px 宽的字段。固定布局会在较窄的可滚动窗体中横向滚动。
 
-1. 在目标 Form 中添加一个 HTML 类型字段，例如命名为 `project_review_layout`，不显示该字段自身的标签。
-2. 将 `aras-project-review.txt` 全部内容复制到该字段的 HTML Code。
-3. 表格设置了 `width:100%`，会填满所在容器。HTML 字段的外层容器也必须能够变宽；否则表格只能跟随固定大小的容器。
-4. 对 Classic Form，可在此 HTML 字段的 **Field CSS** 中设置以下容器样式。顶部位置请按实际窗体调整；这段样式只设置该字段，不要粘到所有字段共用的样式里。
+## 替换现有表格
+
+1. 打开现有 HTML 字段的 **HTML Code**，用 `aras-project-review.txt` 的全部内容替换旧代码（包含 `<style>`）。HTML 片段与该 TXT 完全相同。
+2. 在该 HTML 字段的 **Field CSS** 中删除旧的百分比宽度设置，改为 `Aras字段容器样式.css` 的内容：
 
 ```css
-/* 左右各留 12px；不要再给宿主字段设置固定宽度。 */
-left: 12px !important;
-width: calc(100% - 24px) !important;
+/* 粘贴到承载表格的 HTML 字段的 Field CSS；替换之前的百分比宽度。 */
+width: 1216px !important;
+min-width: 1216px !important;
 max-width: none !important;
-min-width: 0 !important;
 height: auto !important;
+min-height: 1600px;
+overflow: visible !important;
 box-sizing: border-box;
 ```
 
-若 HTML 字段外还嵌套固定宽度容器，须一并解除该容器的固定宽度。不同版本的表单生成结构可能不同，需要在实际窗体确认。Responsive Form 则让承载区域占满可用列宽。
+3. 如果设计器有 Width/宽度设置，也设为 `1216`，位置 X/Y 按当前窗体保留。
+4. 如果表格下半部仍被截断，增加 Form 的设计高度，让内容及字段都处于可滚动区域内（本表格自身约 1600px 高，还需加上顶部 Y 偏移）。单纯增加内部表格宽度不能解除祖先容器的 `overflow:hidden` 裁切；此时需调整对应容器的滚动/高度设置。
+5. 打开 `preview.html` 预览本版固定宽度布局。不要把预览文件的 `<html>`、`<head>`、`<body>` 一起贴入 Aras 字段。
+
+上面的 Field CSS 只用于承载表格的 HTML 字段，不要应用到所有属性字段。
 
 ## 放入属性字段
 
-每个空位都是一个独立 `<div>`，例如：
+每个空位保留独立编号，例如：
 
 ```html
 <div id="apr-project-name" class="apr-slot" data-slot="project-name">
@@ -37,13 +47,13 @@ box-sizing: border-box;
 </div>
 ```
 
-- `id` 和 `data-slot` 是本模板定义的位置编号，**不是 Aras 属性绑定语法**。注释不会显示。
-- 你可以在空位内放入自己已有的、经过属性绑定的控件。静态 HTML 自身不读写或保存 Aras 数据。
-- 若在 Classic Form 设计器中把原生字段按 X/Y 坐标覆盖到空位上，表格缩放时这些字段不会自动跟随。要让字段与表格一起移动，需通过窗体事件把真实控件接入对应空位，并保留原有绑定、编辑权限和事件；这部分要依据图二以及实际字段 Name/属性名配置。
-- 原图“□通过 / □存在问题”的位置也留为空位，可放对应的 List、单选或其他已绑定控件。没有画不能保存数据的假复选框。
-- 长内容会让行高自然增加。表格采用百分比列宽、固定表格布局和容器查询，窄窗体内文字换行，不使用整页缩放或绝对坐标。
-- 如需加大默认空位，将 CSS 顶部的 `--apr-row-height: 44px` 和 `--apr-field-height: 30px` 调大。较大控件请实际核对其内部最小宽度。
-- 表单编号 `JSAB-TD-FR-22016`、版本 `A.0` 按截图抄录，可直接修改。
+- `id`、`data-slot` 是模板位置编号，不是 Aras 属性绑定语法；不会自动读写或保存数据。
+- 可把已有的、经过属性绑定的控件放入对应空位。评审结论和问题说明均留空，方便选择实际字段类型。
+- 若通过 Classic Form 设计器的 X/Y 坐标摆放原生字段，请以本版固定尺寸重新对齐。窗口变窄时表格不会收缩；后续改动行高、字号或内容换行仍可能影响下方字段的坐标。
+- 表格不会自行移动原生字段。如果需要控件跟随内容增高，应将真实控件接入相应空位，并保留原有绑定与事件。
+- 如需加高，修改 CSS 中 `--apr-row-height: 44px`、`--apr-field-height: 30px`。
+- 如需改为其他列宽，同步修改 6 个 `<col>`、表格 width/min-width、外层 width/min-width/flex 以及 Field CSS；外层宽度等于六列总宽加 16px。
+- 固定编号 `JSAB-TD-FR-22016` 和版本 `A.0` 可按实际需求修改。
 
 ## 空位对照
 
@@ -105,9 +115,9 @@ box-sizing: border-box;
 
 ## 参考与验证范围
 
-- [Aras 官方文档：Classic Form 使用 X/Y 坐标布局，Responsive Form 自适应布局](https://docs.aras.com/aras-innovator-platform-33/introduction-to-responsive-forms/0000019f-1799-dcff-a7bf-5f99a4540000)
+- [Aras 官方文档：Classic Form 的 X/Y 坐标布局](https://docs.aras.com/aras-innovator-platform-33/introduction-to-responsive-forms/0000019f-1799-dcff-a7bf-5f99a4540000)
 - [Aras Labs：Field CSS 应用于字段外层容器](https://www.aras.com/community/f/getting-started/3840/how-to-format-field-css/1852)
 
-已在本机 Chrome 验证表格容器宽度 1050px、710px、366px：边框对齐，文字换行，无横向溢出；插入长中文及连续英文内容后也未撑破单元格。已检查 53 个空位、唯一 ID、四组跨行合并及每行列数。截图见 preview-1100.png、preview-760.png、preview-390.png。
+已在 Chrome 中验证父容器宽度 1300px、760px、390px、32px：6 个基础列始终各为 200px，字号始终为 18px；长内容只增加行高，不改变列宽。预览截图为 preview-fixed-200.png，详细测量见 validation.json。
 
-交付内容为静态布局，浏览器验证不能代替真实 Aras 窗体联调。未连接或修改 Aras 实例。
+本次为静态布局修正，未连接或修改 Aras 实例；实际 Aras 外层容器裁切需按窗体设置确认。

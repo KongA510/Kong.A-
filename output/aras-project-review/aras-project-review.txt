@@ -1,4 +1,4 @@
-<!-- Aras HTML 字段粘贴片段：复制本文件全部内容（包括 style）。
+<!-- Aras HTML 字段粘贴片段（固定列宽 200px）：复制本文件全部内容（包括 style）。
 空位中的注释不会显示；不包含脚本、示例数据或数据库读写。
 如同一个页面放多份表格，请给各份 id 加不同前缀，避免重复。
 宿主字段的宽度设置见“Aras使用说明.md”。 -->
@@ -7,14 +7,15 @@
 .apr-sheet {
   --apr-row-height: 44px;
   --apr-field-height: 30px;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
+  /* 六个基础列各 200px，表格 1200px；外框另留左右各 8px。 */
+  width: 1216px !important;
+  min-width: 1216px !important;
+  max-width: none !important;
+  flex: 0 0 1216px;
   margin: 0;
   padding: 8px;
   box-sizing: border-box;
-  container-type: inline-size;
-  container-name: apr-review;
+  overflow: visible;
   background: #fff;
   color: #111;
   font: 18px/1.45 "SimSun", "Songti SC", "Microsoft YaHei", serif;
@@ -38,11 +39,12 @@
   font-size: 14px;
 }
 .apr-sheet .apr-number { display: flex; align-items: center; gap: 6px; }
-.apr-sheet .apr-number .apr-slot { width: 120px; min-height: 22px; }
+.apr-sheet .apr-number .apr-slot { width: 200px; min-height: 22px; }
 .apr-sheet .apr-code { margin-left: auto; overflow-wrap: anywhere; }
 .apr-sheet .apr-table {
-  width: 100%;
-  max-width: 100%;
+  width: 1200px !important;
+  min-width: 1200px !important;
+  max-width: none !important;
   margin: 0;
   table-layout: fixed;
   border-collapse: collapse;
@@ -109,26 +111,8 @@
 .apr-sheet .apr-slot input:focus-visible,
 .apr-sheet .apr-slot select:focus-visible,
 .apr-sheet .apr-slot textarea:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
-/* 按表格容器宽度调整，而不是只看整个浏览器窗口的宽度。 */
-@container apr-review (max-width: 720px) {
-  .apr-sheet .apr-table { font-size: 14px; --apr-row-height: 40px; }
-  .apr-sheet .apr-title { font-size: 26px; }
-  .apr-sheet .apr-table th, .apr-sheet .apr-table td { padding: 5px; }
-  .apr-sheet .apr-meta { font-size: 12px; }
-}
-@container apr-review (max-width: 440px) {
-  .apr-sheet .apr-table { font-size: 12px; }
-  .apr-sheet .apr-title { font-size: 22px; letter-spacing: 1px; }
-  .apr-sheet .apr-table th, .apr-sheet .apr-table td { padding: 4px; }
-  .apr-sheet .apr-sign-item { flex-basis: 100%; }
-}
+/* 固定版不随窗口缩小字体、行高或列宽；较窄的窗体需允许滚动。 */
 @media print {
-  .apr-sheet { padding: 0; }
-  .apr-sheet .apr-title { font-size: 22pt; }
-  .apr-sheet .apr-table { font-size: 10pt; --apr-row-height: 25px; --apr-field-height: 18px; }
-  .apr-sheet .apr-table th, .apr-sheet .apr-table td { padding: 3px 5px; }
-  .apr-sheet .apr-long-row { height: 32px; }
-  .apr-sheet .apr-slot.apr-area { min-height: 42px; }
   .apr-sheet .apr-table tr { break-inside: avoid; }
 }
 </style>
@@ -139,15 +123,16 @@
     <div class="apr-code">表单编号：JSAB-TD-FR-22016&nbsp;&nbsp;版本：A.0</div>
   </div>
   <table class="apr-table" aria-labelledby="apr-title">
-    <!-- 六个基础列保证顶部信息区和下方评审区的边框准确对齐。
-         评审区比例：类别 31.5% / 检查项 23.5% / 结论 22% / 问题 23%。 -->
+    <!-- 六个基础列，每列固定 200px。
+         顶部：标签 200 / 空位 400 / 标签 200 / 空位 400。
+         评审区：类别 400 / 检查项 400 / 结论 200 / 问题 200。 -->
     <colgroup>
-      <col style="width:15.5%">
-      <col style="width:16%">
-      <col style="width:11.5%">
-      <col style="width:12%">
-      <col style="width:22%">
-      <col style="width:23%">
+      <col style="width:200px">
+      <col style="width:200px">
+      <col style="width:200px">
+      <col style="width:200px">
+      <col style="width:200px">
+      <col style="width:200px">
     </colgroup>
     <tbody>
       <tr>
