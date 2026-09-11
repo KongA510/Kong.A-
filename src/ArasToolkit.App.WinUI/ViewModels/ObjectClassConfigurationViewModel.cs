@@ -228,7 +228,7 @@ public sealed class ObjectClassConfigurationViewModel : ObservableObject, IDispo
 
         var confirmed = await _dialogService.ConfirmAsync(
             "一键设定对象类",
-            $"将对 {selected.Count} 个对象类执行所选基础设定。系统会复用已有 Permission 和页签关系，并补齐同名生命周期的状态权限，是否继续？",
+            $"将对 {selected.Count} 个对象类执行所选基础设定。系统会复用已有 Permission 和页签关系；生命周期设定会补齐四个状态权限及简/繁/英标签，并修复空白的退回转折点，保留已设置的路径。是否继续？",
             "开始设定");
         if (!confirmed)
             return;

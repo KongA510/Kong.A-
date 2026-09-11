@@ -10,6 +10,8 @@ using ArasToolkit.Core.Models;
 using ArasToolkit.Services.Data;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
+using System.Xml.Linq;
+using Aras.IOM;
 
 namespace ArasToolkit.Services.Services;
 
@@ -55,7 +57,6 @@ public class ObjectClassImportService : IObjectClassImportService
     private const string DefaultImplementationType = "table";
     private const string DefaultEnforceDiscovery = "1";
     private const string DefaultStructureView = "tabs on";
-    private const string I18nNamespaceUri = "http://www.aras.com/I18N";
 
     public ObjectClassImportService(
         IDbContextFactory<ArasToolkitDbContext> dbFactory,
@@ -177,17 +178,11 @@ public class ObjectClassImportService : IObjectClassImportService
             await writer.WriteLineAsync($"导入模式: {importMode}").ConfigureAwait(false);
 
             // ===== 4. 获取并验证 Aras 连接 =====
-            var connection = _connectionService.HttpConnection;
-            if (connection == null)
-            {
-                throw new InvalidOperationException("未连接到 Aras 系统，请先登录。");
-            }
+            var innovator = _connectionService.TypedInnovator
+                ?? throw new InvalidOperationException("未连接到 Aras 系统，请先登录。");
 
             // 取消检查点
             cancellationToken.ThrowIfCancellationRequested();
-
-            var login = connection.Login();
-            var innovator = login.getInnovator();
 
             progress?.Report(new ImportProgressInfo
             {
@@ -256,9 +251,11 @@ public class ObjectClassImportService : IObjectClassImportService
                         var failMsg = $"[Sheet1 行{i + 2}] {itemName} — Aras错误: {amlResult.getErrorString()}";
                         await writer.WriteLineAsync(failMsg).ConfigureAwait(false);
                         result.FailedDetails.Add(failMsg);
+                        await _errorLogService.LogErrorAsync("对象类汇入-写入", failMsg, ErrorLog.LevelP1).ConfigureAwait(false);
                     }
                     else
                     {
+                        VerifyImportedLabels(innovator, aml);
                         sheet1Success++;
                     }
                 }
@@ -274,6 +271,8 @@ public class ObjectClassImportService : IObjectClassImportService
                     var failMsg = $"[Sheet1 行{i + 2}] {itemName} — 异常: {ex.Message}";
                     await writer.WriteLineAsync(failMsg).ConfigureAwait(false);
                     result.FailedDetails.Add(failMsg);
+                    await _errorLogService.LogErrorAsync("对象类汇入-行处理", failMsg,
+                        ErrorLog.LevelP1, ex.StackTrace).ConfigureAwait(false);
                 }
             }
 
@@ -314,9 +313,11 @@ public class ObjectClassImportService : IObjectClassImportService
                         var failMsg = $"[Sheet2 行{i + 2}] {relName} — Aras错误: {amlResult.getErrorString()}";
                         await writer.WriteLineAsync(failMsg).ConfigureAwait(false);
                         result.FailedDetails.Add(failMsg);
+                        await _errorLogService.LogErrorAsync("对象类汇入-写入", failMsg, ErrorLog.LevelP1).ConfigureAwait(false);
                     }
                     else
                     {
+                        VerifyImportedLabels(innovator, aml);
                         sheet2Success++;
                     }
                 }
@@ -331,31 +332,30 @@ public class ObjectClassImportService : IObjectClassImportService
                     var failMsg = $"[Sheet2 行{i + 2}] {relName} — 异常: {ex.Message}";
                     await writer.WriteLineAsync(failMsg).ConfigureAwait(false);
                     result.FailedDetails.Add(failMsg);
+                    await _errorLogService.LogErrorAsync("对象类汇入-行处理", failMsg,
+                        ErrorLog.LevelP1, ex.StackTrace).ConfigureAwait(false);
                 }
             }
 
             result.Sheet2Count = sheet2Success;
             await writer.WriteLineAsync($"Sheet2 成功: {sheet2Success}/{sheet2Rows.Count}").ConfigureAwait(false);
 
-            // ===== 8. 保存导入成功记录到数据库 =====
+            // ===== 8. 保存实际汇入结果；部分行失败不能显示为全部成功 =====
+            result.IsSuccess = result.FailedDetails.Count == 0;
+            result.ErrorMessage = result.IsSuccess ? null : $"汇入完成，{result.FailedDetails.Count} 行失败，请查看日志。";
             var log = new ObjectClassImportLog
             {
                 UserId = CurrentUserContext.CurrentUserId ?? "system",
                 ImportTime = DateTime.Now,
                 ImportFile = relativePath,
-                Status = ObjectClassImportLog.StatusSuccess,
+                Status = result.IsSuccess ? ObjectClassImportLog.StatusSuccess : ObjectClassImportLog.StatusFailed,
+                ErrorLog = string.Join(Environment.NewLine, result.FailedDetails),
                 Sheet1Count = sheet1Success,
                 Sheet2Count = sheet2Success,
                 CreatorOn = DateTime.Now
             };
             await SaveLogAsync(log).ConfigureAwait(false);
 
-            // 记录敏感操作日志
-            await _operationLogService.LogAsync("Import", "ObjectClassImportLog", log.Id,
-                $"对象类汇入: 对象类{sheet1Success}条 / 关系类{sheet2Success}条")
-                .ConfigureAwait(false);
-
-            result.IsSuccess = true;
             await writer.WriteLineAsync("===== 导入完成 =====").ConfigureAwait(false);
 
             // 最终进度报告
@@ -457,196 +457,98 @@ public class ObjectClassImportService : IObjectClassImportService
     /// <returns>AML 字符串</returns>
     private static string BuildObjectClassAml(Dictionary<int, string> row, string importMode)
     {
-        // 列映射（用户可见列号与字典键一致）:
-        // Col 1: 对象类名称 → <name>
-        // Col 2: 物件显示名称(简) → <i18n:label xml:lang='zc'>
-        // Col 3: 物件显示名称(繁) → <i18n:label xml:lang='zt'>
-        // Col 4: 物件显示名称(英) → <i18n:label xml:lang='en'>
-        // Col 5: TOC显示文字(简) → <i18n:label_plural xml:lang='zc'>
-        // Col 6: TOC显示文字(繁) → <i18n:label_plural xml:lang='zt'>
-        // Col 7: TOC显示文字(英) → <i18n:label_plural xml:lang='en'>
-        // Col 8: 可换版 → <is_versionable>
-
-        var name = row.GetValueOrDefault(1, "");                       // 对象类名称
-        var labelZc = row.GetValueOrDefault(2, "");                   // 简体中文标签
-        var labelZt = row.GetValueOrDefault(3, "");                   // 繁体中文标签
-        var labelEn = row.GetValueOrDefault(4, "");                   // 英文标签
-        var labelPlural = row.GetValueOrDefault(5, "");               // TOC 简体中文复数标签
-        var labelPluralZt = row.GetValueOrDefault(6, "");             // TOC 繁体中文复数标签
-        var labelPluralEn = row.GetValueOrDefault(7, "");             // TOC 英文复数标签
-        var isVersionable = row.GetValueOrDefault(8, "0");            // 可换版标志
-
-        // 新增模式: 创建全新 ItemType
+        var item = CreateImportItem("ItemType", row.GetValueOrDefault(1, ""), importMode);
+        item.Add(
+            MultilingualAml.Values("label", row.GetValueOrDefault(4, ""),
+                row.GetValueOrDefault(2, ""), row.GetValueOrDefault(3, "")),
+            MultilingualAml.Values("label_plural", row.GetValueOrDefault(7, ""),
+                row.GetValueOrDefault(5, ""), row.GetValueOrDefault(6, "")),
+            new XElement("structure_view", DefaultStructureView),
+            new XElement("is_versionable", row.GetValueOrDefault(8, "0")),
+            new XElement("auto_search", DefaultAutoSearch),
+            new XElement("default_page_size", DefaultPageSize),
+            new XElement("implementation_type", DefaultImplementationType),
+            new XElement("enforce_discovery", DefaultEnforceDiscovery),
+            new XElement("revisions", DefaultRevisionsGuid));
         if (importMode == "新增")
         {
-            return $"<AML>" +
-                   $"  <Item type='ItemType' action='add' xmlns:i18n='{I18nNamespaceUri}'>" +
-                   // 基本标识
-                   $"      <name>{name}</name>" +
-                   // 所有语言都使用 i18n，避免英文写入当前会话语言。
-                   $"      <i18n:label xml:lang='en'>{labelEn}</i18n:label>" +
-                   $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
-                   $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
-                   $"      <i18n:label_plural xml:lang='en'>{labelPluralEn}</i18n:label_plural>" +
-                   $"      <i18n:label_plural xml:lang='zc'>{labelPlural}</i18n:label_plural>" +
-                   $"      <i18n:label_plural xml:lang='zt'>{labelPluralZt}</i18n:label_plural>" +
-                   // 显示与结构
-                   $"      <structure_view>{DefaultStructureView}</structure_view>" +
-                   // 版本与搜索
-                   $"      <is_versionable>{isVersionable}</is_versionable>" +
-                   $"      <auto_search>{DefaultAutoSearch}</auto_search>" +
-                   $"      <default_page_size>{DefaultPageSize}</default_page_size>" +
-                   // 实现与发现
-                   $"      <implementation_type>{DefaultImplementationType}</implementation_type>" +
-                   $"      <enforce_discovery>{DefaultEnforceDiscovery}</enforce_discovery>" +
-                   // 硬编码系统引用
-                   $"      <revisions>{DefaultRevisionsGuid}</revisions>" +
-                   // 嵌套关系: 授权 Identity 可添加此对象类
-                   $"      <Relationships>" +
-                   $"        <Item type='Can Add' action='add'>" +
-                   $"            <related_id>{CanAddRelatedIdGuid}</related_id>" +
-                   $"        </Item>" +
-                   $"      </Relationships>" +
-                   $"  </Item>" +
-                   $"</AML>";
+            item.Add(new XElement("Relationships",
+                new XElement("Item", new XAttribute("type", "Can Add"),
+                    new XAttribute("action", "add"),
+                    new XElement("related_id", CanAddRelatedIdGuid))));
         }
-
-        // 覆盖模式: 按名称匹配，存在则合并更新
-        return $"<AML>" +
-               $"  <Item type='ItemType' action='merge' where=\"ItemType.name='{name}'\" xmlns:i18n='{I18nNamespaceUri}'>" +
-               // 基本标识（merge 模式下 name 重复提供以确保匹配）
-               $"      <name>{name}</name>" +
-               // 所有语言都使用 i18n，避免英文写入当前会话语言。
-               $"      <i18n:label xml:lang='en'>{labelEn}</i18n:label>" +
-               $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
-               $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
-               $"      <i18n:label_plural xml:lang='en'>{labelPluralEn}</i18n:label_plural>" +
-               $"      <i18n:label_plural xml:lang='zc'>{labelPlural}</i18n:label_plural>" +
-               $"      <i18n:label_plural xml:lang='zt'>{labelPluralZt}</i18n:label_plural>" +
-               // 显示与结构
-               $"      <structure_view>{DefaultStructureView}</structure_view>" +
-               // 版本与搜索
-               $"      <is_versionable>{isVersionable}</is_versionable>" +
-               $"      <auto_search>{DefaultAutoSearch}</auto_search>" +
-               $"      <default_page_size>{DefaultPageSize}</default_page_size>" +
-               // 实现与发现
-               $"      <implementation_type>{DefaultImplementationType}</implementation_type>" +
-               $"      <enforce_discovery>{DefaultEnforceDiscovery}</enforce_discovery>" +
-               // 硬编码系统引用
-               $"      <revisions>{DefaultRevisionsGuid}</revisions>" +
-               // 嵌套关系: 合并模式用 merge where 避免重复创建
-               //$"      <Relationships>" +
-               //$"        <Item type='Can Add' action='merge' where=\"Can_Add.related_id='{CanAddRelatedIdGuid}'\">" +
-               //$"            <related_id>{CanAddRelatedIdGuid}</related_id>" +
-               //$"        </Item>" +
-               //$"      </Relationships>" +
-               $"  </Item>" +
-               $"</AML>";
+        return WrapImportItem(item);
     }
 
-    /// <summary>
-    /// 构建关系类（RelationshipType）的 AML 语句
-    ///
-    /// 结构说明:
-    /// - source_id: 父对象 ItemType（通过 get 动作动态查询其 ID）
-    /// - related_id: 模板中选择的相关对象 ItemType
-    ///
-    /// 注意: 关系类名称在 Aras 中必须全局唯一
-    /// </summary>
-    /// <param name="row">Excel 行数据（字典键为1-based列号）</param>
-    /// <param name="importMode">"新增" 或 "覆盖"</param>
-    /// <returns>AML 字符串</returns>
+    /// <summary>关系类页签标签使用同一套多语系写法；相关对象为空时省略 related_id。</summary>
     private static string BuildRelationshipTypeAml(Dictionary<int, string> row, string importMode)
     {
-        // 列映射（用户可见列号与字典键一致，9列体系）:
-        // Col 1: 父对象名称 → source_id 中的 ItemType name
-        // Col 2: 关系类名称 → <name>
-        // Col 3: 页签序号 → <sort_order>
-        // Col 4: 页签标签(简) → <i18n:label xml:lang='zc'>
-        // Col 5: 页签标签(繁) → <i18n:label xml:lang='zt'>
-        // Col 6: 页签标签(英) → <i18n:label xml:lang='en'>
-        // Col 7: 新建关系选项 → <for_related_option>
-        // Col 8: 打开相关窗体 → <new_show_related>
-        // Col 9: 相关对象类 → <related_id>
+        var item = CreateImportItem("RelationshipType", row.GetValueOrDefault(2, ""), importMode);
+        item.Add(
+            new XElement("source_id", ItemTypeByName(row.GetValueOrDefault(1, ""))),
+            MultilingualAml.Values("label", row.GetValueOrDefault(6, ""),
+                row.GetValueOrDefault(4, ""), row.GetValueOrDefault(5, "")),
+            new XElement("for_related_option", row.GetValueOrDefault(7, "")),
+            new XElement("related_notnull", DefaultRelatedNotNull),
+            new XElement("auto_search", DefaultAutoSearch),
+            new XElement("default_page_size", DefaultPageSize),
+            new XElement("new_show_related", row.GetValueOrDefault(8, "")),
+            new XElement("sort_order", row.GetValueOrDefault(3, "")));
+        var relatedName = row.GetValueOrDefault(9, "");
+        if (!string.IsNullOrWhiteSpace(relatedName))
+            item.Add(new XElement("related_id", ItemTypeByName(relatedName)));
+        return WrapImportItem(item);
+    }
 
-        var sourceName = row.GetValueOrDefault(1, "");               // 父对象 ItemType 名称
-        var relName = row.GetValueOrDefault(2, "");                  // 关系类名称
-        var sortOrder = row.GetValueOrDefault(3, "");                // 页签序号
-        var labelZc = row.GetValueOrDefault(4, "");                  // 页签简体中文标签
-        var labelZt = row.GetValueOrDefault(5, "");                  // 页签繁体中文标签
-        var labelEn = row.GetValueOrDefault(6, "");                  // 页签英文标签
-        var forRelatedOption = row.GetValueOrDefault(7, "");         // 新建关系选项
-        var formIsOpen = row.GetValueOrDefault(8, "");               // 打开相关窗体
-        var relatedName = row.GetValueOrDefault(9, "");              // 相关对象类
-        // 相关对象为空时不组装 related_id，支持没有关联对象的关系类。
-        var relatedIdNode = string.IsNullOrWhiteSpace(relatedName)
-            ? ""
-            : $"      <related_id>" +
-              $"          <Item type='ItemType' action='get' select='id'>" +
-              $"              <name>{relatedName}</name>" +
-              $"          </Item>" +
-              $"      </related_id>";
+    private static XElement CreateImportItem(string type, string name, string importMode)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidDataException($"{type} 名称不能为空。");
+        if (importMode is not ("新增" or "覆盖"))
+            throw new InvalidDataException($"不支持的汇入模式：{importMode}");
+        var item = new XElement("Item", new XAttribute("type", type),
+            new XAttribute("action", importMode == "新增" ? "add" : "merge"),
+            new XAttribute("language", MultilingualAml.Languages));
+        if (importMode == "覆盖")
+            item.Add(new XAttribute("where", $"{type}.name='{name.Replace("'", "''")}'"));
+        item.Add(new XElement("name", name));
+        return item;
+    }
 
-        // 新增模式: 创建全新 RelationshipType
-        if (importMode == "新增")
+    private static XElement ItemTypeByName(string name)
+        => new("Item", new XAttribute("type", "ItemType"), new XAttribute("action", "get"),
+            new XAttribute("select", "id"), new XElement("name", name));
+
+    private static string WrapImportItem(XElement item)
+        => new XElement("AML", new XAttribute(XNamespace.Xmlns + "i18n", MultilingualAml.Namespace),
+            item).ToString(SaveOptions.DisableFormatting);
+
+    /// <summary>回读明确语言的实际值，避免会话语言回退掩盖漏写译文。</summary>
+    private static void VerifyImportedLabels(Innovator innovator, string submittedAml)
+    {
+        var submitted = XElement.Parse(submittedAml).Element("Item")!;
+        var expected = submitted.Elements().Where(e => e.Name.Namespace == MultilingualAml.Namespace).ToList();
+        if (expected.Count == 0) return;
+        var query = new XElement("Item",
+            new XAttribute("type", submitted.Attribute("type")!.Value),
+            new XAttribute("action", "get"),
+            new XAttribute("select", "id," + string.Join(',', expected.Select(e => e.Name.LocalName).Distinct())),
+            new XAttribute("language", MultilingualAml.Languages),
+            new XElement("name", submitted.Element("name")!.Value));
+        var result = innovator.applyAML(WrapImportItem(query));
+        if (result.isError() || result.getItemCount() != 1)
+            throw new InvalidOperationException($"汇入已提交，但多语系回读失败：{result.getErrorString()}");
+        var actual = XElement.Parse(result.getItemByIndex(0).node.OuterXml);
+        foreach (var value in expected)
         {
-            return $"<AML>" +
-                   $"   <Item type='RelationshipType' action='add' xmlns:i18n='{I18nNamespaceUri}'>" +
-                   // 父对象: 通过 get 动态查询 ItemType ID
-                   $"      <source_id>" +
-                   $"          <Item type='ItemType' action='get' select='id'>" +
-                   $"              <name>{sourceName}</name>" +
-                   $"          </Item>" +
-                   $"      </source_id>" +
-                   // 基本属性
-                   $"      <name>{relName}</name>" +
-                   $"      <i18n:label xml:lang='en'>{labelEn}</i18n:label>" +
-                   $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
-                   $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
-                   // 行为控制
-                   $"      <for_related_option>{forRelatedOption}</for_related_option>" +
-                   $"      <related_notnull>{DefaultRelatedNotNull}</related_notnull>" +
-                   // 搜索与分页
-                   $"      <auto_search>{DefaultAutoSearch}</auto_search>" +
-                   $"      <default_page_size>{DefaultPageSize}</default_page_size>" +
-                   // 打开相关窗体
-                   $"      <new_show_related>{formIsOpen}</new_show_related>" +
-                   // 排序
-                   $"      <sort_order>{sortOrder}</sort_order>" +
-                   // 关联对象（覆盖模式下复用关联对象名称）
-                   $"{relatedIdNode}" +
-                   $"   </Item>" +
-                   $"</AML>";
+            var language = value.Attribute(XNamespace.Xml + "lang")!.Value;
+            // 必须匹配 i18n 节点，不使用 getProperty 的会话语言回退值。
+            var saved = actual.Elements(value.Name).SingleOrDefault(
+                e => (string?)e.Attribute(XNamespace.Xml + "lang") == language);
+            if (saved == null || (string?)saved.Attribute("is_null") == "1" || saved.Value != value.Value)
+                throw new InvalidOperationException(
+                    $"汇入已提交，但 {value.Name.LocalName}[{language}] 未正确保存，请检查后使用覆盖模式重试。");
         }
-
-        // 覆盖模式: 按关系类名称匹配合并
-        return $"<AML>" +
-               $"   <Item type='RelationshipType' action='merge' where=\"RelationshipType.name='{relName}'\" xmlns:i18n='{I18nNamespaceUri}'>" +
-               // 父对象: 通过 get 动态查询 ItemType ID
-               $"      <source_id>" +
-               $"          <Item type='ItemType' action='get' select='id'>" +
-               $"              <name>{sourceName}</name>" +
-               $"          </Item>" +
-               $"      </source_id>" +
-               // 基本属性
-               $"      <name>{relName}</name>" +
-               $"      <i18n:label xml:lang='en'>{labelEn}</i18n:label>" +
-               $"      <i18n:label xml:lang='zc'>{labelZc}</i18n:label>" +
-               $"      <i18n:label xml:lang='zt'>{labelZt}</i18n:label>" +
-               // 行为控制
-               $"      <for_related_option>{forRelatedOption}</for_related_option>" +
-               $"      <related_notnull>{DefaultRelatedNotNull}</related_notnull>" +
-               // 搜索与分页
-               $"      <auto_search>{DefaultAutoSearch}</auto_search>" +
-               $"      <default_page_size>{DefaultPageSize}</default_page_size>" +
-               // 打开相关窗体
-               $"      <new_show_related>{formIsOpen}</new_show_related>" +
-               // 排序
-               $"      <sort_order>{sortOrder}</sort_order>" +
-               // 关联对象（为空时省略 related_id）
-               $"{relatedIdNode}" +
-               $"   </Item>" +
-               $"</AML>";
     }
 
     // ==================== 私有辅助方法 ====================
@@ -707,9 +609,29 @@ public class ObjectClassImportService : IObjectClassImportService
     /// </summary>
     private async Task SaveLogAsync(ObjectClassImportLog log)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync().ConfigureAwait(false);
-        db.ObjectClassImportLogs.Add(log);
-        await db.SaveChangesAsync().ConfigureAwait(false);
+        try
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync().ConfigureAwait(false);
+            db.ObjectClassImportLogs.Add(log);
+            await db.SaveChangesAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            await _errorLogService.LogErrorAsync("对象类汇入-保存历史", ex.Message,
+                ErrorLog.LevelP0, ex.StackTrace).ConfigureAwait(false);
+            throw;
+        }
+        try
+        {
+            await _operationLogService.LogAsync("Import", "ObjectClassImportLog", log.Id,
+                $"对象类汇入: 对象类{log.Sheet1Count}条 / 关系类{log.Sheet2Count}条，状态：{log.Status}")
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            await _errorLogService.LogErrorAsync("对象类汇入-操作日志", ex.Message,
+                ErrorLog.LevelP0, ex.StackTrace).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -733,9 +655,10 @@ public class ObjectClassImportService : IObjectClassImportService
             };
             await SaveLogAsync(log).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex)
         {
-            // 日志保存失败不阻塞主流程（errorLogService 内部已静默处理）
+            await _errorLogService.LogErrorAsync("对象类汇入-保存失败记录", ex.Message,
+                ErrorLog.LevelP0, ex.StackTrace).ConfigureAwait(false);
         }
     }
 }

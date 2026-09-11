@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
+using System.Globalization;
 using Aras.IOM;
 using ArasToolkit.Core.Entities;
 using ArasToolkit.Core.Interfaces;
@@ -12,9 +13,9 @@ namespace ArasToolkit.Services.Services;
 public sealed class ObjectClassConfigurationService : IObjectClassConfigurationService
 {
     private const string SettingsRelativePath = "Config/AppSettings/objectClassConfiguration.json";
-    private const string LabelLanguages = "en,zc,zt";
+    private const string LabelLanguages = MultilingualAml.Languages;
     private const string LifecycleStatePermissionProperty = "state_permission_id";
-    private static readonly XNamespace I18n = "http://www.aras.com/I18N/";
+    private static readonly XNamespace I18n = MultilingualAml.Namespace;
 
     private static readonly LifecycleStateDefinition[] LifecycleStates =
     [
@@ -345,15 +346,16 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
 
         if (mapId != null)
         {
-            var existingStateIds = LifecycleStates.ToDictionary(
+            var existingStates = LifecycleStates.ToDictionary(
                 state => state.Name,
-                state => FindLifecycleStateId(innovator, mapId, state.Name)
+                state => FindLifecycleState(innovator, mapId, state.Name)
                          ?? throw new InvalidOperationException(
                              $"生命周期 {itemType.Name} 缺少状态 {state.Name}，无法安全补挂状态权限"),
                 StringComparer.OrdinalIgnoreCase);
-            AppendLifecycleStatePermissionLinks(
-                aml, existingStateIds, statePermissionIds);
-            return $"已补齐同名生命周期 {itemType.Name} 的四个状态权限";
+            AppendLifecycleStatePermissionLinks(aml,
+                existingStates.ToDictionary(pair => pair.Key, pair => pair.Value.getID()), statePermissionIds);
+            AppendReturnTransitionRepair(innovator, aml, mapId, existingStates);
+            return $"已补齐同名生命周期 {itemType.Name} 的状态权限及简/繁/英标签，并检查退回路径";
         }
 
         mapId = innovator.getNewID();
@@ -391,9 +393,7 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
                 new XAttribute("id", stateIds[state.Name]),
                 new XElement("source_id", mapId),
                 new XElement("name", state.Name),
-                new XElement("label", new XAttribute(XNamespace.Xml + "lang", "en"), state.Name),
-                new XElement(I18n + "label", new XAttribute(XNamespace.Xml + "lang", "zc"), state.LabelZc),
-                new XElement(I18n + "label", new XAttribute(XNamespace.Xml + "lang", "zt"), state.LabelZt),
+                MultilingualAml.Values("label", state.Name, state.LabelZc, state.LabelZt),
                 new XElement("x", state.X),
                 new XElement("y", state.Y),
                 new XElement("released", state.IsReleased ? "1" : "0"),
@@ -410,13 +410,21 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
 
         foreach (var (from, to) in LifecycleTransitions)
         {
-            aml.Add(new XElement("Item",
+            var transition = new XElement("Item",
                 new XAttribute("type", "Life Cycle Transition"),
                 new XAttribute("action", "add"),
                 new XElement("source_id", mapId),
                 new XElement("from_state", stateIds[from]),
                 new XElement("to_state", stateIds[to]),
-                new XElement("role", transitionRoleId)));
+                new XElement("role", transitionRoleId));
+            if (from == "In Review" && to == "Preliminary")
+            {
+                var fromState = LifecycleStates.Single(state => state.Name == from);
+                var toState = LifecycleStates.Single(state => state.Name == to);
+                transition.Add(new XElement("segments",
+                    BuildReturnSegments(fromState.X, fromState.Y, toState.X, toState.Y)));
+            }
+            aml.Add(transition);
         }
 
         aml.Add(new XElement("Item",
@@ -437,7 +445,51 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
                 new XAttribute("type", "Life Cycle State"),
                 new XAttribute("action", "edit"),
                 new XAttribute("id", stateIds[state.Name]),
+                MultilingualAml.Values("label", state.Name, state.LabelZc, state.LabelZt),
                 new XElement(LifecycleStatePermissionProperty, statePermissionIds[state.Name])));
+        }
+    }
+
+    private static string BuildReturnSegments(int fromX, int fromY, int toX, int toY)
+    {
+        // R37 segments 为绝对坐标 x,y|x,y；默认退回线从上方绕行，避开正向线。
+        // 已有节点若被纵向排列，改从左侧绕行，避免转折点落到同一根竖线上。
+        if (fromX == toX)
+        {
+            var routeX = fromX >= 80 ? fromX - 80 : fromX + 80;
+            return FormattableString.Invariant($"{routeX},{fromY}|{routeX},{toY}");
+        }
+        var topY = Math.Min(fromY, toY);
+        var routeY = topY >= 80 ? topY - 80 : Math.Max(fromY, toY) + 80;
+        return FormattableString.Invariant($"{fromX},{routeY}|{toX},{routeY}");
+    }
+
+    private static void AppendReturnTransitionRepair(
+        Innovator innovator, XElement aml, string mapId, IReadOnlyDictionary<string, Item> states)
+    {
+        var from = states["In Review"];
+        var to = states["Preliminary"];
+        var query = new XElement("AML", new XElement("Item",
+            new XAttribute("type", "Life Cycle Transition"), new XAttribute("action", "get"),
+            new XAttribute("select", "id,segments"),
+            new XElement("source_id", mapId), new XElement("from_state", from.getID()),
+            new XElement("to_state", to.getID())));
+        var result = innovator.applyAML(query.ToString(SaveOptions.DisableFormatting));
+        if (result.isError() && result.getErrorCode() != "0")
+            throw new InvalidOperationException($"读取生命周期退回路径失败：{result.getErrorString()}");
+        for (var index = 0; index < result.getItemCount(); index++)
+        {
+            var transition = result.getItemByIndex(index);
+            // 已经调整过的路径保留；仅修复早期版本生成的空转折点。
+            if (!string.IsNullOrWhiteSpace(transition.getProperty("segments", string.Empty))) continue;
+            if (!int.TryParse(from.getProperty("x"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var fromX) ||
+                !int.TryParse(from.getProperty("y"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var fromY) ||
+                !int.TryParse(to.getProperty("x"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var toX) ||
+                !int.TryParse(to.getProperty("y"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var toY))
+                throw new InvalidOperationException("生命周期状态缺少有效坐标，无法修复退回路径。");
+            aml.Add(new XElement("Item", new XAttribute("type", "Life Cycle Transition"),
+                new XAttribute("action", "edit"), new XAttribute("id", transition.getID()),
+                new XElement("segments", BuildReturnSegments(fromX, fromY, toX, toY))));
         }
     }
 
@@ -610,7 +662,7 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
         return FindFirstItemIdOrNull(innovator, aml);
     }
 
-    private static string? FindLifecycleStateId(
+    private static Item? FindLifecycleState(
         Innovator innovator,
         string mapId,
         string stateName)
@@ -619,10 +671,13 @@ public sealed class ObjectClassConfigurationService : IObjectClassConfigurationS
             new XElement("Item",
                 new XAttribute("type", "Life Cycle State"),
                 new XAttribute("action", "get"),
-                new XAttribute("select", "id"),
+                new XAttribute("select", "id,x,y"),
                 new XElement("source_id", mapId),
                 new XElement("name", stateName)));
-        return FindFirstItemIdOrNull(innovator, aml);
+        var result = innovator.applyAML(aml.ToString(SaveOptions.DisableFormatting));
+        if (result.isError() && result.getErrorCode() != "0")
+            throw new InvalidOperationException($"读取生命周期状态 {stateName} 失败：{result.getErrorString()}");
+        return result.getItemCount() == 1 ? result.getItemByIndex(0) : null;
     }
 
     /// <summary>

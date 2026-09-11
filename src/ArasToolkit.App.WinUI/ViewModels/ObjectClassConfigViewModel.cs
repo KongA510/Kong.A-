@@ -365,6 +365,7 @@ public class ObjectClassConfigViewModel : ObservableObject
             }
             else
             {
+                StatusMessage = $"导入结束: 对象类{LastResult.Sheet1Count}/{LastResult.Sheet1Total} | 关系类{LastResult.Sheet2Count}/{LastResult.Sheet2Total}";
                 ErrorMessage = LastResult.ErrorMessage ?? "导入失败（未知错误）";
             }
 
