@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ArasToolkit.Services.Services;
 
 /// <summary>
-/// 已保存 XML 的数据库服务。数据按当前应用用户隔离，同名保存时执行覆盖。
+/// 已保存 XML 的数据库服务。可显式开放管理员全量查询，写操作仍按当前用户隔离。
 /// </summary>
 public sealed class SavedXmlService : ISavedXmlService
 {
@@ -26,15 +26,16 @@ public sealed class SavedXmlService : ISavedXmlService
         _errorLogService = errorLogService;
     }
 
-    public async Task<List<SavedXml>> GetAllAsync()
+    public async Task<List<SavedXml>> GetAllAsync(bool includeAllForAdmin = false)
     {
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync().ConfigureAwait(false);
             var userId = CurrentUserContext.CurrentUserId;
+            var canReadAll = includeAllForAdmin && CurrentUserContext.IsAdmin;
             return await db.SavedXmlItems
                 .AsNoTracking()
-                .Where(item => item.UserId == userId)
+                .Where(item => canReadAll || item.UserId == userId)
                 .OrderByDescending(item => item.CreatorOn)
                 .ToListAsync()
                 .ConfigureAwait(false);

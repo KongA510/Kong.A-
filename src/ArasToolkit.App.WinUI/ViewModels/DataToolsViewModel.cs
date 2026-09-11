@@ -67,7 +67,7 @@ public sealed class DataToolsViewModel : ObservableObject
         LoadSavedXmlToBCommand = new RelayCommand(LoadSavedXmlToB,
             () => !IsBusy && IsXmlCompare && SelectedSavedXml != null);
         DeleteSavedXmlCommand = new RelayCommand(async _ => await DeleteSavedXmlAsync(),
-            _ => !IsBusy && IsXmlTool && SelectedSavedXml != null);
+            _ => !IsBusy && IsXmlTool && SelectedSavedXml?.UserId == CurrentUserContext.CurrentUserId);
         Configure(_toolName);
     }
 
@@ -243,7 +243,7 @@ public sealed class DataToolsViewModel : ObservableObject
         try
         {
             IsBusy = true;
-            var items = await _savedXmlService.GetAllAsync();
+            var items = await _savedXmlService.GetAllAsync(includeAllForAdmin: IsXmlFormatter);
             SavedXmlItems.Clear();
             foreach (var item in items) SavedXmlItems.Add(item);
             SelectedSavedXml = SavedXmlItems.FirstOrDefault(item => item.Id == selectedId)
@@ -317,8 +317,15 @@ public sealed class DataToolsViewModel : ObservableObject
                 $"保存{sourceLabel}到数据库", "请输入 XML 名称", defaultName);
             if (string.IsNullOrWhiteSpace(name)) return;
 
-            var existing = SavedXmlItems.FirstOrDefault(item =>
+            // 同名历史记录可能属于多个账号；覆盖仍优先且仅针对本人记录。
+            var existing = SavedXmlItems.OrderByDescending(item => item.UserId == CurrentUserContext.CurrentUserId)
+                .FirstOrDefault(item =>
                 string.Equals(item.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (existing != null && existing.UserId != CurrentUserContext.CurrentUserId)
+            {
+                StatusMessage = "此 XML 由其他账号创建，可加载复用；保存个人版本请使用新的名称。";
+                return;
+            }
             if (existing != null)
             {
                 var confirmed = await _dialogService.ConfirmAsync(
@@ -351,7 +358,7 @@ public sealed class DataToolsViewModel : ObservableObject
 
     private async Task ReloadSavedXmlAsync(string selectedId)
     {
-        var items = await _savedXmlService.GetAllAsync();
+        var items = await _savedXmlService.GetAllAsync(includeAllForAdmin: IsXmlFormatter);
         SavedXmlItems.Clear();
         foreach (var item in items) SavedXmlItems.Add(item);
         SelectedSavedXml = SavedXmlItems.FirstOrDefault(item => item.Id == selectedId)
@@ -380,7 +387,7 @@ public sealed class DataToolsViewModel : ObservableObject
     private async Task DeleteSavedXmlAsync()
     {
         var selected = SelectedSavedXml;
-        if (selected == null) return;
+        if (selected == null || selected.UserId != CurrentUserContext.CurrentUserId) return;
 
         try
         {

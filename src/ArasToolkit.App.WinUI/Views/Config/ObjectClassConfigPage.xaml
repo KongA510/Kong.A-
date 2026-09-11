@@ -184,6 +184,6 @@
         </Grid>
 
         <TextBlock Grid.Row="4" FontSize="11" Foreground="#9CA3AF" TextWrapping="Wrap"
-                   Text="提示：点击「下载模板」获取标准 Excel 模板，填写后上传。系统将先建立对象类（Sheet1），再建立关系类（Sheet2），单线程执行确保安全。导入过程中可随时点击「取消导入」终止当前操作。" />
+                   Text="提示：按模板填写物件显示名称（label）和 TOC 显示文字（label_plural）的简/繁/英三语列。空白译文保留已有值；汇入后会回读核验，失败行请查看日志并使用覆盖模式重试。" />
     </Grid>
 </Page>

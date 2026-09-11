@@ -1,0 +1,9 @@
+/* 粘贴到承载表格的 HTML 字段的 Field CSS，替换旧版宽度设置。 */
+width: 1000px !important;
+min-width: 1000px !important;
+max-width: 1000px !important;
+height: auto !important;
+min-height: 1600px;
+overflow: visible !important;
+padding: 0 !important;
+box-sizing: border-box;

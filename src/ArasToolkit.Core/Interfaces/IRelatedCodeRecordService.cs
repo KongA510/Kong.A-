@@ -2,7 +2,7 @@ using ArasToolkit.Core.Entities;
 
 namespace ArasToolkit.Core.Interfaces;
 
-/// <summary>按当前应用用户隔离的相关代码主题与代码段服务。</summary>
+/// <summary>管理员可查询全部代码主题与代码段，其他用户查询及所有写操作仍按创建者隔离。</summary>
 public interface IRelatedCodeRecordService
 {
     Task<List<RelatedCodeRecord>> GetAllAsync(string? keyword = null);

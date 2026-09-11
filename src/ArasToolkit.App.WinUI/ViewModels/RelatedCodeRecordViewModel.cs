@@ -18,6 +18,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
     private RelatedCodeSegment? _openedSegment;
     private string _searchKeyword = string.Empty;
     private string _editingRecordId = string.Empty;
+    private string _editingRecordUserId = string.Empty;
     private string _title = string.Empty;
     private string _description = string.Empty;
     private string _editingSegmentId = string.Empty;
@@ -44,14 +45,14 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
         RefreshCommand = new RelayCommand(async _ => await LoadRecordsAsync(), _ => !IsBusy);
         NewRecordCommand = new RelayCommand(_ => BeginNewRecord(), _ => !IsBusy);
         EditRecordCommand = new RelayCommand(_ => BeginEditRecord(),
-            _ => IsRecordSelected && !IsBusy);
+            _ => CanModifyRecord);
         SaveRecordCommand = new RelayCommand(async _ => await SaveRecordAsync(), _ => CanSaveRecord());
         DeleteRecordCommand = new RelayCommand(async _ => await DeleteRecordAsync(),
-            _ => IsRecordSelected && !IsBusy);
+            _ => CanModifyRecord);
         CancelRecordCommand = new RelayCommand(_ => CloseRecordEditor(),
             _ => IsRecordEditorVisible && !IsBusy);
         NewSegmentCommand = new RelayCommand(_ => BeginNewSegment(),
-            _ => IsRecordSelected && !IsBusy);
+            _ => CanModifyRecord);
         SaveSegmentCommand = new RelayCommand(async _ => await SaveSegmentAsync(),
             _ => CanSaveSegment());
         CancelSegmentCommand = new RelayCommand(_ => CloseSegmentEditor(), _ => IsSegmentEditorVisible);
@@ -213,6 +214,10 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
     }
 
     public bool IsRecordSelected => !string.IsNullOrWhiteSpace(_editingRecordId);
+    private bool IsSelectedRecordOwned => IsRecordSelected
+        && SelectedRecord?.Id == _editingRecordId
+        && _editingRecordUserId == CurrentUserContext.CurrentUserId;
+    public bool CanModifyRecord => IsSelectedRecordOwned && !IsBusy;
     public bool HasSegments => Segments.Count > 0;
     public bool HasOpenedSegment => OpenedSegment != null;
     public bool IsCodeWorkspaceVisible => !IsRecordEditorVisible && !IsSegmentEditorVisible;
@@ -250,7 +255,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
 
     private void BeginEditRecord()
     {
-        if (!IsRecordSelected)
+        if (!CanModifyRecord)
             return;
         CloseSegmentEditor();
         IsRecordEditorVisible = true;
@@ -260,6 +265,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
 
     public void BeginEditSegment(RelatedCodeSegment segment)
     {
+        if (!CanModifyRecord) return;
         CloseRecordEditor();
         _editingSegmentId = segment.Id;
         SegmentName = segment.SegmentName;
@@ -274,7 +280,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
 
     public async Task DeleteSegmentAsync(RelatedCodeSegment segment)
     {
-        if (!IsRecordSelected)
+        if (!CanModifyRecord)
             return;
         try
         {
@@ -306,7 +312,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
     {
         var currentIndex = Segments.IndexOf(segment);
         var targetIndex = currentIndex + offset;
-        if (!IsRecordSelected || currentIndex < 0 || targetIndex < 0 || targetIndex >= Segments.Count)
+        if (!CanModifyRecord || currentIndex < 0 || targetIndex < 0 || targetIndex >= Segments.Count)
             return;
 
         IsBusy = true;
@@ -336,14 +342,17 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
 
     public async Task PersistRecordOrderAsync()
     {
-        if (IsBusy || Records.Count < 2)
+        // 管理员列表混有其他账号主题，只提交本人主题的相对顺序。
+        var ownedIds = Records.Where(item => item.UserId == CurrentUserContext.CurrentUserId)
+            .Select(item => item.Id).ToList();
+        if (IsBusy || ownedIds.Count < 2)
             return;
 
         IsBusy = true;
         ErrorMessage = string.Empty;
         try
         {
-            await _service.ReorderRecordsAsync(Records.Select(item => item.Id).ToList());
+            await _service.ReorderRecordsAsync(ownedIds);
             StatusMessage = "主题顺序已保存。";
         }
         catch (Exception ex)
@@ -359,7 +368,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
 
     public async Task PersistSegmentOrderAsync()
     {
-        if (IsBusy || !IsRecordSelected || Segments.Count < 2)
+        if (!CanModifyRecord || Segments.Count < 2)
             return;
 
         IsBusy = true;
@@ -445,7 +454,9 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
             if (version != _detailLoadVersion || record == null)
                 return;
             ApplyRecordDetail(record);
-            StatusMessage = $"已加载主题“{record.Title}”。";
+            StatusMessage = IsSelectedRecordOwned
+                ? $"已加载主题“{record.Title}”。"
+                : $"已加载主题“{record.Title}”，可查看和复制，仅创建者可修改。";
         }
         catch (Exception ex)
         {
@@ -469,6 +480,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
     private void ApplyRecordDetail(RelatedCodeRecord record)
     {
         _editingRecordId = record.Id;
+        _editingRecordUserId = record.UserId;
         Title = record.Title;
         Description = record.Description ?? string.Empty;
         Segments.Clear();
@@ -486,6 +498,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
         _selectedRecord = null;
         OnPropertyChanged(nameof(SelectedRecord));
         _editingRecordId = string.Empty;
+        _editingRecordUserId = string.Empty;
         Title = string.Empty;
         Description = string.Empty;
         Segments.Clear();
@@ -499,6 +512,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
 
     private async Task SaveRecordAsync()
     {
+        if (!CanSaveRecord()) return;
         IsBusy = true;
         ErrorMessage = string.Empty;
         try
@@ -526,7 +540,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
 
     private async Task DeleteRecordAsync()
     {
-        if (!IsRecordSelected)
+        if (!CanModifyRecord)
             return;
         try
         {
@@ -558,6 +572,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
 
     private void BeginNewSegment()
     {
+        if (!CanModifyRecord) return;
         CloseRecordEditor();
         _editingSegmentId = string.Empty;
         SegmentName = string.Empty;
@@ -572,7 +587,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
 
     private async Task SaveSegmentAsync()
     {
-        if (!IsRecordSelected)
+        if (!CanModifyRecord)
             return;
         IsBusy = true;
         ErrorMessage = string.Empty;
@@ -627,10 +642,10 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
     }
 
     private bool CanSaveRecord() =>
-        !IsBusy && !string.IsNullOrWhiteSpace(Title);
+        !IsBusy && (!IsRecordSelected || IsSelectedRecordOwned) && !string.IsNullOrWhiteSpace(Title);
 
     private bool CanSaveSegment() =>
-        IsRecordSelected &&
+        IsSelectedRecordOwned &&
         IsSegmentEditorVisible &&
         !IsBusy &&
         !string.IsNullOrWhiteSpace(SegmentName) &&
@@ -647,6 +662,7 @@ public sealed class RelatedCodeRecordViewModel : ObservableObject
 
     private void RefreshCommands()
     {
+        OnPropertyChanged(nameof(CanModifyRecord));
         (RefreshCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (NewRecordCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (EditRecordCommand as RelayCommand)?.RaiseCanExecuteChanged();

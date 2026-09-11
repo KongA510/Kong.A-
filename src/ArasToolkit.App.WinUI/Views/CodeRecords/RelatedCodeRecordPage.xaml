@@ -107,6 +107,7 @@
                               SelectedItem="{Binding SelectedRecord, Mode=TwoWay}"
                               SelectionMode="Single" ItemContainerStyle="{StaticResource NavigatorItemStyle}"
                               CanDragItems="True" CanReorderItems="True" AllowDrop="True"
+                              DragItemsStarting="ThemeList_DragItemsStarting"
                               DragItemsCompleted="ThemeList_DragItemsCompleted"
                               ScrollViewer.VerticalScrollBarVisibility="Auto">
                         <ListView.ItemTemplate>
@@ -173,7 +174,8 @@
                         <ListView x:Name="SegmentMenuList" ItemsSource="{Binding Segments}"
                                   SelectedItem="{Binding SelectedSegment, Mode=TwoWay}"
                                   SelectionMode="Single" ItemContainerStyle="{StaticResource NavigatorItemStyle}"
-                                  CanDragItems="True" CanReorderItems="True" AllowDrop="True"
+                                  CanDragItems="{Binding CanModifyRecord}"
+                                  CanReorderItems="{Binding CanModifyRecord}" AllowDrop="{Binding CanModifyRecord}"
                                   DragItemsCompleted="SegmentMenuList_DragItemsCompleted"
                                   DoubleTapped="SegmentMenuList_DoubleTapped"
                                   KeyDown="SegmentMenuList_KeyDown"
@@ -306,14 +308,18 @@
                                         <TextBlock Text="代码内容" FontWeight="SemiBold" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
                                             <Button Content="↑" Tag="{Binding OpenedSegment}" Click="MoveUpButton_Click"
+                                                    IsEnabled="{Binding CanModifyRecord}"
                                                     Style="{ThemeResource CompactButton}" ToolTipService.ToolTip="上移代码段" />
                                             <Button Content="↓" Tag="{Binding OpenedSegment}" Click="MoveDownButton_Click"
+                                                    IsEnabled="{Binding CanModifyRecord}"
                                                     Style="{ThemeResource CompactButton}" ToolTipService.ToolTip="下移代码段" />
                                             <Button Content="编辑" Tag="{Binding OpenedSegment}" Click="EditSegmentButton_Click"
+                                                    IsEnabled="{Binding CanModifyRecord}"
                                                     Style="{ThemeResource CompactButton}" />
                                             <Button Content="复制" Tag="{Binding OpenedSegment}" Click="CopySegmentButton_Click"
                                                     Style="{ThemeResource CompactButton}" />
                                             <Button Content="删除" Tag="{Binding OpenedSegment}" Click="DeleteSegmentButton_Click"
+                                                    IsEnabled="{Binding CanModifyRecord}"
                                                     Style="{ThemeResource CompactButton}" />
                                         </StackPanel>
                                     </Grid>
