@@ -93,9 +93,10 @@ public sealed class ClassStructureImportService : IClassStructureImportService
                 "2. 最多支持10级；同一行中间不可留空。末级之后的单元格请保持空白。",
                 "3. 相同父级下的同名节点会合并，行顺序决定同级节点在 Aras 中的显示顺序。",
                 "4. 不要填写 ItemType 名称。以 Document 为例，第1级应直接填写“模组”或“芯片”。",
-                "5. 路径序号和备注仅供阅读，不参与 class_structure 组装；实际 GUID 全部由 Aras Innovator.getNewID() 生成。",
+                "5. 路径序号和备注不参与组装；根节点使用目标 ItemType ID，子节点 GUID 由 Aras Innovator.getNewID() 生成。",
                 "6. 每次汇入都会完整替换选中 ItemType 的 class_structure，不会保留或合并旧结构。",
-                "7. 正式汇入前请先在页面查看解析预览，并确认目标对象类。"
+                "7. Aras 用半角 / 分隔分类路径；名称中的 / 自动替换为全角 ／（例：芯片／单管），请核对预览。",
+                "8. 替换后重名的不同节点会报错；正式汇入前请核对目标对象类、预览和名称调整提示。"
             };
             for (var index = 0; index < instructions.Length; index++)
             {
@@ -105,7 +106,7 @@ public sealed class ClassStructureImportService : IClassStructureImportService
                 instructionSheet.Row(index + 3).Height = 27;
             }
             instructionSheet.Cells[11, 1, 11, 6].Merge = true;
-            instructionSheet.Cells[11, 1].Value = "生成结果示意：<class id=\"根GUID\"><class id=\"节点GUID\" name=\"模组\">...</class></class>";
+            instructionSheet.Cells[11, 1].Value = "生成结果示意：<class id=\"目标ItemTypeID\"><class id=\"节点GUID\" name=\"模组\">...</class></class>";
             instructionSheet.Cells[11, 1].Style.Font.Name = "Consolas";
             instructionSheet.Cells[11, 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
             instructionSheet.Cells[11, 1].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(249, 250, 251));
@@ -214,7 +215,8 @@ public sealed class ClassStructureImportService : IClassStructureImportService
                 () => ParseTemplate(filePath, cancellationToken), cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             var innovator = GetInnovator();
-            var classStructure = BuildClassStructureXml(innovator, hierarchy.Root);
+            var classStructure = BuildClassStructureXml(innovator, itemType.Id, hierarchy.Root);
+            ValidateClassStructure(classStructure, itemType.Id);
 
             var update = innovator.newItem("ItemType", "edit");
             update.setID(itemType.Id);
@@ -223,10 +225,10 @@ public sealed class ClassStructureImportService : IClassStructureImportService
             if (applyResult.isError())
                 throw new InvalidOperationException($"覆盖 class_structure 失败: {applyResult.getErrorString()}");
 
-            cancellationToken.ThrowIfCancellationRequested();
-            VerifySavedStructure(innovator, itemType.Id, classStructure);
+            // 写入成功后必须完成回读与审计，避免取消被误报为“未汇入”。
             var preview = CreatePreview(hierarchy);
             await TryLogOperationAsync(itemType, preview);
+            VerifySavedStructure(innovator, itemType.Id, classStructure);
 
             return new ClassStructureImportResult
             {
@@ -235,6 +237,7 @@ public sealed class ClassStructureImportService : IClassStructureImportService
                 PathCount = preview.PathCount,
                 NodeCount = preview.NodeCount,
                 MaxDepth = preview.MaxDepth,
+                NormalizedCellCount = preview.NormalizedCellCount,
                 ClassStructureXml = classStructure
             };
         }
@@ -269,6 +272,8 @@ public sealed class ClassStructureImportService : IClassStructureImportService
         var pathCount = 0;
         var duplicateCount = 0;
         var maxDepth = 0;
+        var normalizedCellCount = 0;
+        var adjustedNames = new HashSet<string>(StringComparer.Ordinal);
 
         for (var row = 2; row <= worksheet.Dimension.End.Row; row++)
         {
@@ -286,9 +291,23 @@ public sealed class ClassStructureImportService : IClassStructureImportService
             if (levels.Skip(depth).Any(value => !string.IsNullOrWhiteSpace(value)))
                 throw new InvalidOperationException($"第 {row} 行的层级中间存在空白，请连续填写第1级至末级。 ");
 
-            var path = levels.Take(depth).ToArray();
+            var originalPath = levels.Take(depth).ToArray();
+            var path = originalPath.Select(name => name.Replace('/', '／')).ToArray();
             if (path.Any(name => name.Length > 128))
                 throw new InvalidOperationException($"第 {row} 行存在超过 128 个字符的节点名称。");
+            for (var level = 0; level < depth; level++)
+            {
+                System.Xml.XmlConvert.VerifyXmlChars(path[level]);
+                if (path[level] == originalPath[level])
+                    continue;
+                normalizedCellCount++;
+                adjustedNames.Add($"{originalPath[level]} → {path[level]}");
+            }
+
+            // 在去重之前检查名称归一化冲突，避免 A/B 与 A／B 被静默合并。
+            var parent = root;
+            for (var level = 0; level < depth; level++)
+                parent = parent.GetOrAddChild(path[level], originalPath[level], row, level + 1);
             var key = string.Join('\u001F', path);
             if (!pathKeys.Add(key))
             {
@@ -296,9 +315,6 @@ public sealed class ClassStructureImportService : IClassStructureImportService
                 continue;
             }
 
-            var parent = root;
-            foreach (var name in path)
-                parent = parent.GetOrAddChild(name);
             pathCount++;
             maxDepth = Math.Max(maxDepth, depth);
         }
@@ -306,7 +322,8 @@ public sealed class ClassStructureImportService : IClassStructureImportService
         if (pathCount == 0)
             throw new InvalidOperationException("模板中没有有效路径，请至少填写一行第1级节点。");
 
-        return new ParsedHierarchy(root, pathCount, duplicateCount, maxDepth);
+        return new ParsedHierarchy(root, pathCount, duplicateCount, maxDepth,
+            normalizedCellCount, string.Join("；", adjustedNames));
     }
 
     private static int[] FindLevelColumns(ExcelWorksheet worksheet)
@@ -341,13 +358,16 @@ public sealed class ClassStructureImportService : IClassStructureImportService
             NodeCount = CountNodes(hierarchy.Root),
             MaxDepth = hierarchy.MaxDepth,
             DuplicatePathCount = hierarchy.DuplicatePathCount,
+            NormalizedCellCount = hierarchy.NormalizedCellCount,
+            NormalizedNames = hierarchy.NormalizedNames,
             TreeText = builder.ToString().TrimEnd()
         };
     }
 
-    private static string BuildClassStructureXml(Innovator innovator, ClassNode rootNode)
+    private static string BuildClassStructureXml(Innovator innovator, string itemTypeId, ClassNode rootNode)
     {
-        var root = new XElement("class", new XAttribute("id", innovator.getNewID()));
+        // 与 Aras 官方导出格式一致；只有真实分类节点生成新 GUID。
+        var root = new XElement("class", new XAttribute("id", itemTypeId));
         foreach (var child in rootNode.Children)
             root.Add(BuildClassElement(innovator, child));
         return root.ToString(SaveOptions.DisableFormatting);
@@ -374,12 +394,37 @@ public sealed class ClassStructureImportService : IClassStructureImportService
 
         try
         {
+            ValidateClassStructure(actualXml, itemTypeId);
             if (!XNode.DeepEquals(XElement.Parse(expectedXml), XElement.Parse(actualXml)))
                 throw new InvalidOperationException("Aras 中保存的 class_structure 与本次组装结果不一致。");
         }
         catch (System.Xml.XmlException ex)
         {
             throw new InvalidOperationException($"Aras 返回的 class_structure 不是有效 XML: {ex.Message}", ex);
+        }
+    }
+
+    private static void ValidateClassStructure(string xml, string itemTypeId)
+    {
+        var root = XElement.Parse(xml);
+        if (root.Name != "class" ||
+            !string.Equals((string?)root.Attribute("id"), itemTypeId, StringComparison.OrdinalIgnoreCase) ||
+            !string.IsNullOrEmpty((string?)root.Attribute("name")))
+            throw new InvalidOperationException("class_structure 根节点必须为无名称的 class，且 ID 必须等于目标 ItemType ID。");
+
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var node in root.DescendantsAndSelf())
+        {
+            var id = (string?)node.Attribute("id") ?? string.Empty;
+            if (node.Name != "class" || !Guid.TryParseExact(id, "N", out var guid) ||
+                guid == Guid.Empty || !ids.Add(id))
+                throw new InvalidOperationException("class_structure 包含非法节点或无效、重复的节点 GUID。");
+            if (node == root)
+                continue;
+            var name = (string?)node.Attribute("name");
+            // Aras ClassStructure.ValidateClassName 同样禁止半角斜杠，避免保存时解析路径发生空引用。
+            if (string.IsNullOrWhiteSpace(name) || name.Contains('/'))
+                throw new InvalidOperationException("class_structure 节点名称不能为空或包含半角 /；请使用全角 ／。");
         }
     }
 
@@ -430,7 +475,7 @@ public sealed class ClassStructureImportService : IClassStructureImportService
                 "Update",
                 "ItemType",
                 itemType.Id,
-                $"类结构汇入全量覆盖 {itemType.Name}.class_structure：{preview.PathCount} 条路径，{preview.NodeCount} 个节点，最深 {preview.MaxDepth} 级");
+                $"类结构汇入全量覆盖 {itemType.Name}.class_structure：{preview.PathCount} 条路径，{preview.NodeCount} 个节点，最深 {preview.MaxDepth} 级；{preview.NormalizedCellCount} 处名称半角 / 转为全角 ／");
         }
         catch (Exception ex)
         {
@@ -455,16 +500,26 @@ public sealed class ClassStructureImportService : IClassStructureImportService
         private readonly Dictionary<string, ClassNode> _childrenByName =
             new(StringComparer.OrdinalIgnoreCase);
 
-        public ClassNode(string name) => Name = name;
+        public ClassNode(string name, string? originalName = null)
+        {
+            Name = name;
+            OriginalName = originalName ?? name;
+        }
 
         public string Name { get; }
+        public string OriginalName { get; }
         public List<ClassNode> Children { get; } = [];
 
-        public ClassNode GetOrAddChild(string name)
+        public ClassNode GetOrAddChild(string name, string originalName, int row, int level)
         {
             if (_childrenByName.TryGetValue(name, out var existing))
+            {
+                if (!string.Equals(existing.OriginalName, originalName, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException(
+                        $"第 {row} 行第{level}级：“{originalName}”与同一父级下的“{existing.OriginalName}”替换半角 / 后均为“{name}”，请调整名称以避免合并不同节点。");
                 return existing;
-            var child = new ClassNode(name);
+            }
+            var child = new ClassNode(name, originalName);
             _childrenByName.Add(name, child);
             Children.Add(child);
             return child;
@@ -475,5 +530,7 @@ public sealed class ClassStructureImportService : IClassStructureImportService
         ClassNode Root,
         int PathCount,
         int DuplicatePathCount,
-        int MaxDepth);
+        int MaxDepth,
+        int NormalizedCellCount,
+        string NormalizedNames);
 }
