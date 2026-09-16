@@ -235,7 +235,7 @@ public sealed partial class FormConfigurationEditPage : Page
         {
             case "sources": SyncPickers(); break;
             case "coordinates": UpdateCoordinateBoxes(); break;
-            case "selection": SyncFieldSelection(); RenderInspector(); SendSelection(); break;
+            case "selection": SyncFieldSelection(); RenderInspector(); SendSelection(); RevealSelectedPreview(); break;
             case "zoom": _ = ScriptAsync($"window.formEditor.setZoom({_vm.Zoom.ToString(CultureInfo.InvariantCulture)})"); break;
             default: SyncPickers(); RenderFieldList(); RenderInspector(); QueueCanvas(); break;
         }
@@ -567,7 +567,12 @@ public sealed partial class FormConfigurationEditPage : Page
     {
         if (_vm != null && ZoomPicker.SelectedItem is ComboBoxItem item && double.TryParse(item.Content.ToString()?.TrimEnd('%'), out var value)) _vm.Zoom = value;
     }
-    private void ToolsToggle_Click(object sender, RoutedEventArgs e) => SetToolsVisible(ToolsToggle.IsChecked == true);
+    private bool _compactWorkspace;
+    private void ToolsToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_compactWorkspace && ToolsToggle.IsChecked == true) { EditorToggle.IsChecked = false; SetEditorVisible(false); }
+        SetToolsVisible(ToolsToggle.IsChecked == true);
+    }
     private void SetToolsVisible(bool visible)
     {
         if (Workspace == null) return;
@@ -576,10 +581,32 @@ public sealed partial class FormConfigurationEditPage : Page
     }
     private void Page_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (EditorWorkspace != null) EditorWorkspace.Height = Math.Max(600, e.NewSize.Height - 32);
-        if (ToolsToggle == null) return;
-        if (e.NewSize.Width < 1020) { ToolsToggle.IsChecked = false; SetToolsVisible(false); }
+        if (ToolsToggle == null || EditorToggle == null) return;
+        var compact = e.NewSize.Width < 1100;
+        if (compact && !_compactWorkspace) { ToolsToggle.IsChecked = false; SetToolsVisible(false); }
+        _compactWorkspace = compact;
+        SetEditorVisible(EditorToggle.IsChecked == true);
     }
+    private void EditorToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_compactWorkspace && EditorToggle.IsChecked == true) { ToolsToggle.IsChecked = false; SetToolsVisible(false); }
+        SetEditorVisible(EditorToggle.IsChecked == true);
+    }
+    private void SetEditorVisible(bool visible)
+    {
+        EditorDock.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        Workspace.ColumnDefinitions[2].Width = new GridLength(visible ? Math.Clamp(ActualWidth * .33, 340, 440) : 0);
+    }
+    private void LayoutMode_Click(object sender, RoutedEventArgs e) => SetInspectorMode(false);
+    private void InspectorMode_Click(object sender, RoutedEventArgs e) => SetInspectorMode(true);
+    private void SetInspectorMode(bool inspector)
+    {
+        LayoutModeButton.IsChecked = !inspector; InspectorModeButton.IsChecked = inspector;
+        LayoutPreviewPanel.Visibility = inspector ? Visibility.Collapsed : Visibility.Visible;
+        InspectorScroll.Visibility = inspector ? Visibility.Visible : Visibility.Collapsed;
+        if (!inspector) RevealSelectedPreview();
+    }
+    private void SelectedOnly_Click(object sender, RoutedEventArgs e) => SyncLayoutPreview();
     private async void Add_Click(object sender, RoutedEventArgs e) => await RequestAddAsync(null, null);
     private async void PropertyList_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
     { if (PropertyList.SelectedItem is FormEditorProperty property) await RequestAddAsync(property, null); }

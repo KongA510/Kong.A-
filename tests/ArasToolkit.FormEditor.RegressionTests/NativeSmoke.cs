@@ -109,6 +109,7 @@ public sealed class NativeApp : ToolkitApp
             }
             else throw new Exception("WebView core not initialized");
             NativeProgram.Log("PASS native canvas");
+            await CheckWorkspaceAsync(page, vm, web);
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FORM_EDITOR_SMOKE_SNAPSHOT")))
                 await CheckLayoutPreviewAsync(page, vm, web);
             await CheckGeneratorAsync();
@@ -198,7 +199,9 @@ public sealed class NativeApp : ToolkitApp
     {
         var fields = vm.Session!.Fields.ToArray(); var first = fields[0].Id;
         var rows = (StackPanel)page.FindName("LayoutPreviewRows");
-        if (rows.Children.Count != fields.Length + 1) throw new Exception("Layout preview omitted fields");
+        if (rows.Children.Count != fields.Length) throw new Exception("Layout preview omitted fields");
+        foreach (var expander in Descendants<Expander>(rows)) expander.IsExpanded = true;
+        await Task.Delay(100);
         TextBox Cell(string label) => Descendants<TextBox>(rows).Single(box => Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(box) == fields[0].Name + " " + label);
         vm.Select(fields.Select(field => field.Id));
         var x = Cell("X"); x.Focus(FocusState.Programmatic); x.Text = "81";
@@ -206,7 +209,7 @@ public sealed class NativeApp : ToolkitApp
         if (vm.Session.Fields.First().Get("x") != "81" || vm.Session.Fields.Skip(1).First().Get("x") != "300") throw new Exception("Bottom edit affected wrong selection");
         vm.Undo(); if (Cell("X").Text != "35") throw new Exception("Undo did not refresh layout row");
         vm.Redo(); if (Cell("X").Text != "81") throw new Exception("Redo did not refresh layout row");
-        NativeProgram.Log("PASS bottom coordinate edits target one ID, preserve multi-selection, undo / redo refresh rows");
+        NativeProgram.Log("PASS layout coordinate edits target one ID, preserve multi-selection, undo / redo refresh rows");
         vm.Select([first]); vm.SetProperty("font_color", "#123abc");
         if (Cell("标题颜色").Text != "#123abc") throw new Exception("Inspector color did not reach layout table");
         var color = Cell("标题颜色"); color.Focus(FocusState.Programmatic); color.Text = "#ff0000"; Cell("Y").Focus(FocusState.Programmatic); await Task.Delay(200);
@@ -214,7 +217,7 @@ public sealed class NativeApp : ToolkitApp
         vm.BeginDrag(); vm.Move(new Dictionary<string,(int,int)> { [first] = (92, 77) });
         if (Cell("X").Text != "92" || Cell("Y").Text != "77") throw new Exception("Drag coordinates not linked during move");
         vm.EndDrag(false);
-        NativeProgram.Log("PASS inspector colors, bottom colors and live drag coordinates stay linked");
+        NativeProgram.Log("PASS inspector colors, layout colors and live drag coordinates stay linked");
         vm.SetFieldProperty(first, "field_type", "formatted text");
         if (Cell("行尺寸").Visibility != Visibility.Visible || Cell("列尺寸").Visibility != Visibility.Visible) throw new Exception("Rich dimension editors hidden");
         vm.SetFieldProperty(first, "textarea_rows", "180"); vm.SetFieldProperty(first, "textarea_cols", "460");
@@ -259,6 +262,82 @@ public sealed class NativeApp : ToolkitApp
             NativeProgram.Log("PASS real generator checkbox visible / toggles both ways; rich dimensions editable");
         }
         finally { window.Close(); }
+    }
+
+    private static void Toggle(Microsoft.UI.Xaml.Controls.Primitives.ToggleButton button)
+    {
+        var peer = new Microsoft.UI.Xaml.Automation.Peers.ToggleButtonAutomationPeer(button);
+        ((Microsoft.UI.Xaml.Automation.Provider.IToggleProvider)peer.GetPattern(Microsoft.UI.Xaml.Automation.Peers.PatternInterface.Toggle)).Toggle();
+    }
+
+    private static async Task CheckWorkspaceAsync(FormConfigurationEditPage page, FormConfigurationEditViewModel vm, WebView2 web)
+    {
+        var dock = (Border)page.FindName("EditorDock");
+        var rows = (StackPanel)page.FindName("LayoutPreviewRows");
+        var first = vm.Session!.Fields.First();
+        var layoutMode = (Microsoft.UI.Xaml.Controls.Primitives.ToggleButton)page.FindName("LayoutModeButton");
+        var inspectorMode = (Microsoft.UI.Xaml.Controls.Primitives.ToggleButton)page.FindName("InspectorModeButton");
+        var editorToggle = (Microsoft.UI.Xaml.Controls.Primitives.ToggleButton)page.FindName("EditorToggle");
+        var toolsToggle = (Microsoft.UI.Xaml.Controls.Primitives.ToggleButton)page.FindName("ToolsToggle");
+        var selectedOnly = (CheckBox)page.FindName("SelectedOnlyToggle");
+        void CheckViewport()
+        {
+            var position = dock.TransformToVisual(page).TransformPoint(new Windows.Foundation.Point());
+            if (position.Y + dock.ActualHeight > page.ActualHeight + 1 || web.ActualHeight < 200 || web.ActualWidth < 200)
+                throw new Exception("Editor does not keep canvas and dock in the same viewport");
+        }
+        CheckViewport();
+        vm.Select([first.Id]);
+        vm.SetFieldProperty(first.Id, "font_color", "#123abc");
+        Toggle(inspectorMode); await Task.Delay(100);
+        if (((ScrollViewer)page.FindName("InspectorScroll")).Visibility != Visibility.Visible || layoutMode.IsChecked == true)
+            throw new Exception("Detailed inspector tab did not open");
+        var inspector = (StackPanel)page.FindName("Inspector");
+        if (!Descendants<TextBox>(inspector).Any(box => box.Header?.ToString() == "标题颜色" && box.Text == "#123abc"))
+            throw new Exception("Detailed inspector lost quick edit");
+        Toggle(layoutMode); await Task.Delay(100);
+        if (((Grid)page.FindName("LayoutPreviewPanel")).Visibility != Visibility.Visible || !vm.HasChanges || !vm.CanUndo)
+            throw new Exception("Tab switching lost draft or history");
+        NativeProgram.Log("PASS canvas / dock share viewport; layout and detailed tabs preserve draft and undo");
+        var filterPeer = new Microsoft.UI.Xaml.Automation.Peers.CheckBoxAutomationPeer(selectedOnly);
+        var filter = (Microsoft.UI.Xaml.Automation.Provider.IToggleProvider)filterPeer.GetPattern(Microsoft.UI.Xaml.Automation.Peers.PatternInterface.Toggle);
+        filter.Toggle();
+        if (rows.Children.OfType<Border>().Count(card => card.Visibility == Visibility.Visible) != 1) throw new Exception("Selected-only filter failed");
+        vm.Select([]);
+        if (rows.Children.OfType<Border>().Any(card => card.Visibility == Visibility.Visible)) throw new Exception("Cleared selection left stale cards");
+        filter.Toggle();
+        if (rows.Children.OfType<Border>().Count(card => card.Visibility == Visibility.Visible) != vm.Session.Fields.Count()) throw new Exception("All-fields view did not recover");
+        var wideCanvas = web.ActualWidth;
+        Toggle(editorToggle); await Task.Delay(120);
+        if (dock.Visibility != Visibility.Collapsed || web.ActualWidth <= wideCanvas) throw new Exception("Collapsing editor did not release canvas width");
+        Toggle(editorToggle); await Task.Delay(120);
+        CheckViewport();
+        NativeProgram.Log("PASS selected-only filter and collapsible editor preserve shared draft");
+        await CaptureAsync(dock, "layout-dock.png");
+        var window = ToolkitApp.MainWindow!;
+        var oldSize = window.AppWindow.Size;
+        var scale = page.XamlRoot.RasterizationScale;
+        try
+        {
+            window.AppWindow.Resize(new Windows.Graphics.SizeInt32((int)(900 * scale), (int)(760 * scale)));
+            await Task.Delay(250); CheckViewport();
+            if (toolsToggle.IsChecked == true || dock.Visibility != Visibility.Visible) throw new Exception("Narrow workspace failed to prioritize layout and canvas");
+            var scroll = (ScrollViewer)page.FindName("LayoutPreviewScroll");
+            if (scroll.ScrollableWidth > 1) throw new Exception("Layout cards require horizontal scrolling");
+            Toggle(toolsToggle); await Task.Delay(120);
+            if (dock.Visibility != Visibility.Collapsed || toolsToggle.IsChecked != true) throw new Exception("Narrow tools toggle did not release editor width");
+            Toggle(editorToggle); await Task.Delay(120);
+            if (toolsToggle.IsChecked == true || dock.Visibility != Visibility.Visible) throw new Exception("Narrow editor toggle did not release tools width");
+            CheckViewport();
+            await CaptureAsync(dock, "layout-dock-compact.png");
+            NativeProgram.Log("PASS 900px workspace keeps canvas visible, cards fit width, side panels alternate");
+        }
+        finally
+        {
+            window.AppWindow.Resize(oldSize); await Task.Delay(150);
+            if (toolsToggle.IsChecked != true) Toggle(toolsToggle);
+            vm.DiscardChanges(); vm.Select([]);
+        }
     }
 
     private static async Task CaptureAsync(UIElement element, string name)
