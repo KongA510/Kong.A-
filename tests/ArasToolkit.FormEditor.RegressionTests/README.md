@@ -18,6 +18,8 @@ node tests/ArasToolkit.FormEditor.RegressionTests/canvas.test.cjs
 
 浏览器测试启动本机临时 HTTP 服务和无头 Edge，结束后关闭。截图写入被忽略的 `.codex/screenshots/form-editor-canvas.png`。不访问真实 Aras 资源；资源请求由测试拦截。
 
+布局冻结列检查：900px 窗口下分别向中间、最右端和左端滚动，核验字段名称及表头位置不变、右侧编辑项正常移动，切换选择后仍保留当前横向位置。
+
 ## WinUI 原生画布回归
 
 仅浏览器通过或生成 XBF 不能证明 WinUI 能加载 WebView2 原生组件。`NativeSmoke.cs` 通过显式构建开关启动真实生产页面、ViewModel 和 WebView2，服务替换为内存数据，保存方法直接拒绝写入。正常构建不包含此测试入口。

@@ -10,13 +10,14 @@ public sealed partial class FormConfigurationEditPage
 {
     private static readonly (string Name, string Label, double Width)[] PreviewColumns =
     [
-        ("sequence", "#", 30), ("name", "字段", 200), ("field_type", "控件类型", 140),
+        ("sequence", "#", 30), ("name", "字段", 130), ("field_type", "控件类型", 140),
         ("x", "X", 70), ("y", "Y", 70), ("display_length", "显示长度", 84),
         ("textarea_rows", "行尺寸", 80), ("textarea_cols", "列尺寸", 80),
         ("is_disabled", "不可编辑", 76), ("font_color", "标题颜色", 220)
     ];
     private readonly Dictionary<string, Action<FormEditorItem, int>> _previewRefresh = [];
     private readonly Dictionary<string, Border> _previewRowBorders = [];
+    private readonly List<TranslateTransform> _previewFrozenTransforms = [];
     private string[] _previewIds = [];
     private bool _syncingPreview;
 
@@ -40,6 +41,28 @@ public sealed partial class FormConfigurationEditPage
         return grid;
     }
 
+    private Border CreateFrozenPreviewColumns(string background)
+    {
+        var grid = new Grid();
+        foreach (var column in PreviewColumns.Take(2)) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(column.Width) });
+        var transform = new TranslateTransform { X = LayoutPreviewScroll.HorizontalOffset };
+        _previewFrozenTransforms.Add(transform);
+        var frozen = new Border
+        {
+            Child = grid, Background = (Brush)Application.Current.Resources[background],
+            BorderBrush = (Brush)Application.Current.Resources["BorderBrush"], BorderThickness = new Thickness(0, 0, 1, 0),
+            Margin = new Thickness(-6, -6, 0, -6), Padding = new Thickness(6, 6, 0, 6), RenderTransform = transform
+        };
+        Grid.SetColumnSpan(frozen, 2);
+        return frozen;
+    }
+
+    private void LayoutPreviewScroll_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
+    {
+        // Counter-scroll only the opaque field cells. Header and body retain one shared scroll surface.
+        foreach (var transform in _previewFrozenTransforms) transform.X = LayoutPreviewScroll.HorizontalOffset;
+    }
+
     private void SyncLayoutPreview()
     {
         if (_syncingPreview) return;
@@ -53,13 +76,17 @@ public sealed partial class FormConfigurationEditPage
                 _previewIds = ids;
                 _previewRefresh.Clear();
                 _previewRowBorders.Clear();
+                _previewFrozenTransforms.Clear();
                 LayoutPreviewRows.Children.Clear();
                 var header = CreatePreviewGrid();
+                var frozenHeader = CreateFrozenPreviewColumns("SurfaceBrush");
                 for (var column = 0; column < PreviewColumns.Length; column++)
                 {
                     var text = new TextBlock { Text = PreviewColumns[column].Label, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.NoWrap };
-                    Grid.SetColumn(text, column); header.Children.Add(text);
+                    Grid.SetColumn(text, column);
+                    (column < 2 ? (Grid)frozenHeader.Child : header).Children.Add(text);
                 }
+                header.Children.Add(frozenHeader);
                 LayoutPreviewHeader.Child = header;
                 LayoutPreviewTable.Width = header.Width + 16;
                 foreach (var field in fields) CreatePreviewRow(field);
@@ -78,6 +105,7 @@ public sealed partial class FormConfigurationEditPage
         // Each cell resolves the current draft by ID. Undo/save may replace every model instance.
         var id = field.Id;
         var row = CreatePreviewGrid();
+        var frozen = CreateFrozenPreviewColumns("CardBrush");
         var rowBorder = new Border { BorderThickness = new Thickness(0, 0, 0, 1), Child = row };
         _previewRowBorders[id] = rowBorder;
         var refreshers = new List<Action<FormEditorItem, int>>();
@@ -85,7 +113,8 @@ public sealed partial class FormConfigurationEditPage
         {
             control.VerticalAlignment = VerticalAlignment.Center;
             control.Margin = new Thickness(0, 0, 8, 0);
-            Grid.SetColumn(control, column); row.Children.Add(control);
+            Grid.SetColumn(control, column);
+            (column < 2 ? (Grid)frozen.Child : row).Children.Add(control);
         }
         var number = new TextBlock { FontSize = 11, Width = 24, VerticalAlignment = VerticalAlignment.Center };
         Add(number, 0);
@@ -103,6 +132,7 @@ public sealed partial class FormConfigurationEditPage
             var selected = _vm.Session?.SelectedIds.Contains(id) == true;
             rowBorder.BorderBrush = (Brush)Application.Current.Resources[selected ? "AccentBrush" : "BorderBrush"];
             rowBorder.Background = selected ? (Brush)Application.Current.Resources["SurfaceBrush"] : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            frozen.Background = (Brush)Application.Current.Resources[selected ? "SurfaceBrush" : "CardBrush"];
             rowBorder.Visibility = SelectedOnlyToggle.IsChecked == true && !selected ? Visibility.Collapsed : Visibility.Visible;
         });
         for (var index = 2; index < PreviewColumns.Length; index++)
@@ -181,6 +211,8 @@ public sealed partial class FormConfigurationEditPage
                 Add(panel, index);
             }
         }
+        // Draw the frozen cells last so scrolled editors cannot cover or receive clicks through them.
+        row.Children.Add(frozen);
         LayoutPreviewRows.Children.Add(rowBorder);
         _previewRefresh[id] = (item, sequence) => { foreach (var refresh in refreshers) refresh(item, sequence); };
     }

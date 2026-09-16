@@ -327,11 +327,25 @@ public sealed class NativeApp : ToolkitApp
             var boxes = Descendants<TextBox>(firstRow).ToList();
             var yPositions = boxes.Where(box => box.Visibility == Visibility.Visible).Select(box => box.TransformToVisual(firstRow).TransformPoint(new Windows.Foundation.Point()).Y).ToArray();
             if (yPositions.Max() - yPositions.Min() > 1) throw new Exception("Layout editors wrapped onto multiple rows");
-            scroll.ChangeView(scroll.ScrollableWidth, null, null, true); await Task.Delay(120);
+            var fieldButton = Descendants<Button>(firstRow).Single(button => button.Content is TextBlock);
+            var fieldHeader = Descendants<TextBlock>((Border)page.FindName("LayoutPreviewHeader")).Single(text => text.Text == "字段");
+            double Left(FrameworkElement element) => element.TransformToVisual(scroll).TransformPoint(new Windows.Foundation.Point()).X;
+            var fieldLeft = Left(fieldButton);
+            var headerLeft = Left(fieldHeader);
+            var editorLeft = Left(boxes[0]);
+            foreach (var offset in new[] { scroll.ScrollableWidth / 2, scroll.ScrollableWidth, 0, scroll.ScrollableWidth })
+            {
+                scroll.ChangeView(offset, null, null, true); await Task.Delay(120);
+                if (Math.Abs(Left(fieldButton) - fieldLeft) > 1 || Math.Abs(Left(fieldHeader) - headerLeft) > 1 || Math.Abs(fieldLeft - headerLeft) > 1)
+                    throw new Exception("Frozen field/header moved during horizontal scrolling");
+                if (Math.Abs(Left(boxes[0]) - (editorLeft - scroll.HorizontalOffset)) > 1)
+                    throw new Exception("Editable columns did not scroll independently of frozen fields");
+            }
             var columnOffset = scroll.HorizontalOffset;
             vm.Select([first.Id]); await Task.Delay(120);
             if (Math.Abs(scroll.HorizontalOffset - columnOffset) > 1) throw new Exception("Selecting a field reset the visible column");
             await CaptureAsync(dock, "layout-dock-style-columns.png");
+            NativeProgram.Log("PASS field and header stay frozen while editable columns scroll in both directions");
             scroll.ChangeView(0, null, null, true); await Task.Delay(100);
             Toggle(toolsToggle); await Task.Delay(120);
             if (dock.Visibility != Visibility.Collapsed || toolsToggle.IsChecked != true) throw new Exception("Narrow tools toggle did not release editor width");

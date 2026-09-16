@@ -104,13 +104,13 @@
                     </Grid>
                     <Grid x:Name="LayoutPreviewPanel" Grid.Row="1" RowSpacing="8">
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                        <TextBlock Text="横向滚动调整各列，画布同步预览。" Style="{ThemeResource CaptionText}" TextWrapping="Wrap" />
+                        <TextBlock Text="字段列已冻结，横向滚动调整各项。" Style="{ThemeResource CaptionText}" TextWrapping="Wrap" />
                         <Grid Grid.Row="1" ColumnSpacing="8">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                             <TextBlock x:Name="LayoutPreviewSummary" Text="选择窗体后显示控件。" Style="{ThemeResource CaptionText}" TextWrapping="Wrap" VerticalAlignment="Center" />
                             <CheckBox x:Name="SelectedOnlyToggle" Grid.Column="1" Content="仅选中" MinWidth="0" Click="SelectedOnly_Click" />
                         </Grid>
-                        <ScrollViewer x:Name="LayoutPreviewScroll" Grid.Row="2" HorizontalScrollBarVisibility="Visible" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled" VerticalScrollMode="Disabled" IsEnabled="{Binding CanEdit}">
+                        <ScrollViewer x:Name="LayoutPreviewScroll" Grid.Row="2" HorizontalScrollBarVisibility="Visible" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled" VerticalScrollMode="Disabled" ViewChanged="LayoutPreviewScroll_ViewChanged" IsEnabled="{Binding CanEdit}">
                             <Grid x:Name="LayoutPreviewTable">
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                                 <Border x:Name="LayoutPreviewHeader" Background="{ThemeResource SurfaceBrush}" />
