@@ -200,7 +200,6 @@ public sealed class NativeApp : ToolkitApp
         var fields = vm.Session!.Fields.ToArray(); var first = fields[0].Id;
         var rows = (StackPanel)page.FindName("LayoutPreviewRows");
         if (rows.Children.Count != fields.Length) throw new Exception("Layout preview omitted fields");
-        foreach (var expander in Descendants<Expander>(rows)) expander.IsExpanded = true;
         await Task.Delay(100);
         TextBox Cell(string label) => Descendants<TextBox>(rows).Single(box => Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(box) == fields[0].Name + " " + label);
         vm.Select(fields.Select(field => field.Id));
@@ -323,14 +322,24 @@ public sealed class NativeApp : ToolkitApp
             await Task.Delay(250); CheckViewport();
             if (toolsToggle.IsChecked == true || dock.Visibility != Visibility.Visible) throw new Exception("Narrow workspace failed to prioritize layout and canvas");
             var scroll = (ScrollViewer)page.FindName("LayoutPreviewScroll");
-            if (scroll.ScrollableWidth > 1) throw new Exception("Layout cards require horizontal scrolling");
+            if (scroll.ScrollableWidth < 500) throw new Exception("Layout table did not expose all columns horizontally");
+            var firstRow = rows.Children.OfType<Border>().First();
+            var boxes = Descendants<TextBox>(firstRow).ToList();
+            var yPositions = boxes.Where(box => box.Visibility == Visibility.Visible).Select(box => box.TransformToVisual(firstRow).TransformPoint(new Windows.Foundation.Point()).Y).ToArray();
+            if (yPositions.Max() - yPositions.Min() > 1) throw new Exception("Layout editors wrapped onto multiple rows");
+            scroll.ChangeView(scroll.ScrollableWidth, null, null, true); await Task.Delay(120);
+            var columnOffset = scroll.HorizontalOffset;
+            vm.Select([first.Id]); await Task.Delay(120);
+            if (Math.Abs(scroll.HorizontalOffset - columnOffset) > 1) throw new Exception("Selecting a field reset the visible column");
+            await CaptureAsync(dock, "layout-dock-style-columns.png");
+            scroll.ChangeView(0, null, null, true); await Task.Delay(100);
             Toggle(toolsToggle); await Task.Delay(120);
             if (dock.Visibility != Visibility.Collapsed || toolsToggle.IsChecked != true) throw new Exception("Narrow tools toggle did not release editor width");
             Toggle(editorToggle); await Task.Delay(120);
             if (toolsToggle.IsChecked == true || dock.Visibility != Visibility.Visible) throw new Exception("Narrow editor toggle did not release tools width");
             CheckViewport();
             await CaptureAsync(dock, "layout-dock-compact.png");
-            NativeProgram.Log("PASS 900px workspace keeps canvas visible, cards fit width, side panels alternate");
+            NativeProgram.Log("PASS 900px workspace keeps canvas visible; single-line table scrolls horizontally and retains column on selection");
         }
         finally
         {

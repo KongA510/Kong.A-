@@ -8,15 +8,15 @@ namespace ArasToolkit.App.WinUI.Views;
 
 public sealed partial class FormConfigurationEditPage
 {
-    private static readonly (string Name, string Label)[] PreviewColumns =
+    private static readonly (string Name, string Label, double Width)[] PreviewColumns =
     [
-        ("sequence", "#"), ("name", "字段"), ("field_type", "控件类型"),
-        ("x", "X"), ("y", "Y"), ("display_length", "显示长度"),
-        ("textarea_rows", "行尺寸"), ("textarea_cols", "列尺寸"),
-        ("is_disabled", "不可编辑"), ("font_color", "标题颜色")
+        ("sequence", "#", 30), ("name", "字段", 200), ("field_type", "控件类型", 140),
+        ("x", "X", 70), ("y", "Y", 70), ("display_length", "显示长度", 84),
+        ("textarea_rows", "行尺寸", 80), ("textarea_cols", "列尺寸", 80),
+        ("is_disabled", "不可编辑", 76), ("font_color", "标题颜色", 220)
     ];
     private readonly Dictionary<string, Action<FormEditorItem, int>> _previewRefresh = [];
-    private readonly Dictionary<string, Border> _previewCards = [];
+    private readonly Dictionary<string, Border> _previewRowBorders = [];
     private string[] _previewIds = [];
     private bool _syncingPreview;
 
@@ -24,8 +24,20 @@ public sealed partial class FormConfigurationEditPage
     {
         if (EditorDock.Visibility != Visibility.Visible || LayoutPreviewPanel.Visibility != Visibility.Visible) return;
         var id = _vm.Session?.SelectedIds.FirstOrDefault();
-        if (id != null && _previewCards.TryGetValue(id, out var card) && card.Visibility == Visibility.Visible)
-            card.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+        if (id == null || !_previewRowBorders.TryGetValue(id, out var row) || row.Visibility != Visibility.Visible) return;
+        // Reveal the selected row vertically without moving away from the column being edited.
+        var top = row.TransformToVisual(LayoutPreviewRows).TransformPoint(new Windows.Foundation.Point()).Y;
+        var scroll = LayoutPreviewBodyScroll;
+        if (top < scroll.VerticalOffset) scroll.ChangeView(null, top, null, true);
+        else if (top + row.ActualHeight > scroll.VerticalOffset + scroll.ViewportHeight)
+            scroll.ChangeView(null, Math.Max(0, top + row.ActualHeight - scroll.ViewportHeight), null, true);
+    }
+
+    private static Grid CreatePreviewGrid()
+    {
+        var grid = new Grid { Padding = new Thickness(6), Width = PreviewColumns.Sum(column => column.Width) + 12, HorizontalAlignment = HorizontalAlignment.Left };
+        foreach (var column in PreviewColumns) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(column.Width) });
+        return grid;
     }
 
     private void SyncLayoutPreview()
@@ -40,8 +52,16 @@ public sealed partial class FormConfigurationEditPage
             {
                 _previewIds = ids;
                 _previewRefresh.Clear();
-                _previewCards.Clear();
+                _previewRowBorders.Clear();
                 LayoutPreviewRows.Children.Clear();
+                var header = CreatePreviewGrid();
+                for (var column = 0; column < PreviewColumns.Length; column++)
+                {
+                    var text = new TextBlock { Text = PreviewColumns[column].Label, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.NoWrap };
+                    Grid.SetColumn(text, column); header.Children.Add(text);
+                }
+                LayoutPreviewHeader.Child = header;
+                LayoutPreviewTable.Width = header.Width + 16;
                 foreach (var field in fields) CreatePreviewRow(field);
             }
             for (var index = 0; index < fields.Count; index++) _previewRefresh[fields[index].Id](fields[index], index + 1);
@@ -57,57 +77,33 @@ public sealed partial class FormConfigurationEditPage
     {
         // Each cell resolves the current draft by ID. Undo/save may replace every model instance.
         var id = field.Id;
-        var row = new Grid { RowSpacing = 8, ColumnSpacing = 8 };
-        for (var i = 0; i < 4; i++) row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        for (var i = 0; i < 3; i++) row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        var card = new Border { Padding = new Thickness(10), CornerRadius = new CornerRadius(6), BorderThickness = new Thickness(1),
-            Background = (Brush)Application.Current.Resources["SurfaceBrush"], Child = row };
-        _previewCards[id] = card;
-        var extraGrid = new Grid { ColumnSpacing = 8 };
-        extraGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.4, GridUnitType.Star) });
-        extraGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        extraGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        var extra = new Expander { Header = "控件与行列尺寸", Content = extraGrid, MinWidth = 0,
-            HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch };
-        Grid.SetRow(extra, 3); Grid.SetColumnSpan(extra, 3); row.Children.Add(extra);
+        var row = CreatePreviewGrid();
+        var rowBorder = new Border { BorderThickness = new Thickness(0, 0, 0, 1), Child = row };
+        _previewRowBorders[id] = rowBorder;
         var refreshers = new List<Action<FormEditorItem, int>>();
         void Add(FrameworkElement control, int column)
         {
             control.VerticalAlignment = VerticalAlignment.Center;
-            if (column == 1) { Grid.SetColumnSpan(control, 3); row.Children.Add(control); return; }
-            var cell = new StackPanel { Spacing = 3 };
-            cell.Children.Add(new TextBlock { Text = PreviewColumns[column].Label, FontSize = 11, Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"] });
-            cell.Children.Add(control);
-            if (column is 2 or 6 or 7)
-            {
-                Grid.SetColumn(cell, column == 2 ? 0 : column - 5); extraGrid.Children.Add(cell);
-            }
-            else
-            {
-                Grid.SetRow(cell, column is 8 or 9 ? 2 : 1);
-                Grid.SetColumn(cell, column == 9 ? 0 : column == 8 ? 2 : column - 3);
-                if (column == 9) Grid.SetColumnSpan(cell, 2);
-                row.Children.Add(cell);
-            }
+            control.Margin = new Thickness(0, 0, 8, 0);
+            Grid.SetColumn(control, column); row.Children.Add(control);
         }
         var number = new TextBlock { FontSize = 11, Width = 24, VerticalAlignment = VerticalAlignment.Center };
+        Add(number, 0);
         refreshers.Add((_, sequence) => number.Text = sequence.ToString("00"));
-        var label = new TextBlock { FontSize = 13, TextTrimming = TextTrimming.CharacterEllipsis };
-        var name = new TextBlock { FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis };
-        var title = new StackPanel(); title.Children.Add(label); title.Children.Add(name);
-        var heading = new Grid(); heading.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); heading.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        heading.Children.Add(number); Grid.SetColumn(title, 1); heading.Children.Add(title);
-        var select = new Button { Content = heading, MinWidth = 0, Padding = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Stretch,
+        var label = new TextBlock { FontSize = 13, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
+        var select = new Button { Content = label, MinWidth = 0, Padding = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch, Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0) };
         select.Click += (_, _) => _vm.Select([id]);
         Add(select, 1);
         refreshers.Add((item, _) =>
         {
-            label.Text = item.Get("label", item.Name); name.Text = item.Name;
+            var caption = item.Get("label", item.Name);
+            label.Text = caption == item.Name ? item.Name : $"{caption} · {item.Name}";
             ToolTipService.SetToolTip(select, item.DisplayName);
             var selected = _vm.Session?.SelectedIds.Contains(id) == true;
-            card.BorderBrush = (Brush)Application.Current.Resources[selected ? "AccentBrush" : "BorderBrush"];
-            card.Visibility = SelectedOnlyToggle.IsChecked == true && !selected ? Visibility.Collapsed : Visibility.Visible;
+            rowBorder.BorderBrush = (Brush)Application.Current.Resources[selected ? "AccentBrush" : "BorderBrush"];
+            rowBorder.Background = selected ? (Brush)Application.Current.Resources["SurfaceBrush"] : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            rowBorder.Visibility = SelectedOnlyToggle.IsChecked == true && !selected ? Visibility.Collapsed : Visibility.Visible;
         });
         for (var index = 2; index < PreviewColumns.Length; index++)
         {
@@ -185,7 +181,7 @@ public sealed partial class FormConfigurationEditPage
                 Add(panel, index);
             }
         }
-        LayoutPreviewRows.Children.Add(card);
+        LayoutPreviewRows.Children.Add(rowBorder);
         _previewRefresh[id] = (item, sequence) => { foreach (var refresh in refreshers) refresh(item, sequence); };
     }
 }
