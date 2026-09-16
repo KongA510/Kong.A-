@@ -183,6 +183,21 @@ var longProperty=new FormEditorProperty{Id=new string('8',32),Name="very_long_pr
 var n1=session.Add("text",longProperty,0,0);var n2=session.Add("text",longProperty,10,10);
 Check(n1.Name.Length<=12&&n2.Name.Length<=12&&n1.Name!=n2.Name,"Names must respect stored_length and uniqueness");
 Pass("新增名称按目标长度截取并保持唯一");
+var richLayout = new ArasFormFieldLayout { PropertyId = FakeAras.PropertyId, Name = "rich", FieldType = "formatted text", TextAreaRows = 180, TextAreaColumns = 460, IsDisabled = true };
+var dimensionNotifications = new List<string?>();
+richLayout.PropertyChanged += (_, e) => dimensionNotifications.Add(e.PropertyName);
+richLayout.FieldType = "text";
+Check(!richLayout.SupportsTextAreaDimensions && dimensionNotifications.Contains(nameof(ArasFormFieldLayout.SupportsTextAreaDimensions)), "Type changes must refresh dimension editors");
+richLayout.FieldType = "formatted text";
+var richAml = (XElement)build.Invoke(null, [new ArasFormConfigurationRequest { FormName = "RichTest", Fields = [richLayout] }])!;
+var richField = richAml.Descendants("Item").Single(item => item.Element("name")?.Value == "rich");
+Check(richField.Element("textarea_rows")?.Value == "180" && richField.Element("textarea_cols")?.Value == "460" && richField.Element("is_disabled")?.Value == "1", "Rich dimensions / disabled state must be serialized");
+richLayout.FieldType = "text"; richLayout.IsDisabled = false;
+var textAml = (XElement)build.Invoke(null, [new ArasFormConfigurationRequest { FormName = "TextTest", Fields = [richLayout] }])!;
+var textField = textAml.Descendants("Item").Single(item => item.Element("name")?.Value == "rich");
+Check(textField.Element("textarea_rows") == null && textField.Element("textarea_cols") == null && textField.Element("is_disabled")?.Value == "0", "Plain text must omit rich dimensions and retain editable state");
+Check(ArasFormConfigurationOptions.SupportsTextAreaDimensions("textarea"), "Text Area support must remain");
+Pass("富文本行列写入、控件切换通知与不可编辑双向状态");
 Console.WriteLine($"All {passed} form editor regression cases passed.");
 
 public class Proxy : DispatchProxy

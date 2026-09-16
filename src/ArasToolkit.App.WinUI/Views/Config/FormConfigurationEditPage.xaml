@@ -3,7 +3,9 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     SizeChanged="Page_SizeChanged">
-    <Grid Margin="24,16,24,16" RowSpacing="10" Background="Transparent">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel>
+    <Grid x:Name="EditorWorkspace" Margin="24,16,24,16" RowSpacing="10" Background="Transparent" Height="700">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -101,4 +103,17 @@
         </Grid>
         <TextBlock Grid.Row="5" Text="{Binding SelectionSummary}" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
     </Grid>
+    <Border Margin="24,0,24,24" Style="{ThemeResource CardStyle}">
+        <StackPanel Spacing="10">
+            <TextBlock Text="布局预览" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="直接修改坐标、尺寸、不可编辑和标题颜色，与上方画布及属性面板同步；修改后统一保存，可撤销、重做。"
+                       Style="{ThemeResource CaptionText}" TextWrapping="Wrap" />
+            <TextBlock x:Name="LayoutPreviewSummary" Text="选择窗体后显示当前主体的控件。" Style="{ThemeResource CaptionText}" />
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="400" IsEnabled="{Binding CanEdit}">
+                <StackPanel x:Name="LayoutPreviewRows" />
+            </ScrollViewer>
+        </StackPanel>
+    </Border>
+    </StackPanel>
+    </ScrollViewer>
 </Page>

@@ -3,6 +3,7 @@
 using System.Reflection;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
 using ArasToolkit.App.WinUI;
 using ToolkitApp = ArasToolkit.App.WinUI.App;
@@ -68,6 +69,12 @@ public sealed class NativeApp : ToolkitApp
             services.AddSingleton(connection); services.AddSingleton(errors);
             services.AddSingleton<IFormConfigurationEditService, NativeFixture>();
             services.AddTransient<FormConfigurationEditViewModel>();
+            var generator = DispatchProxy.Create<IFormConfigurationService, NativeProxy>();
+            ((NativeProxy)(object)generator).Handler = (method, _) => method.Name == "GetItemTypesAsync"
+                ? Task.FromResult<IReadOnlyList<ArasItemTypeInfo>>([]) : null;
+            services.AddSingleton(generator);
+            services.AddSingleton(DispatchProxy.Create<IDialogService, NativeProxy>());
+            services.AddTransient<FormConfigurationViewModel>();
             typeof(ToolkitApp).GetField("_serviceProvider", BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(this, services.BuildServiceProvider());
             var page = new FormConfigurationEditPage();
             var web = (WebView2)page.FindName("CanvasBrowser");
@@ -102,6 +109,9 @@ public sealed class NativeApp : ToolkitApp
             }
             else throw new Exception("WebView core not initialized");
             NativeProgram.Log("PASS native canvas");
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FORM_EDITOR_SMOKE_SNAPSHOT")))
+                await CheckLayoutPreviewAsync(page, vm, web);
+            await CheckGeneratorAsync();
             var panel = (Border)page.FindName("CanvasStatusPanel");
             var title = (TextBlock)page.FindName("CanvasStatusTitle");
             var retry = (Button)page.FindName("CanvasRetry");
@@ -173,6 +183,95 @@ public sealed class NativeApp : ToolkitApp
         }
         throw new TimeoutException(operation);
     }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var i = 0; i < Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is T match) yield return match;
+            foreach (var descendant in Descendants<T>(child)) yield return descendant;
+        }
+    }
+
+    private static async Task CheckLayoutPreviewAsync(FormConfigurationEditPage page, FormConfigurationEditViewModel vm, WebView2 web)
+    {
+        var fields = vm.Session!.Fields.ToArray(); var first = fields[0].Id;
+        var rows = (StackPanel)page.FindName("LayoutPreviewRows");
+        if (rows.Children.Count != fields.Length + 1) throw new Exception("Layout preview omitted fields");
+        TextBox Cell(string label) => Descendants<TextBox>(rows).Single(box => Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(box) == fields[0].Name + " " + label);
+        vm.Select(fields.Select(field => field.Id));
+        var x = Cell("X"); x.Focus(FocusState.Programmatic); x.Text = "81";
+        Cell("Y").Focus(FocusState.Programmatic); await Task.Delay(150);
+        if (vm.Session.Fields.First().Get("x") != "81" || vm.Session.Fields.Skip(1).First().Get("x") != "300") throw new Exception("Bottom edit affected wrong selection");
+        vm.Undo(); if (Cell("X").Text != "35") throw new Exception("Undo did not refresh layout row");
+        vm.Redo(); if (Cell("X").Text != "81") throw new Exception("Redo did not refresh layout row");
+        NativeProgram.Log("PASS bottom coordinate edits target one ID, preserve multi-selection, undo / redo refresh rows");
+        vm.Select([first]); vm.SetProperty("font_color", "#123abc");
+        if (Cell("标题颜色").Text != "#123abc") throw new Exception("Inspector color did not reach layout table");
+        var color = Cell("标题颜色"); color.Focus(FocusState.Programmatic); color.Text = "#ff0000"; Cell("Y").Focus(FocusState.Programmatic); await Task.Delay(200);
+        if (vm.Session.Selected.Single().Get("font_color") != "#ff0000") throw new Exception("Bottom color not in draft");
+        vm.BeginDrag(); vm.Move(new Dictionary<string,(int,int)> { [first] = (92, 77) });
+        if (Cell("X").Text != "92" || Cell("Y").Text != "77") throw new Exception("Drag coordinates not linked during move");
+        vm.EndDrag(false);
+        NativeProgram.Log("PASS inspector colors, bottom colors and live drag coordinates stay linked");
+        vm.SetFieldProperty(first, "field_type", "formatted text");
+        if (Cell("行尺寸").Visibility != Visibility.Visible || Cell("列尺寸").Visibility != Visibility.Visible) throw new Exception("Rich dimension editors hidden");
+        vm.SetFieldProperty(first, "textarea_rows", "180"); vm.SetFieldProperty(first, "textarea_cols", "460");
+        var check = Descendants<CheckBox>(rows).First();
+        var peer = new Microsoft.UI.Xaml.Automation.Peers.CheckBoxAutomationPeer(check);
+        ((Microsoft.UI.Xaml.Automation.Provider.IToggleProvider)peer.GetPattern(Microsoft.UI.Xaml.Automation.Peers.PatternInterface.Toggle)).Toggle();
+        if (vm.Session.Fields.First().Get("is_disabled") != "1") throw new Exception("Bottom checkbox did not commit");
+        await Task.Delay(300);
+        var state = await web.CoreWebView2.ExecuteScriptAsync($"document.querySelector('#preview').contentDocument.getElementById('{first}').querySelector('.sys_f_value > *').getBoundingClientRect().height");
+        if (state != "180") throw new Exception("Native rich preview height not linked: " + state);
+        await CaptureAsync(page, "edit-linked.png");
+        vm.SetFieldProperty(first, "textarea_rows", "0");
+        if (!vm.HasError || Cell("行尺寸").Text != "180") throw new Exception("Invalid dimensions did not restore current draft");
+        vm.DiscardChanges(); vm.Select([]);
+        NativeProgram.Log("PASS rich dimensions, disabled toggle, validation rollback and discard synchronize");
+    }
+
+    private static async Task CheckGeneratorAsync()
+    {
+        var page = new FormConfigurationPage();
+        var window = new Window { Content = page };
+        window.AppWindow.Resize(new Windows.Graphics.SizeInt32(1300, 850)); window.Activate();
+        try
+        {
+            var vm = (FormConfigurationViewModel)page.DataContext;
+            await Task.Delay(200);
+            var field = new ArasFormFieldLayout { Name = "rich", Label = "富文本", FieldType = "formatted text", Sequence = 1 };
+            vm.LayoutFields.Add(field);
+            var list = (ListView)page.FindName("LayoutList"); list.ScrollIntoView(field);
+            await Task.Delay(200);
+            var check = Descendants<CheckBox>(list).Single();
+            if (check.ActualWidth != 32 || check.Visibility != Visibility.Visible) throw new Exception("Generator checkbox is clipped");
+            var peer = new Microsoft.UI.Xaml.Automation.Peers.CheckBoxAutomationPeer(check);
+            var toggle = (Microsoft.UI.Xaml.Automation.Provider.IToggleProvider)peer.GetPattern(Microsoft.UI.Xaml.Automation.Peers.PatternInterface.Toggle);
+            toggle.Toggle(); if (!field.IsDisabled) throw new Exception("Generator toggle did not set read-only");
+            toggle.Toggle(); if (field.IsDisabled) throw new Exception("Generator toggle did not restore editable");
+            var dimensions = Descendants<NumberBox>(list).Where(box => Grid.GetColumn(box) is 7 or 8).ToArray();
+            if (dimensions.Length != 2 || dimensions.Any(box => box.Visibility != Visibility.Visible)) throw new Exception("Generator rich dimensions hidden");
+            dimensions[0].Value = 180; dimensions[1].Value = 460;
+            if (field.TextAreaRows != 180 || field.TextAreaColumns != 460) throw new Exception("Generator rich dimensions not bound");
+            await CaptureAsync(page, "generator-rich.png");
+            NativeProgram.Log("PASS real generator checkbox visible / toggles both ways; rich dimensions editable");
+        }
+        finally { window.Close(); }
+    }
+
+    private static async Task CaptureAsync(UIElement element, string name)
+    {
+        var bitmap = new Microsoft.UI.Xaml.Media.Imaging.RenderTargetBitmap();
+        await bitmap.RenderAsync(element);
+        var pixels = (await bitmap.GetPixelsAsync()).ToArray();
+        using var file = File.Create(Path.Combine(NativeProgram.Output, name));
+        var encoder = await Windows.Graphics.Imaging.BitmapEncoder.CreateAsync(Windows.Graphics.Imaging.BitmapEncoder.PngEncoderId, file.AsRandomAccessStream());
+        encoder.SetPixelData(Windows.Graphics.Imaging.BitmapPixelFormat.Bgra8, Windows.Graphics.Imaging.BitmapAlphaMode.Premultiplied,
+            (uint)bitmap.PixelWidth, (uint)bitmap.PixelHeight, 96, 96, pixels);
+        await encoder.FlushAsync();
+    }
 }
 
 public class NativeProxy : DispatchProxy
@@ -211,10 +310,15 @@ public sealed class NativeFixture : IFormConfigurationEditService
             snapshot.ConnectionKey = Key;
             return Task.FromResult(snapshot);
         }
-        return Task.FromResult(new FormEditorMetadata
-        {ConnectionKey=Key,Field=new(){{"field_type",new(){Name="field_type",Options=[new("Text","text")]}}},Form=new(){{"width",new(){Name="width",DataType="integer"}},{"height",new(){Name="height",DataType="integer"}}}});
+        var metadata = new FormEditorMetadata
+        {ConnectionKey=Key,Field=new(){{"field_type",new(){Name="field_type",Options=[new("Text","text"),new("FormattedText","formatted text"),new("Text Area","textarea")]}}},Form=new(){{"width",new(){Name="width",DataType="integer"}},{"height",new(){Name="height",DataType="integer"}}}};
+        foreach (var name in new[] { "x", "y", "display_length", "textarea_rows", "textarea_cols" }) metadata.Field[name] = new() { Name = name, DataType = "integer" };
+        metadata.Field["is_disabled"] = new() { Name = "is_disabled", DataType = "boolean" };
+        metadata.Field["font_color"] = new() { Name = "font_color", DataType = "string" };
+        return Task.FromResult(metadata);
     }
-    public FormEditorChangeSet BuildChangeSet(FormEditorDefinition document,FormEditorMetadata metadata)=>new();
+    public FormEditorChangeSet BuildChangeSet(FormEditorDefinition document,FormEditorMetadata metadata)=>
+        new ArasToolkit.Services.Services.FormConfigurationEditService(new(), null!, null!).BuildChangeSet(document, metadata);
     public Task<FormEditorDefinition> SaveAsync(FormEditorDefinition document,FormEditorMetadata metadata,CancellationToken token=default)=>throw new InvalidOperationException("Native smoke must not write");
     public Task<FormEditorResource?> GetPreviewResourceAsync(string url,string key,CancellationToken token=default)=>Task.FromResult<FormEditorResource?>(null);
 }

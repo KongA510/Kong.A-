@@ -61,6 +61,7 @@ public sealed class ArasFormFieldLayout : ObservableObject
             if (SetProperty(ref _fieldType, normalized))
             {
                 OnPropertyChanged(nameof(IsTextAreaField));
+                OnPropertyChanged(nameof(SupportsTextAreaDimensions));
                 OnPropertyChanged(nameof(FieldTypeLabel));
             }
         }
@@ -90,14 +91,14 @@ public sealed class ArasFormFieldLayout : ObservableObject
         set => SetProperty(ref _sequence, value);
     }
 
-    /// <summary>textarea 控件的 textarea_rows；其他控件不会写入 AML。</summary>
+    /// <summary>Text Area / FormattedText 控件的 textarea_rows。</summary>
     public int TextAreaRows
     {
         get => _textAreaRows;
         set => SetProperty(ref _textAreaRows, Math.Max(1, value));
     }
 
-    /// <summary>textarea 控件的 textarea_cols；其他控件不会写入 AML。</summary>
+    /// <summary>Text Area / FormattedText 控件的 textarea_cols。</summary>
     public int TextAreaColumns
     {
         get => _textAreaColumns;
@@ -124,6 +125,8 @@ public sealed class ArasFormFieldLayout : ObservableObject
     public bool IsTextAreaField => FieldType.Equals(
         ArasFormConfigurationOptions.TextAreaFieldType,
         StringComparison.OrdinalIgnoreCase);
+
+    public bool SupportsTextAreaDimensions => ArasFormConfigurationOptions.SupportsTextAreaDimensions(FieldType);
 
     public string FieldTypeLabel
     {
