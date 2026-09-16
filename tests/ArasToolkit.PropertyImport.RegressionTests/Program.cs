@@ -256,6 +256,7 @@ try
     var lifecycleTemplate = CreateTemplate("lifecycle.xlsx",
         ("first_property", "String", ""), ("second_property", "String", ""), ("third_property", "String", ""));
     passed += await ImportLifecycleTests.RunAsync(lifecycleTemplate);
+    passed += await ForeignReferenceTests.RunAsync(workDir);
     Console.WriteLine($"All {passed} regression cases passed.");
 }
 finally
