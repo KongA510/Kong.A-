@@ -93,6 +93,7 @@ public class MainViewModel : ObservableObject
         sysConfig.Children.Add(new MenuItemInfo { Name = "属性配置", Icon = "Tune", CardIcon = "🧩", Description = "选择现有对象类，预检 AML 后逐条写入属性" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "生命周期配置", Icon = "Refresh", CardIcon = "\uE895", Description = "批量创建Aras对象类的生命周期状态定义" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "工作流程设定", Icon = "BranchFork", CardIcon = "\uE8F0", Description = "从 Excel 预览、调整并一次性汇入 Aras Workflow Map" });
+        sysConfig.Children.Add(new MenuItemInfo { Name = "导包工具", Icon = "Package", CardIcon = "📦", Description = "勾选配置与依赖，比较并迁移官方 AML 包" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "权限配置", Icon = "ShieldAccount", CardIcon = "\uE72E", Description = "Aras权限配置工具" });
         sysConfig.Children.Add(new MenuItemInfo { Name = "用户管理", Icon = "AccountGroup", CardIcon = "\uE716", Description = "管理员创建用户与角色分配" });
         MenuItems.Add(sysConfig);

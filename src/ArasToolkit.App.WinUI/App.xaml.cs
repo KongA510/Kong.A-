@@ -76,6 +76,7 @@ public partial class App : Application
         services.AddTransient<PermissionConfigViewModel>();
         services.AddTransient<LifecycleConfigViewModel>();
         services.AddTransient<WorkflowMapViewModel>();
+        services.AddTransient<PackageMigrationViewModel>();
         services.AddTransient<FieldTranslationViewModel>();
         services.AddTransient<PropertyTranslationViewModel>();
         services.AddTransient<FormTranslationViewModel>();
@@ -114,6 +115,7 @@ public partial class App : Application
         nav.Register("权限配置", typeof(PermissionConfigPage));
         nav.Register("生命周期配置", typeof(LifecycleConfigPage));
         nav.Register("工作流程设定", typeof(WorkflowMapPage));
+        nav.Register("导包工具", typeof(PackageMigrationPage));
         nav.Register("字段翻译", typeof(PropertyTranslationPage));
         nav.Register("表单翻译", typeof(FormTranslationPage));
         nav.Register("窗体翻译", typeof(FieldTranslationPage));

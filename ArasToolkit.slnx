@@ -4,8 +4,10 @@
     <Project Path="src/ArasToolkit.App.WinUI/ArasToolkit.App.WinUI.csproj" />
     <Project Path="src/ArasToolkit.Core/ArasToolkit.Core.csproj" />
     <Project Path="src/ArasToolkit.Services/ArasToolkit.Services.csproj" />
+    <Project Path="src/ArasToolkit.PackageBridge/ArasToolkit.PackageBridge.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ArasToolkit.PackageMigration.RegressionTests/ArasToolkit.PackageMigration.RegressionTests.csproj" />
     <Project Path="tests/ArasToolkit.WorkflowMap.SmokeTests/ArasToolkit.WorkflowMap.SmokeTests.csproj" />
   </Folder>
 </Solution>

@@ -83,6 +83,7 @@ public class DashboardViewModel : ObservableObject
 
     public ObservableCollection<QuickAction> AllFeatures { get; } = new()
     {
+        new() { Name = "导包工具", Description = "比较依赖与差异，跨系统迁移官方 AML 包", Icon = "📦" },
         new() { Name = "文本翻译", Description = "AI 驱动的 Excel 批量翻译工具", Icon = "\uE70F" },
         new() { Name = "字段翻译", Description = "按对象类翻译 Aras Property 标签", Icon = "\uE8D2" },
         new() { Name = "表单翻译", Description = "按对象类翻译关联 Form 标签", Icon = "\uE70F" },
