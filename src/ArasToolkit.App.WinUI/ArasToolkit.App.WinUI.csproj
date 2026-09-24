@@ -35,6 +35,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ArasToolkit.Core\ArasToolkit.Core.csproj" />
     <ProjectReference Include="..\ArasToolkit.Services\ArasToolkit.Services.csproj" />
+    <ProjectReference Include="..\ArasToolkit.PackageBridge\ArasToolkit.PackageBridge.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
 
   <!-- Opt-in native integration host. Default application startup is unchanged. -->
@@ -52,6 +53,14 @@
   </PropertyGroup>
   <ItemGroup Condition="'$(DataImportSmokeTest)' == 'true'">
     <Compile Include="..\..\tests\ArasToolkit.DataImport.RegressionTests\NativeSmoke.cs" Link="DataImportNativeSmoke.cs" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(PackageMigrationSmokeTest)' == 'true'">
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <StartupObject>ArasToolkit.PackageMigration.NativeTests.NativeProgram</StartupObject>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(PackageMigrationSmokeTest)' == 'true'">
+    <Compile Include="..\..\tests\ArasToolkit.PackageMigration.RegressionTests\NativeSmoke.cs" Link="PackageMigrationNativeSmoke.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -88,4 +97,11 @@
           Condition="'@(LocalConfigFiles)' != ''" />
   </Target>
 
+  <Target Name="CopyPackageBridge" AfterTargets="Build">
+    <ItemGroup>
+      <BridgeFiles Include="$(OutDir)ArasToolkit.PackageBridge.exe*" Condition="Exists('$(OutDir)ArasToolkit.PackageBridge.exe')" />
+      <BridgeFiles Include="..\ArasToolkit.PackageBridge\bin\$(Configuration)\net48\ArasToolkit.PackageBridge.exe*" Condition="!Exists('$(OutDir)ArasToolkit.PackageBridge.exe')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BridgeFiles)" DestinationFolder="$(TargetDir)PackageBridge" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

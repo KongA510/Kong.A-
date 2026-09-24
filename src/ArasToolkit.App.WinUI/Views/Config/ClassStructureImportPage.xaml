@@ -121,6 +121,7 @@
                         <Border Padding="10,7" CornerRadius="7" Background="#EEF2FF">
                             <TextBlock Text="{Binding PreviewSummary}" Foreground="#4338CA" FontWeight="SemiBold" TextWrapping="Wrap" />
                         </Border>
+                        <TextBlock Text="{Binding PreviewNormalizationMessage}" Foreground="#9A3412" TextWrapping="Wrap" />
                         <ScrollViewer Height="230" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                             <Border Padding="12" Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="7">
                                 <TextBlock Text="{Binding PreviewTreeText}" FontFamily="Consolas" FontSize="13" />

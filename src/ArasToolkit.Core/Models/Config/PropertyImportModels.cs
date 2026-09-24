@@ -32,7 +32,7 @@ public static class PropertyDataTypeOptions
         new("Color List", "color list", 64, null, null, "填写 Aras List 名称"),
         new("Color", "color"),
         new("Formatted Text", "formatted text"),
-        new("Foreign", "foreign", null, null, null, "填写当前对象类中已有的 Item 属性名称"),
+        new("Foreign", "foreign", null, null, null, "填写当前对象类中已有或本模板前面行定义的 Item 属性名称"),
         new("Multilingual String", "ml_string", 256),
         new("Multi Value List", "mv_list", 64, null, null, "填写 Aras List 名称"),
         new("Global Version", "global_version"),
@@ -100,6 +100,12 @@ public sealed class PropertyImportPreviewRow : ObservableObject
 
     /// <summary>覆盖模式命中的现有 Property GUID；为空表示将新增。</summary>
     public string ExistingPropertyId { get; set; } = string.Empty;
+
+    /// <summary>被后续 Foreign 引用时，为待新增属性预分配的 GUID。</summary>
+    public string NewPropertyId { get; set; } = string.Empty;
+
+    /// <summary>Foreign 提交前必须成功汇入的前置 Excel 行。</summary>
+    public HashSet<int> DependencyRowNumbers { get; } = [];
 
     public string PlannedAction
     {

@@ -175,7 +175,7 @@
             control.style.maxWidth = `${num(v.width, length)}px`; if (v.height) control.style.height = `${num(v.height)}px`;
           } break;
         }
-        case 'formatted text': control = placeholder(doc, '富文本 · 静态预览'); break;
+        case 'formatted text': control = placeholder(doc, '富文本 · 静态预览'); control.style.width = `${num(v.textarea_cols, length)}px`; control.style.height = `${num(v.textarea_rows, 100)}px`; break;
         case 'class structure': control = placeholder(doc, '分类结构 · 选择分类…'); break;
         case 'item': case 'file item': case 'date': case 'color': case 'ml_string':
           control = doc.createElement('div'); control.className = 'compound';

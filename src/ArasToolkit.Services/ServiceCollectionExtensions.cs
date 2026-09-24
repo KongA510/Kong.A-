@@ -99,6 +99,10 @@ public static class ServiceCollectionExtensions
         // 注册工作流程设定服务（单例：Excel预览、Workflow Map AML生成与覆盖导入）
         services.AddSingleton<IWorkflowMapService, WorkflowMapService>();
 
+        services.AddSingleton<IArasMigrationSessionFactory, ArasMigrationSessionFactory>();
+        services.AddSingleton<IOfficialPackageEngine, OfficialPackageEngine>();
+        services.AddSingleton<IArasPackageService, ArasPackageService>();
+
         // 注册文件浏览器服务（单例，纯文件系统操作）
         services.AddSingleton<IFileExplorerService, FileExplorerService>();
 

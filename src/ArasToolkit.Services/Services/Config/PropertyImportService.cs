@@ -168,6 +168,7 @@ public sealed class PropertyImportService : IPropertyImportService
             VerifySelectedItemType(innovator, itemTypeId, itemTypeName);
 
             var referenceCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var preparedRows = new Dictionary<string, PropertyImportPreviewRow>(StringComparer.OrdinalIgnoreCase);
             foreach (var row in preview.Rows)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -179,7 +180,7 @@ public sealed class PropertyImportService : IPropertyImportService
 
                 try
                 {
-                    ResolveDataSourceReferences(innovator, itemTypeId, row, referenceCache);
+                    ResolveDataSourceReferences(innovator, itemTypeId, row, referenceCache, preparedRows);
                     var existing = FindProperty(innovator, itemTypeId, row.Name);
                     row.ExistingPropertyId = existing?.getID() ?? string.Empty;
 
@@ -193,6 +194,7 @@ public sealed class PropertyImportService : IPropertyImportService
                     var willUpdate = mode == "覆盖" && existing != null;
                     row.PlannedAction = willUpdate ? "覆盖现有属性" : "新增属性";
                     row.AmlPreview = BuildPropertyAml(row, itemTypeId, willUpdate);
+                    preparedRows.Add(row.Name, row);
                 }
                 catch (Exception ex)
                 {
@@ -288,6 +290,13 @@ public sealed class PropertyImportService : IPropertyImportService
 
                     try
                     {
+                        var failedDependencies = row.DependencyRowNumbers.Where(number =>
+                            !result.RowStatuses.TryGetValue(number, out var status) ||
+                            status is not ("已新增" or "已覆盖")).ToList();
+                        if (failedDependencies.Count > 0)
+                            throw new InvalidOperationException(
+                                $"Foreign 依赖的前置属性未成功汇入（行 {string.Join("、", failedDependencies)}），本行未提交");
+
                         var response = innovator.applyAML(row.AmlPreview);
                         if (response.isError())
                             throw new InvalidOperationException(response.getErrorString());
@@ -618,7 +627,7 @@ public sealed class PropertyImportService : IPropertyImportService
         var notesRow = firstTypeRow + PropertyDataTypeOptions.All.Count + 2;
         dictionary.Cells[notesRow, 1, notesRow, 9].Merge = true;
         dictionary.Cells[notesRow, 1].Value =
-            "填写规则：数据类型必须从下拉框选择；String/Multilingual String 默认长度 256，List/Filter List/Color List/Multi Value List 默认长度 64，Decimal 默认精度 10、小数位数 2；显示顺序从 100 起每行递增 10。Item 填 ItemType 名称，List 系列填 List 名称，Foreign 的数据源填当前对象类中已有 Item 属性名称，并填写引用外部属性名称。";
+            "填写规则：数据类型必须从下拉框选择；String/Multilingual String 默认长度 256，List/Filter List/Color List/Multi Value List 默认长度 64，Decimal 默认精度 10、小数位数 2；显示顺序从 100 起每行递增 10。Item 填 ItemType 名称，List 系列填 List 名称。Foreign 的数据源填当前对象类中已有或本模板前面行定义的 Item 属性名称，并填写目标对象类的外部属性名称；依赖属性必须放在 Foreign 前面。";
         dictionary.Cells[notesRow, 1].Style.WrapText = true;
         dictionary.Cells[notesRow, 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
         dictionary.Cells[notesRow, 1].Style.Fill.BackgroundColor.SetColor(
@@ -819,6 +828,8 @@ public sealed class PropertyImportService : IPropertyImportService
             new XAttribute("action", updateExisting ? "edit" : "add"));
         if (updateExisting)
             item.Add(new XAttribute("id", row.ExistingPropertyId));
+        else if (!string.IsNullOrEmpty(row.NewPropertyId))
+            item.Add(new XAttribute("id", row.NewPropertyId));
 
         AddValue(item, "class_path", row.ClassPath);
         AddValue(item, "column_alignment", row.ColumnAlignment);
@@ -861,7 +872,8 @@ public sealed class PropertyImportService : IPropertyImportService
         Innovator innovator,
         string itemTypeId,
         PropertyImportPreviewRow row,
-        Dictionary<string, string> cache)
+        Dictionary<string, string> cache,
+        IReadOnlyDictionary<string, PropertyImportPreviewRow> preparedRows)
     {
         if (string.IsNullOrWhiteSpace(row.DataSource))
             return;
@@ -884,7 +896,7 @@ public sealed class PropertyImportService : IPropertyImportService
                     innovator, "Sequence", row.DataSource, cache);
                 break;
             case "foreign":
-                ResolveForeignReferences(innovator, itemTypeId, row);
+                ResolveForeignReferences(innovator, itemTypeId, row, preparedRows);
                 break;
             default:
                 throw new InvalidDataException(
@@ -895,25 +907,64 @@ public sealed class PropertyImportService : IPropertyImportService
     private static void ResolveForeignReferences(
         Innovator innovator,
         string sourceItemTypeId,
-        PropertyImportPreviewRow row)
+        PropertyImportPreviewRow row,
+        IReadOnlyDictionary<string, PropertyImportPreviewRow> preparedRows)
     {
         var sourceProperty = FindPropertyByNameOrId(
             innovator, sourceItemTypeId, row.DataSource,
-            $"Foreign 数据源属性“{row.DataSource}”不存在于当前对象类");
-        var sourceDataType = sourceProperty.getProperty("data_type", string.Empty);
-        var targetItemTypeId = sourceProperty.getProperty("data_source", string.Empty);
+            $"Foreign 数据源属性“{row.DataSource}”不存在于当前对象类", allowMissing: true);
+        var preparedSource = FindPreparedProperty(preparedRows, sourceProperty, row.DataSource);
+        if (sourceProperty == null && preparedSource == null)
+            throw new InvalidDataException(
+                $"Foreign 数据源属性“{row.DataSource}”在当前对象类及模板前面已通过校验的行中均不存在；请将依赖的 Item 属性放在本行之前");
+
+        // 系统查询优先；同名属性已在前面安排覆盖时，必须按本次提交后的定义校验。
+        var sourceDataType = preparedSource?.DataTypeValue ?? sourceProperty!.getProperty("data_type", string.Empty);
+        var targetItemTypeId = preparedSource?.ResolvedDataSourceId ?? sourceProperty!.getProperty("data_source", string.Empty);
         if (!sourceDataType.Equals("item", StringComparison.OrdinalIgnoreCase) ||
             string.IsNullOrWhiteSpace(targetItemTypeId))
         {
             throw new InvalidDataException(
-                $"Foreign 数据源“{row.DataSource}”必须是当前对象类中已有且设置了 ItemType 数据源的 Item 属性");
+                $"Foreign 数据源“{row.DataSource}”必须是设置了有效 ItemType 数据源的 Item 属性");
         }
 
+        var targetIsCurrent = targetItemTypeId.Equals(sourceItemTypeId, StringComparison.OrdinalIgnoreCase);
         var targetProperty = FindPropertyByNameOrId(
             innovator, targetItemTypeId, row.ForeignProperty,
-            $"目标 ItemType 中不存在外部属性“{row.ForeignProperty}”");
-        row.ResolvedDataSourceId = sourceProperty.getID();
-        row.ResolvedForeignPropertyId = targetProperty.getID();
+            $"目标 ItemType 中不存在外部属性“{row.ForeignProperty}”", allowMissing: targetIsCurrent);
+        var preparedTarget = targetIsCurrent
+            ? FindPreparedProperty(preparedRows, targetProperty, row.ForeignProperty) : null;
+        if (targetProperty == null && preparedTarget == null)
+            throw new InvalidDataException(
+                $"目标 ItemType 中不存在外部属性“{row.ForeignProperty}”，模板前面也没有通过校验的对应属性");
+
+        row.ResolvedDataSourceId = preparedSource != null
+            ? ReferencePreparedProperty(preparedSource, row, sourceItemTypeId) : sourceProperty!.getID();
+        row.ResolvedForeignPropertyId = preparedTarget != null
+            ? ReferencePreparedProperty(preparedTarget, row, sourceItemTypeId) : targetProperty!.getID();
+    }
+
+    private static PropertyImportPreviewRow? FindPreparedProperty(
+        IReadOnlyDictionary<string, PropertyImportPreviewRow> preparedRows, Item? existing, string nameOrId)
+    {
+        var name = existing?.getProperty("name", string.Empty) ?? nameOrId;
+        return preparedRows.TryGetValue(name, out var row) ? row : null;
+    }
+
+    private static string ReferencePreparedProperty(
+        PropertyImportPreviewRow dependency, PropertyImportPreviewRow dependent, string itemTypeId)
+    {
+        dependent.DependencyRowNumbers.Add(dependency.ExcelRowNumber);
+        if (!string.IsNullOrEmpty(dependency.ExistingPropertyId))
+            return dependency.ExistingPropertyId;
+
+        // 只给被引用的新属性分配 ID。预检不写入 Aras，提交源属性和 Foreign 使用同一 ID。
+        if (string.IsNullOrEmpty(dependency.NewPropertyId))
+        {
+            dependency.NewPropertyId = Guid.NewGuid().ToString("N").ToUpperInvariant();
+            dependency.AmlPreview = BuildPropertyAml(dependency, itemTypeId, updateExisting: false);
+        }
+        return dependency.NewPropertyId;
     }
 
     private static Item? FindProperty(Innovator innovator, string sourceItemTypeId, string propertyName)
@@ -937,11 +988,12 @@ public sealed class PropertyImportService : IPropertyImportService
         return count == 1 ? response.getItemByIndex(0) : null;
     }
 
-    private static Item FindPropertyByNameOrId(
+    private static Item? FindPropertyByNameOrId(
         Innovator innovator,
         string sourceItemTypeId,
         string nameOrId,
-        string notFoundMessage)
+        string notFoundMessage,
+        bool allowMissing = false)
     {
         var query = innovator.newItem("Property", "get");
         query.setAttribute("select", "id,name,data_type,data_source,source_id");
@@ -954,9 +1006,15 @@ public sealed class PropertyImportService : IPropertyImportService
         }
 
         var response = query.apply();
+        // R37 用 faultcode=0 表示无匹配（getItemCount() == 0）；权限/服务端错误不可回退模板。
+        if (response.getItemCount() == 0)
+        {
+            if (allowMissing) return null;
+            throw new InvalidDataException(notFoundMessage);
+        }
         ThrowIfError(response, $"查询 Property“{nameOrId}”失败");
         if (response.getItemCount() != 1)
-            throw new InvalidDataException(notFoundMessage);
+            throw new InvalidDataException($"无法唯一解析 Property“{nameOrId}”，检测到多个匹配属性");
 
         var property = response.getItemByIndex(0);
         var actualSourceId = property.getProperty("source_id", string.Empty);

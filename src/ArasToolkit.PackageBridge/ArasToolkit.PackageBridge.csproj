@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <ArasPackageEnginePath Condition="'$(ArasPackageEnginePath)' == ''">$(MSBuildThisFileDirectory)..\..\..\PackageImportExportUtilities\ConsoleUpgrade</ArasPackageEnginePath>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="IOM"><HintPath>$(ArasPackageEnginePath)\IOM.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Libs"><HintPath>$(ArasPackageEnginePath)\Libs.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Aras.Net"><HintPath>$(ArasPackageEnginePath)\Aras.Net.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Aras.Cryptography"><HintPath>$(ArasPackageEnginePath)\Aras.Cryptography.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

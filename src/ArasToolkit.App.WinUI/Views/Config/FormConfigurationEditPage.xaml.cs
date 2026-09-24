@@ -230,11 +230,12 @@ public sealed partial class FormConfigurationEditPage : Page
     private void OnEditorChanged(string kind)
     {
         if (_disposed) return;
+        SyncLayoutPreview();
         switch (kind)
         {
             case "sources": SyncPickers(); break;
             case "coordinates": UpdateCoordinateBoxes(); break;
-            case "selection": SyncFieldSelection(); RenderInspector(); SendSelection(); break;
+            case "selection": SyncFieldSelection(); RenderInspector(); SendSelection(); RevealSelectedPreview(); break;
             case "zoom": _ = ScriptAsync($"window.formEditor.setZoom({_vm.Zoom.ToString(CultureInfo.InvariantCulture)})"); break;
             default: SyncPickers(); RenderFieldList(); RenderInspector(); QueueCanvas(); break;
         }
@@ -326,7 +327,7 @@ public sealed partial class FormConfigurationEditPage : Page
         ["name"] = "控件名称", ["label"] = "标签", ["field_type"] = "控件类型", ["propertytype_id"] = "绑定属性 ID",
         ["x"] = "X 坐标", ["y"] = "Y 坐标", ["positioning"] = "定位方式", ["display_length"] = "显示长度",
         ["display_length_unit"] = "长度单位", ["width"] = "宽度（px）", ["height"] = "高度（px）",
-        ["textarea_rows"] = "Text Area 行尺寸", ["textarea_cols"] = "Text Area 列尺寸", ["z_index"] = "层级 Z", ["tab_index"] = "Tab 顺序", ["tab_stop"] = "参与 Tab 导航",
+        ["textarea_rows"] = "行尺寸（px）", ["textarea_cols"] = "列尺寸（px）", ["z_index"] = "层级 Z", ["tab_index"] = "Tab 顺序", ["tab_stop"] = "参与 Tab 导航",
         ["is_visible"] = "可见", ["is_disabled"] = "不可编辑", ["label_position"] = "标签位置", ["text_align"] = "文字对齐",
         ["font_family"] = "字体", ["font_size"] = "字号", ["font_color"] = "标题颜色", ["font_weight"] = "字体粗细", ["font_style"] = "字体样式",
         ["html_code"] = "HTML 内容", ["legend"] = "边框标题", ["border_width"] = "边框宽度", ["border_style"] = "边框样式", ["border_color"] = "边框颜色", ["background_color"] = "背景颜色", ["bg_color"] = "背景颜色"
@@ -384,7 +385,7 @@ public sealed partial class FormConfigurationEditPage : Page
     {
         if (isForm) return true;
         if (name is "name" or "propertytype_id") return targets.Count == 1;
-        if (name is "textarea_rows" or "textarea_cols") return targets.All(item => item.Get("field_type") == "textarea");
+        if (name is "textarea_rows" or "textarea_cols") return targets.All(item => ArasFormConfigurationOptions.SupportsTextAreaDimensions(item.Get("field_type")));
         if (name == "html_code") return targets.All(item => item.Get("field_type") == "html");
         if (name == _vm.Metadata!.ImageProperty) return targets.All(item => item.Get("field_type") == "image");
         if (name == _vm.Metadata.NestedFormProperty) return targets.All(item => item.Get("field_type") == "nested form");
@@ -566,7 +567,12 @@ public sealed partial class FormConfigurationEditPage : Page
     {
         if (_vm != null && ZoomPicker.SelectedItem is ComboBoxItem item && double.TryParse(item.Content.ToString()?.TrimEnd('%'), out var value)) _vm.Zoom = value;
     }
-    private void ToolsToggle_Click(object sender, RoutedEventArgs e) => SetToolsVisible(ToolsToggle.IsChecked == true);
+    private bool _compactWorkspace;
+    private void ToolsToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_compactWorkspace && ToolsToggle.IsChecked == true) { EditorToggle.IsChecked = false; SetEditorVisible(false); }
+        SetToolsVisible(ToolsToggle.IsChecked == true);
+    }
     private void SetToolsVisible(bool visible)
     {
         if (Workspace == null) return;
@@ -575,9 +581,32 @@ public sealed partial class FormConfigurationEditPage : Page
     }
     private void Page_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (ToolsToggle == null) return;
-        if (e.NewSize.Width < 1020) { ToolsToggle.IsChecked = false; SetToolsVisible(false); }
+        if (ToolsToggle == null || EditorToggle == null) return;
+        var compact = e.NewSize.Width < 1100;
+        if (compact && !_compactWorkspace) { ToolsToggle.IsChecked = false; SetToolsVisible(false); }
+        _compactWorkspace = compact;
+        SetEditorVisible(EditorToggle.IsChecked == true);
     }
+    private void EditorToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_compactWorkspace && EditorToggle.IsChecked == true) { ToolsToggle.IsChecked = false; SetToolsVisible(false); }
+        SetEditorVisible(EditorToggle.IsChecked == true);
+    }
+    private void SetEditorVisible(bool visible)
+    {
+        EditorDock.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        Workspace.ColumnDefinitions[2].Width = new GridLength(visible ? Math.Clamp(ActualWidth * .33, 340, 440) : 0);
+    }
+    private void LayoutMode_Click(object sender, RoutedEventArgs e) => SetInspectorMode(false);
+    private void InspectorMode_Click(object sender, RoutedEventArgs e) => SetInspectorMode(true);
+    private void SetInspectorMode(bool inspector)
+    {
+        LayoutModeButton.IsChecked = !inspector; InspectorModeButton.IsChecked = inspector;
+        LayoutPreviewPanel.Visibility = inspector ? Visibility.Collapsed : Visibility.Visible;
+        InspectorScroll.Visibility = inspector ? Visibility.Visible : Visibility.Collapsed;
+        if (!inspector) RevealSelectedPreview();
+    }
+    private void SelectedOnly_Click(object sender, RoutedEventArgs e) => SyncLayoutPreview();
     private async void Add_Click(object sender, RoutedEventArgs e) => await RequestAddAsync(null, null);
     private async void PropertyList_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
     { if (PropertyList.SelectedItem is FormEditorProperty property) await RequestAddAsync(property, null); }

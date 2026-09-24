@@ -21,6 +21,10 @@ public sealed class ClassStructurePreview
     public int NodeCount { get; set; }
     public int MaxDepth { get; set; }
     public int DuplicatePathCount { get; set; }
+    public int NormalizedCellCount { get; set; }
+    public string NormalizedNames { get; set; } = string.Empty;
+    public string NormalizationMessage => NormalizedCellCount == 0 ? string.Empty :
+        $"已将 {NormalizedCellCount} 处名称中的半角 / 替换为全角 ／，避免 Aras 保存失败。{NormalizedNames}";
     public string TreeText { get; set; } = string.Empty;
 
     public string Summary =>
@@ -37,4 +41,5 @@ public sealed class ClassStructureImportResult
     public int NodeCount { get; set; }
     public int MaxDepth { get; set; }
     public string ClassStructureXml { get; set; } = string.Empty;
+    public int NormalizedCellCount { get; set; }
 }

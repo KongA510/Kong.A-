@@ -16,7 +16,12 @@ public static class ArasFormConfigurationOptions
 {
     public const string DefaultFieldType = "text";
     public const string TextAreaFieldType = "textarea";
+    public const string FormattedTextFieldType = "formatted text";
     public const string DefaultFontColor = "#333333";
+
+    public static bool SupportsTextAreaDimensions(string? fieldType) =>
+        string.Equals(fieldType, TextAreaFieldType, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(fieldType, FormattedTextFieldType, StringComparison.OrdinalIgnoreCase);
 
     public static IReadOnlyList<ArasFormOption> FieldTypes { get; } =
     [

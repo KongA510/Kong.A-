@@ -607,7 +607,7 @@ public sealed class FormConfigurationService : IFormConfigurationService
                     new XElement("y", field.Y),
                     new XElement("display_length", field.DisplayLength));
 
-            if (field.IsTextAreaField)
+            if (field.SupportsTextAreaDimensions)
             {
                 fieldItem.Add(
                     new XElement("textarea_rows", field.TextAreaRows),
@@ -678,9 +678,9 @@ public sealed class FormConfigurationService : IFormConfigurationService
             throw new InvalidOperationException("存在不受支持的标题颜色，无法生成窗体。");
         if (request.Fields.Any(field => field.X < 0 || field.Y < 0 || field.DisplayLength <= 0))
             throw new InvalidOperationException("字段的 X、Y 必须大于等于 0，显示长度必须大于 0。");
-        if (request.Fields.Any(field => field.IsTextAreaField &&
+        if (request.Fields.Any(field => field.SupportsTextAreaDimensions &&
                                         (field.TextAreaRows <= 0 || field.TextAreaColumns <= 0)))
-            throw new InvalidOperationException("Text Area 控件的行数和列数必须大于 0。");
+            throw new InvalidOperationException("Text Area / FormattedText 控件的行数和列数必须大于 0。");
     }
 
     /// <summary>

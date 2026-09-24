@@ -98,6 +98,7 @@ public sealed class ClassStructureImportViewModel : ObservableObject, IDisposabl
                 return;
             OnPropertyChanged(nameof(PreviewSummary));
             OnPropertyChanged(nameof(PreviewTreeText));
+            OnPropertyChanged(nameof(PreviewNormalizationMessage));
             OnPropertyChanged(nameof(HasPreview));
             RefreshCommands();
         }
@@ -105,6 +106,7 @@ public sealed class ClassStructureImportViewModel : ObservableObject, IDisposabl
 
     public string PreviewSummary => Preview?.Summary ?? "选择模板后自动解析层级路径";
     public string PreviewTreeText => Preview?.TreeText ?? "第1级\n└─ 第2级\n   └─ 第3级";
+    public string PreviewNormalizationMessage => Preview?.NormalizationMessage ?? string.Empty;
     public bool HasPreview => Preview != null;
 
     public string StatusMessage
@@ -256,7 +258,7 @@ public sealed class ClassStructureImportViewModel : ObservableObject, IDisposabl
         var target = SelectedItemType;
         var confirmed = await _dialogService.ConfirmAsync(
             "全量覆盖类结构",
-            $"将用模板中的 {Preview.PathCount} 条路径、{Preview.NodeCount} 个节点完整替换“{target.DisplayName}”现有的 class_structure。旧结构不会合并或自动保留，是否继续？",
+            $"将用模板中的 {Preview.PathCount} 条路径、{Preview.NodeCount} 个节点完整替换“{target.DisplayName}”现有的 class_structure。旧结构不会合并或自动保留。\n{Preview.NormalizationMessage}\n是否继续？",
             "覆盖并汇入",
             "取消");
         if (!confirmed)
@@ -264,11 +266,13 @@ public sealed class ClassStructureImportViewModel : ObservableObject, IDisposabl
 
         IsBusy = true;
         ErrorMessage = string.Empty;
-        StatusMessage = "正在生成全新 GUID 并覆盖 class_structure…";
+        StatusMessage = "正在校验分类名称、生成子节点 GUID 并覆盖类结构…";
         try
         {
             var result = await _service.ImportAsync(SelectedFilePath, target);
-            StatusMessage = $"汇入完成：{result.ItemTypeName}.class_structure 已全量覆盖，共 {result.NodeCount} 个节点，最深 {result.MaxDepth} 级。";
+            StatusMessage = $"汇入完成：{result.ItemTypeName}.class_structure 已全量覆盖，共 {result.NodeCount} 个节点，最深 {result.MaxDepth} 级。" +
+                (result.NormalizedCellCount > 0 ? $" {result.NormalizedCellCount} 处名称中的 / 已替换为 ／。" : string.Empty) +
+                " 请关闭并重新打开 Aras 中的对象类页面后再编辑。";
             await _dialogService.AlertAsync("类结构汇入完成", StatusMessage);
         }
         catch (Exception ex)

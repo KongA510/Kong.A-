@@ -165,6 +165,22 @@ public sealed class FormConfigurationEditViewModel : ObservableObject, IDisposab
     {
         if (!CanEdit || Session == null || Metadata == null) return;
         var targets = Session.Selected.Any() ? Session.Selected.ToList() : [Session.Document.Form];
+        SetTargetProperty(targets, name, value);
+    }
+
+    /// <summary>布局表按稳定 ID 修改当前草稿，不依赖画布多选状态。</summary>
+    public void SetFieldProperty(string fieldId, string name, string? value)
+    {
+        if (!CanEdit || Session == null || Metadata == null ||
+            !Metadata.Field.ContainsKey(name) || !FormEditorRules.IsEditableField(name, Metadata)) return;
+        var field = Session.Fields.FirstOrDefault(item => item.Id == fieldId);
+        if (field == null || field.Get(name) == (value ?? "")) return;
+        SetTargetProperty([field], name, value);
+    }
+
+    private void SetTargetProperty(List<FormEditorItem> targets, string name, string? value)
+    {
+        if (Session == null || Metadata == null) return;
         var changed = TryEdit(() =>
         {
             Session.BeginEdit();

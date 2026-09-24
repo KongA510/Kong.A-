@@ -3,20 +3,20 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     SizeChanged="Page_SizeChanged">
-    <Grid Margin="24,16,24,16" RowSpacing="10" Background="Transparent">
+    <Grid x:Name="EditorWorkspace" Margin="24,16,24,16" RowSpacing="10" Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" MinHeight="360" />
+            <RowDefinition Height="*" MinHeight="220" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <StackPanel Spacing="2">
                 <TextBlock Text="窗体配置修改" Style="{ThemeResource PageTitleText}" />
-                <TextBlock Text="编辑已有 Classic Form · 拖动、对齐与控件配置" Style="{ThemeResource PageSubtitleText}" />
+                <TextBlock Text="画布与布局同步编辑 · 详细属性按需切换" Style="{ThemeResource PageSubtitleText}" />
             </StackPanel>
             <ProgressRing Grid.Column="1" Width="28" Height="28" IsActive="{Binding IsBusy}" />
         </Grid>
@@ -52,6 +52,7 @@
             <CommandBar.Content>
                 <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                     <ToggleButton x:Name="ToolsToggle" Content="工具区" IsChecked="True" Click="ToolsToggle_Click" />
+                    <ToggleButton x:Name="EditorToggle" Content="编辑区" IsChecked="True" Click="EditorToggle_Click" />
                     <ComboBox x:Name="ZoomPicker" Width="92" SelectionChanged="ZoomPicker_SelectionChanged" SelectedIndex="2">
                         <ComboBoxItem Content="50%" /><ComboBoxItem Content="75%" /><ComboBoxItem Content="100%" /><ComboBoxItem Content="125%" /><ComboBoxItem Content="150%" /><ComboBoxItem Content="200%" />
                     </ComboBox>
@@ -59,7 +60,7 @@
             </CommandBar.Content>
         </CommandBar>
         <Grid x:Name="Workspace" Grid.Row="4" ColumnSpacing="10">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="225" /><ColumnDefinition Width="*" MinWidth="160" /><ColumnDefinition Width="285" /></Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="225" /><ColumnDefinition Width="*" MinWidth="160" /><ColumnDefinition Width="420" /></Grid.ColumnDefinitions>
             <Border x:Name="ToolsPanel" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" CornerRadius="8" Background="{ThemeResource CardBrush}" Padding="10">
                 <Grid RowSpacing="8">
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="2*" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
@@ -93,10 +94,36 @@
                     </Border>
                 </Grid>
             </Border>
-            <Border Grid.Column="2" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" CornerRadius="8" Background="{ThemeResource CardBrush}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel x:Name="Inspector" Padding="14" Spacing="10" />
-                </ScrollViewer>
+            <Border x:Name="EditorDock" Grid.Column="2" BorderBrush="{ThemeResource BorderBrush}" BorderThickness="1" CornerRadius="8" Background="{ThemeResource CardBrush}">
+                <Grid RowSpacing="10" Padding="12">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Grid ColumnSpacing="6">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <ToggleButton x:Name="LayoutModeButton" Content="布局预览" IsChecked="True" HorizontalAlignment="Stretch" Click="LayoutMode_Click" />
+                        <ToggleButton x:Name="InspectorModeButton" Grid.Column="1" Content="详细属性" HorizontalAlignment="Stretch" Click="InspectorMode_Click" />
+                    </Grid>
+                    <Grid x:Name="LayoutPreviewPanel" Grid.Row="1" RowSpacing="8">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <TextBlock Text="字段列已冻结，横向滚动调整各项。" Style="{ThemeResource CaptionText}" TextWrapping="Wrap" />
+                        <Grid Grid.Row="1" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="LayoutPreviewSummary" Text="选择窗体后显示控件。" Style="{ThemeResource CaptionText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            <CheckBox x:Name="SelectedOnlyToggle" Grid.Column="1" Content="仅选中" MinWidth="0" Click="SelectedOnly_Click" />
+                        </Grid>
+                        <ScrollViewer x:Name="LayoutPreviewScroll" Grid.Row="2" HorizontalScrollBarVisibility="Visible" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled" VerticalScrollMode="Disabled" ViewChanged="LayoutPreviewScroll_ViewChanged" IsEnabled="{Binding CanEdit}">
+                            <Grid x:Name="LayoutPreviewTable">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                <Border x:Name="LayoutPreviewHeader" Background="{ThemeResource SurfaceBrush}" />
+                                <ScrollViewer x:Name="LayoutPreviewBodyScroll" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="LayoutPreviewRows" HorizontalAlignment="Left" />
+                                </ScrollViewer>
+                            </Grid>
+                        </ScrollViewer>
+                    </Grid>
+                    <ScrollViewer x:Name="InspectorScroll" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="Inspector" Padding="2" Spacing="10" />
+                    </ScrollViewer>
+                </Grid>
             </Border>
         </Grid>
         <TextBlock Grid.Row="5" Text="{Binding SelectionSummary}" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />

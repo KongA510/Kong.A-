@@ -1,5 +1,7 @@
 # 窗体配置修改回归
 
+当前包括 26 项服务回归及 12 项画布回归。原生宿主覆盖布局表格与画布/属性面板的坐标、颜色联动，按 ID 的单行修改、撤销重做、非法尺寸恢复，以及生成页「不可编辑」勾选框的实际显示和双向切换、FormattedText 行列编辑。另检查画布与编辑区在同一视口、页签切换保留草稿、仅选中筛选、编辑区收起释放画布空间，以及 900px 窗口下所有编辑项保持单行、可横向滚动到末列、选择控件保留横向位置和左右面板交替显示。默认夹具检查富文本在真实 WebView2 中的尺寸；设置快照目录时另验证服务器回读数据的加载。`RenderTargetBitmap` 只用于原生控件布局留证，不包含 WebView2 内容；画布另有 `canvas.png`，编辑区有 `layout-dock.png` / `layout-dock-compact.png` / `layout-dock-style-columns.png`。
+
 不需要 Aras 服务器或工具箱数据库。服务回归使用真实 R37 IOM，替换 `IServerConnection` 传输层；模拟批量事务不是对真实服务器事务行为的验证。
 
 ```powershell
@@ -15,6 +17,8 @@ node tests/ArasToolkit.FormEditor.RegressionTests/canvas.test.cjs
 ```
 
 浏览器测试启动本机临时 HTTP 服务和无头 Edge，结束后关闭。截图写入被忽略的 `.codex/screenshots/form-editor-canvas.png`。不访问真实 Aras 资源；资源请求由测试拦截。
+
+布局冻结列检查：900px 窗口下分别向中间、最右端和左端滚动，核验字段名称及表头位置不变、右侧编辑项正常移动，切换选择后仍保留当前横向位置。
 
 ## WinUI 原生画布回归
 
